@@ -17,6 +17,7 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': resolve('./js/Components'),
+            '~': resolve('./js'),
         },
     },
     server: {
