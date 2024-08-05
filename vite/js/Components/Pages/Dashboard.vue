@@ -7,10 +7,9 @@ import VectorInput from "@/Organisms/VectorInput.vue";
 import Pre from "@/Atoms/Pre.vue";
 import Section from "@/Atoms/Section.vue";
 
-const models = [
-    { title: "Linear", description: "" },
-    { title: "Polynomial", description: "" },
-];
+defineProps({
+    models: Array,
+})
 
 const timings = [
     {

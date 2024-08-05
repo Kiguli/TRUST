@@ -1,9 +1,8 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask
-from flask_inertia import Inertia, render_inertia
+from flask_inertia import Inertia
 from flask_vite import Vite
-from urllib.parse import urlparse
 
 
 def create_app(test_config=None):
@@ -33,10 +32,7 @@ def create_app(test_config=None):
     Vite(app)
 
     # --- Controllers ---
-    @app.route('/')
-    def index():
-        return render_inertia('Dashboard', {
-            'foo': 'bar',
-        })
+    from app.http.controllers import dashboard_controller
+    app.register_blueprint(dashboard_controller.bp)
 
     return app
