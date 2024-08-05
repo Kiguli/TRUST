@@ -13,7 +13,7 @@ defineProps({
 const matrixModel = defineModel({ type: Array, default: () => [] });
 const matrix = ref([]);
 
-function updateMatrix(i, event, nested = false) {
+function updateMatrix(i, event) {
     const oldValue = event.target.value;
     let newValue = oldValue;
 
@@ -21,28 +21,13 @@ function updateMatrix(i, event, nested = false) {
     newValue = newValue.replace(" ", "");
     // Split by comma
     newValue = newValue.split(",");
-    // Manage nesting
-    const nestedIndex = newValue.findIndex(
-        (value) => value.includes("[") && value.includes("]")
-    );
-    if (nestedIndex !== -1) {
-        const start = newValue[nestedIndex].indexOf("[");
-        const end = newValue[nestedIndex].indexOf("]");
-        const array = newValue[nestedIndex].slice(start + 1, end);
-        newValue =
-            newValue[nestedIndex].slice(0, start) +
-            array +
-            newValue[nestedIndex].slice(end + 1);
-        updateMatrix(i, { target: { value: newValue } }, true);
-        return;
-    }
     // Convert to numbers
     newValue = newValue.map((value) => Number(value));
     // Remove empty values
     newValue = newValue.filter((value) => value);
 
     // Update the matrix
-    matrix.value[i - 1] = nested ? [newValue] : newValue;
+    matrix.value[i - 1] = newValue;
 
     // Update the parent
     matrixModel.value = matrix.value.filter((value) => value.length);
