@@ -14,6 +14,7 @@ def app() -> Flask:
         'TESTING': True,
         'SERVER_NAME': 'localhost',
     })
+    app.debug = True
 
     with app.app_context():
         yield app

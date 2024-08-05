@@ -11,4 +11,5 @@ watchdog==4.0.1
 Werkzeug==3.0.3
 wheel==0.43.0
 flask-inertia==0.9
+flask-vite==0.5.1
 

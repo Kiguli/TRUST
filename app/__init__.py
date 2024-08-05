@@ -18,7 +18,8 @@ def create_app(test_config=None):
     else:
         app.config.from_mapping(test_config)
 
-    app.root_path = os.path.abspath(os.path.join(app.root_path, '..'))
+    app.instance_path = os.path.abspath(os.path.dirname(__file__))
+    app.root_path = os.path.abspath(os.path.join(app.instance_path, '..'))
 
     app.config['INERTIA_TEMPLATE'] = "index.html"
     app.config['VITE_AUTO_INSERT'] = True
