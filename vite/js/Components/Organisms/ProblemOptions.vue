@@ -58,7 +58,7 @@ onMounted(() => {
                                 ? 'cursor-not-allowed opacity-50'
                                 : 'cursor-pointer',
                         ]"
-                        class="h-10 relative ring-2 ring-offset-2 ring-offset-transparent ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
+                        class="relative ring-2 ring-offset-2 ring-offset-transparent ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
                         <div class="flex w-full items-center justify-between">
                             <div class="flex items-center">
                                 <div class="text-sm">
@@ -69,7 +69,7 @@ onMounted(() => {
                                                 : 'text-gray-900'
                                         "
                                         as="p"
-                                        class="font-medium">
+                                        class="font-medium line-clamp-1">
                                         {{ option.title }}
                                     </RadioGroupLabel>
 
@@ -81,7 +81,7 @@ onMounted(() => {
                                                 : 'text-gray-500'
                                         "
                                         as="span"
-                                        class="inline">
+                                        class="inline line-clamp-1 text-xs">
                                         <span>{{ option.description }}</span>
                                     </RadioGroupDescription>
                                 </div>
