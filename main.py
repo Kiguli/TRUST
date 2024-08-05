@@ -1,8 +1,13 @@
 import os
-
+from dotenv import load_dotenv
 from flask import Flask
 from flask_inertia import Inertia, render_inertia
 from flask_vite import Vite
+from urllib.parse import urlparse
+
+app_url = urlparse(os.getenv('APP_URL'))
+url_scheme = app_url.scheme
+netloc, app_port = app_url.netloc.split(':')
 
 
 def create_app(test_config=None):
@@ -19,6 +24,8 @@ def create_app(test_config=None):
 
     app.config['INERTIA_TEMPLATE'] = "index.html"
     app.config['VITE_AUTO_INSERT'] = True
+
+    app.config['PREFFERED_URL_SCHEME'] = app_url.scheme
 
     try:
         os.makedirs(app.instance_path)
@@ -40,4 +47,4 @@ def create_app(test_config=None):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run()
+    app.run(host=netloc, port=app_port)
