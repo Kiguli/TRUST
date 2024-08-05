@@ -29,6 +29,9 @@ const modes = [
     { title: "Reachability Barrier", description: "", disabled: true },
 ];
 
+// -- Data
+const data = ref();
+
 // -- Selections
 const model = ref();
 const timing = ref();
@@ -51,7 +54,7 @@ const unsafeSets = ref();
                 :options="timings"
                 title="Timing" />
             <ProblemOptions v-model="mode" :options="modes" title="Mode" />
-            <DatasetInput />
+            <DatasetInput v-model="data" />
         </Section>
 
         <!-- Manual inputs -->
@@ -68,14 +71,16 @@ const unsafeSets = ref();
         <!-- Output -->
         <Section class="bg-gray-200/60 sm:col-span-full lg:col-span-1">
             <H2>Results</H2>
-            <Pre>{{ model }}</Pre>
-            <Pre>{{ timing }}</Pre>
-            <Pre>{{ mode }}</Pre>
+            <Pre title="Model">{{ model }}</Pre>
+            <Pre title="Timing">{{ timing }}</Pre>
+            <Pre title="Mode">{{ mode }}</Pre>
             <hr />
-            <Pre>{{ monomials }}</Pre>
-            <Pre>{{ stateSpace }}</Pre>
-            <Pre>{{ initialSet }}</Pre>
-            <Pre>{{ unsafeSets }}</Pre>
+            <Pre title="Data">{{ data }}</Pre>
+            <hr />
+            <Pre title="Monomials">{{ monomials }}</Pre>
+            <Pre title="StateSpace">{{ stateSpace }}</Pre>
+            <Pre title="InitialSet">{{ initialSet }}</Pre>
+            <Pre title="UnsafeSets">{{ unsafeSets }}</Pre>
         </Section>
     </div>
 </template>

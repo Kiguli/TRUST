@@ -1,4 +1,6 @@
-<script setup></script>
+<script setup>
+const data = defineModel()
+</script>
 
 <template>
     <div
@@ -11,12 +13,14 @@
         </p>
 
         <textarea
+            v-model="data"
             rows="5"
             name="dataset"
             id="dataset"
             autocapitalize="off"
             autocomplete="off"
             aria-autocomplete="none"
+            placeholder="e.g. [[1, 2], [3, 4]]"
             class="block w-full rounded-lg border-0 outline-none px-2 font-mono py-1.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600" />
     </div>
 </template>

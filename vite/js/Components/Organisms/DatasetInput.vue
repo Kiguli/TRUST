@@ -1,20 +1,17 @@
 <script setup>
-import H2 from "@/Atoms/H2.vue"
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import UploadDataPanel from "@/Molecules/UploadDataPanel.vue"
-import ManualDataPanel from "@/Molecules/ManualDataPanel.vue"
+import H2 from "@/Atoms/H2.vue";
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue";
+import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
+import ManualDataPanel from "@/Molecules/ManualDataPanel.vue";
 
-const modes = [
-    { title: "Upload"},
-    { title: "Manual"},
-]
+const data = defineModel();
+
+const modes = [{ title: "Manual" }, { title: "Upload" }];
 </script>
 
 <template>
     <div class="py-1">
-        <H2>
-            Add Dataset
-        </H2>
+        <H2> Add Dataset </H2>
 
         <TabGroup>
             <TabList class="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
@@ -38,7 +35,7 @@ const modes = [
             <TabPanels class="mt-2">
                 <TabPanel v-for="mode in modes" :key="mode">
                     <UploadDataPanel v-if="mode.title === 'Upload'" />
-                    <ManualDataPanel v-else />
+                    <ManualDataPanel v-model="data" v-else />
                 </TabPanel>
             </TabPanels>
         </TabGroup>
