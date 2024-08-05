@@ -1,10 +1,14 @@
-from flask import Blueprint
-from flask_inertia import render_inertia
+from flask import Blueprint, request
+from flask_inertia import lazy_include, render_inertia
 
 bp = Blueprint('dashboard', __name__)
 
 
-@bp.route('/')
+def getResult():
+    return request.args.get('result', None)
+
+
+@bp.get('/', endpoint='index')
 def index():
     models = [
         {'title': "Linear", 'description': ""},
@@ -27,4 +31,5 @@ def index():
         'models': models,
         'timings': timings,
         'modes': modes,
+        'result': lazy_include(getResult),
     })
