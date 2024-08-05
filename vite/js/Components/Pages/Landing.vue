@@ -27,6 +27,7 @@ const modes = [
     { title: "Stability", description: "" },
     { title: "Safety Barrier", description: "" },
     { title: "Reachability Barrier", description: "", disabled: true },
+    { title: "Reach and Avoid Barrier", description: "", disabled: true },
 ];
 
 // -- Data
