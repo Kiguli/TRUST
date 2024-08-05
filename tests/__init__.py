@@ -1,6 +1,7 @@
 from flask.testing import FlaskClient, FlaskCliRunner
 from flask import Flask
 from faker import Faker
+from flask_inertia.unittest import InertiaTestResponse
 import pytest
 
 from app import create_app
@@ -15,6 +16,7 @@ def app() -> Flask:
         'SERVER_NAME': 'localhost',
     })
     app.debug = True
+    app.response_class = InertiaTestResponse
 
     with app.app_context():
         yield app
