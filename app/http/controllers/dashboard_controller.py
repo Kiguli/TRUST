@@ -1,3 +1,5 @@
+from time import strftime
+
 from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
 
@@ -5,7 +7,8 @@ bp = Blueprint('dashboard', __name__)
 
 
 def getResult():
-    return request.args.get('result', None)
+    # For now, just return the request args
+    return request.args
 
 
 @bp.get('/', endpoint='index')
@@ -26,6 +29,8 @@ def index():
         {'title': "Reachability Barrier", 'description': "", 'disabled': True},
         {'title': "Reach and Avoid Barrier", 'description': "", 'disabled': True},
     ]
+
+    print(request.args.get('model'))
 
     return render_inertia('Dashboard', {
         'models': models,
