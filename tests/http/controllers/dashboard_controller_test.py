@@ -1,8 +1,6 @@
 from pytest import mark
 from faker import Faker
-from tests import client, app
-
-fake = Faker()
+from tests import client, app, sample_data
 
 
 def test_it_renders_the_dashboard(client):
@@ -46,7 +44,7 @@ def test_it_passes_in_the_modes(client):
     assert modes[3].disabled is True
 
 
-def test_it_has_a_lazy_loaded_result(client):
+def test_it_has_a_lazy_loaded_result(client, sample_data):
     headers = {
         'X-Inertia': 'true',
         'X-Inertia-Partial-Data': ['result'],
@@ -55,7 +53,7 @@ def test_it_has_a_lazy_loaded_result(client):
         'Accept': 'application/json',
     }
 
-    response = client.post('/', json=sample_config(), headers=headers)
+    response = client.post('/', json=sample_data, headers=headers)
 
     assert response.status_code == 200
     result = response.json['props']['result']
@@ -119,7 +117,7 @@ def test_it_requires_states_match_dimensionality(client):
     pass
 
 
-def test_it_returns_the_stability_function(client):
+def test_it_returns_the_stability_function(client, sample_data):
     headers = {
         'X-Inertia': 'true',
         'X-Inertia-Partial-Data': ['result'],
@@ -128,29 +126,10 @@ def test_it_returns_the_stability_function(client):
         'Accept': 'application/json',
     }
 
-    stability_config = sample_config()
-    stability_config['mode'] = 'Stability'
+    sample_data['mode'] = 'Stability'
 
-    response = client.post('/', json=stability_config, headers=headers)
+    response = client.post('/', json=sample_data, headers=headers)
 
     assert response.status_code == 200
 
     assert response.json['props']['result']['stability_function'] is not None
-
-
-def sample_config():
-    return {
-        'model': fake.random_element(['Linear', 'Polynomial']),
-        'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
-        'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
-        'data': [],
-        'state_space': {
-            'x1': [17, 20],
-        },
-        'initial_state': {
-            'x1': [17, 18],
-        },
-        'unsafe_state': {
-            'x1': [19, 20],
-        }
-    }

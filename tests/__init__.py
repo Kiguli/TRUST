@@ -6,6 +6,8 @@ import pytest
 
 from app import create_app
 
+fake = Faker()
+
 
 @pytest.fixture
 def app() -> Flask:
@@ -32,3 +34,22 @@ def client(app) -> FlaskClient:
 def runner(app) -> FlaskCliRunner:
     """Create a test CLI runner for the Flask app"""
     return app.test_cli_runner()
+
+
+@pytest.fixture
+def sample_data():
+    return {
+        'model': fake.random_element(['Linear', 'Polynomial']),
+        'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
+        'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
+        'data': [],
+        'state_space': {
+            'x1': [17, 20],
+        },
+        'initial_state': {
+            'x1': [17, 18],
+        },
+        'unsafe_state': {
+            'x1': [19, 20],
+        }
+    }
