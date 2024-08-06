@@ -32,9 +32,3 @@ def client(app) -> FlaskClient:
 def runner(app) -> FlaskCliRunner:
     """Create a test CLI runner for the Flask app"""
     return app.test_cli_runner()
-
-
-@pytest.fixture
-def fake() -> Faker:
-    """Create a Faker instance for generating test data"""
-    return Faker()

@@ -1,7 +1,8 @@
 from pytest import mark
-from pytest import mark
-
+from faker import Faker
 from tests import client, app
+
+fake = Faker()
 
 
 def test_it_renders_the_dashboard(client):
@@ -50,14 +51,17 @@ def test_it_has_a_lazy_loaded_result(client):
         'X-Inertia': 'true',
         'X-Inertia-Partial-Data': ['result'],
         'X-Inertia-Partial-Component': 'Dashboard',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
     }
 
-    response = client.get('/', headers=headers)
+    response = client.post('/', json=sample_config(), headers=headers)
 
     assert response.status_code == 200
     result = response.json['props']['result']
     assert isinstance(result, dict)
     assert result is not None
+    assert 'time_taken' in result
 
 
 @mark.skip
@@ -127,20 +131,18 @@ def test_it_returns_the_stability_function(client):
     stability_config = sample_config()
     stability_config['mode'] = 'Stability'
 
-    response = client.post('/', json=sample_config(), headers=headers)
+    response = client.post('/', json=stability_config, headers=headers)
 
     assert response.status_code == 200
-    # Assert the result is a dict and contains the stability function
-    result = response.json['props']['result']
-    assert isinstance(result, dict)
-    assert 'stability_function' in result
+
+    assert response.json['props']['result']['stability_function'] is not None
 
 
 def sample_config():
     return {
-        'model': 'Linear',
-        'timing': 'Discrete-Time',
-        'mode': 'Stability',
+        'model': fake.random_element(['Linear', 'Polynomial']),
+        'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
+        'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
         'data': [],
         'state_space': {
             'x1': [17, 20],
