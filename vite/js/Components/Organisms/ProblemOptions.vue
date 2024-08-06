@@ -52,10 +52,10 @@ onMounted(() => {
                                 ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-indigo-300'
                                 : '',
                             checked
-                                ? 'bg-indigo-900/75 text-white'
-                                : 'bg-white',
+                                ? 'bg-indigo-900/75'
+                                : 'bg-white dark:bg-gray-900',
                             option.disabled
-                                ? 'cursor-not-allowed opacity-50'
+                                ? 'cursor-not-allowed opacity-25'
                                 : 'cursor-pointer',
                         ]"
                         class="relative ring-2 ring-offset-2 ring-offset-transparent ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
@@ -66,7 +66,7 @@ onMounted(() => {
                                         :class="
                                             checked
                                                 ? 'text-white'
-                                                : 'text-gray-900'
+                                                : 'text-gray-900 dark:text-gray-300'
                                         "
                                         as="p"
                                         class="font-medium line-clamp-1">

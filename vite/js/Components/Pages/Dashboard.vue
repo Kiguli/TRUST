@@ -12,7 +12,7 @@ import Section from "@/Atoms/Section.vue";
 
 import route from "~/utilities/route.js";
 
-const props = defineProps({
+defineProps({
     models: Array,
     timings: Array,
     modes: Array,
@@ -45,7 +45,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.get(route("dashboard.index"), {
+    form.post(route("dashboard.index"), {
         preserveState: true,
         preserveScroll: true,
         only: ["result"],
@@ -58,10 +58,13 @@ const submit = () => {
 
     <div class="grid sm:grid-cols-2 lg:h-screen lg:grid-cols-3">
         <!-- Input options -->
-        <Section class="bg-gray-50">
-            <ProblemOptions v-model="form.model" :options="models" title="Model" />
+        <Section class="bg-gray-50 sm:border-r">
             <ProblemOptions
-                v-model="timing"
+                v-model="form.model"
+                :options="models"
+                title="Model" />
+            <ProblemOptions
+                v-model="form.timing"
                 :options="timings"
                 title="Timing" />
             <ProblemOptions v-model="form.mode" :options="modes" title="Mode" />
@@ -69,9 +72,9 @@ const submit = () => {
         </Section>
 
         <!-- Manual inputs -->
-        <Section class="bg-gray-100/80">
+        <Section class="bg-gray-100/80 border-t sm:border-t-0 lg:border-r">
             <VectorInput
-                v-if="model !== 'Linear'"
+                v-if="form.model !== 'Linear'"
                 v-model="form.monomials"
                 title="Monomials" />
             <VectorInput v-model="form.stateSpace" title="State Space" />
@@ -80,15 +83,16 @@ const submit = () => {
         </Section>
 
         <!-- Output -->
-        <Section class="bg-gray-200/60 sm:col-span-full lg:col-span-1">
+        <Section
+            class="bg-gray-200/60 sm:col-span-full lg:col-span-1 border-t lg:border-t-0">
             <H2>Output</H2>
-            <Pre v-if="result" title="Form data">{{ result }}</Pre>
+            <Pre v-if="result" title="Server results">{{ result }}</Pre>
         </Section>
 
         <div
-            class="sticky bottom-0 col-span-full flex w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8">
+            class="sticky bottom-0 col-span-full flex w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:bg-gray-900 dark:border-none dark:shadow-inner">
             <div class="flex flex-col justify-center">
-                <h3 class="mb-0.5 text-base font-medium text-gray-800">
+                <h3 class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
                     <a
                         class="flex w-min cursor-pointer items-center gap-x-0.5"
                         href="https://github.com/kiguli/sintrajbc"
@@ -104,13 +108,13 @@ const submit = () => {
             </div>
             <div class="flex items-center gap-x-2">
                 <button
-                    @click="submit"
                     :disabled="form.processing"
-                    class="order-1 flex h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none ring-2 ring-inset hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 sm:px-5 sm:py-2.5">
+                    class="order-1 flex h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 sm:px-5 sm:py-2.5"
+                    @click="submit">
                     Calculate
                 </button>
                 <button
-                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 ring-2 ring-inset ring-gray-400/75 hover:bg-gray-400 hover:text-white active:bg-gray-500 active:text-white sm:px-5 sm:py-2.5">
+                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:ring-gray-300 active:text-gray-200 sm:px-5 sm:py-2.5">
                     Reset
                 </button>
             </div>

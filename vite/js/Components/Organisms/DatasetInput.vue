@@ -11,22 +11,22 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
 
 <template>
     <div class="py-1">
-        <H2> Add Dataset </H2>
+        <H2>Add Dataset</H2>
 
         <TabGroup>
-            <TabList class="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+            <TabList class="flex space-x-1 rounded-xl bg-blue-900/20 dark:bg-gray-900 p-1">
                 <Tab
-                    as="template"
-                    v-slot="{ selected }"
                     v-for="mode in modes"
-                    :key="mode">
+                    :key="mode"
+                    v-slot="{ selected }"
+                    as="template">
                     <button
-                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
                         :class="[
                             selected
-                                ? 'bg-white text-gray-600 shadow'
-                                : 'text-gray-500 hover:bg-white/[0.20]',
-                        ]">
+                                ? 'bg-white text-gray-600 shadow dark:bg-violet-900/75 dark:text-white'
+                                : 'text-gray-500 hover:bg-white/[0.20] dark:hover:bg-gray-800',
+                        ]"
+                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 focus:outline-none focus:ring-2">
                         {{ mode.title }}
                     </button>
                 </Tab>
@@ -35,7 +35,7 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
             <TabPanels class="mt-2">
                 <TabPanel v-for="mode in modes" :key="mode">
                     <UploadDataPanel v-if="mode.title === 'Upload'" />
-                    <ManualDataPanel v-model="data" v-else />
+                    <ManualDataPanel v-else v-model="data" />
                 </TabPanel>
             </TabPanels>
         </TabGroup>
