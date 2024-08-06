@@ -8,6 +8,10 @@ defineProps({
         type: String,
         required: true,
     },
+    description: {
+        type: String,
+        default: "",
+    },
 });
 
 const matrixModel = defineModel({ type: Array, default: () => [] });
@@ -44,6 +48,9 @@ onMounted(() => {
 <template>
     <div class="py-1">
         <H2>{{ title }}</H2>
+        <p class="text-sm text-gray-400">
+            {{ description }}
+        </p>
         <div
             v-for="i in matrixModel.length + 1"
             :key="i"
@@ -55,6 +62,7 @@ onMounted(() => {
             </label>
             <input
                 :id="`x${i}`"
+                :required="i === 1"
                 aria-autocomplete="none"
                 autocapitalize="off"
                 autocomplete="off"
@@ -64,7 +72,7 @@ onMounted(() => {
                 @input="updateMatrix(i, $event)" />
         </div>
 
-        <div class="flex w-full">
+        <div class="flex w-full" v-show="false">
             <button
                 class="mt-2 rounded-md bg-purple-600/75 px-4 py-2 text-sm text-white hover:bg-purple-700/75 active:bg-purple-800/75"
                 @click="dimensions++">
