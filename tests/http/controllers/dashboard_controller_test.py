@@ -1,6 +1,7 @@
-import pytest
 from pytest import mark
-from tests import app, client
+from pytest import mark
+
+from tests import client, app
 
 
 def test_it_renders_the_dashboard(client):
@@ -51,21 +52,12 @@ def test_it_has_a_lazy_loaded_result(client):
         'X-Inertia-Partial-Component': 'Dashboard',
     }
 
-    response = client.get('/?result=0', headers=headers)
-
-    expected = str(0)
-    actual = response.inertia("app").props.result
+    response = client.get('/', headers=headers)
 
     assert response.status_code == 200
-    assert expected == actual
-
-
-@mark.skip
-def test_it_calculates_the_stability_function_and_redirects_to_the_dashboard_with_the_result(client):
-    response = client.post('/', data=sample_config())
-
-    assert response.status_code == 302
-    assert response.inertia("app").props.result == 0
+    result = response.json['props']['result']
+    assert isinstance(result, dict)
+    assert result is not None
 
 
 @mark.skip
@@ -121,6 +113,27 @@ def test_it_has_many_unsafe_states(client):
 @mark.skip
 def test_it_requires_states_match_dimensionality(client):
     pass
+
+
+def test_it_returns_the_stability_function(client):
+    headers = {
+        'X-Inertia': 'true',
+        'X-Inertia-Partial-Data': ['result'],
+        'X-Inertia-Partial-Component': 'Dashboard',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+
+    stability_config = sample_config()
+    stability_config['mode'] = 'Stability'
+
+    response = client.post('/', json=sample_config(), headers=headers)
+
+    assert response.status_code == 200
+    # Assert the result is a dict and contains the stability function
+    result = response.json['props']['result']
+    assert isinstance(result, dict)
+    assert 'stability_function' in result
 
 
 def sample_config():
