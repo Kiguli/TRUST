@@ -14,6 +14,7 @@ const data = defineModel()
 
         <textarea
             v-model="data"
+            required
             rows="5"
             name="dataset"
             id="dataset"
