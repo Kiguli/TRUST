@@ -56,7 +56,9 @@ const submit = () => {
 <template>
     <Head title="Dashboard" />
 
-    <div class="grid sm:grid-cols-2 lg:h-screen lg:grid-cols-3">
+    <form
+        class="grid sm:grid-cols-2 lg:h-screen lg:grid-cols-3"
+        @submit.prevent="submit">
         <!-- Input options -->
         <Section class="bg-gray-50 sm:border-r">
             <ProblemOptions
@@ -76,23 +78,48 @@ const submit = () => {
             <VectorInput
                 v-if="form.model !== 'Linear'"
                 v-model="form.monomials"
+                description="Enter the lower and upper bounds"
                 title="Monomials" />
-            <VectorInput v-model="form.stateSpace" title="State Space" />
-            <VectorInput v-model="form.initialSet" title="Initial Set" />
-            <VectorInput v-model="form.unsafeSets" title="Unsafe Set" />
+            <VectorInput
+                v-model="form.stateSpace"
+                description="Enter the lower and upper bounds"
+                title="State Space" />
+            <VectorInput
+                v-model="form.initialState"
+                description="Enter the lower and upper bounds"
+                title="Initial Set" />
+            <VectorInput
+                v-model="form.unsafeStates"
+                description="Enter the lower and upper bounds"
+                title="Unsafe Set" />
         </Section>
 
         <!-- Output -->
         <Section
-            class="bg-gray-200/60 sm:col-span-full lg:col-span-1 border-t lg:border-t-0">
+            class="border-t bg-gray-200/60 sm:col-span-full lg:col-span-1 lg:border-t-0">
             <H2>Output</H2>
             <Pre v-if="result" title="Server results">{{ result }}</Pre>
+            <div v-else class="flex items-center gap-x-2">
+                <div class="flex justify-center pt-px">
+                    <span class="relative flex h-3 w-3">
+                        <span
+                            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                        <span
+                            class="relative inline-flex h-3 w-3 rounded-full bg-blue-500"></span>
+                    </span>
+                </div>
+
+                <p class="text-sm text-gray-400">
+                    Connected. Waiting for input...
+                </p>
+            </div>
         </Section>
 
         <div
-            class="sticky bottom-0 col-span-full flex w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:bg-gray-900 dark:border-none dark:shadow-inner">
+            class="sticky bottom-0 col-span-full flex h-20 w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:border-none dark:bg-gray-900 dark:shadow-inner">
             <div class="flex flex-col justify-center">
-                <h3 class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
+                <h3
+                    class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
                     <a
                         class="flex w-min cursor-pointer items-center gap-x-0.5"
                         href="https://github.com/kiguli/sintrajbc"
@@ -110,16 +137,16 @@ const submit = () => {
                 <button
                     :disabled="form.processing"
                     class="order-1 flex h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 sm:px-5 sm:py-2.5"
-                    @click="submit">
+                    type="submit">
                     Calculate
                 </button>
                 <button
-                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:ring-gray-300 active:text-gray-200 sm:px-5 sm:py-2.5">
+                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5">
                     Reset
                 </button>
             </div>
         </div>
-    </div>
+    </form>
 </template>
 
 <style scoped></style>
