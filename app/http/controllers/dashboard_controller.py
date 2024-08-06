@@ -2,6 +2,8 @@ from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
 from time import time
 
+from app.models.stability import Stability
+
 bp = Blueprint('dashboard', __name__)
 
 
@@ -13,10 +15,10 @@ def calculate_result():
 
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
-        stability_function = 1#Stability().calculate(data)
+        stability_function = Stability(data).calculate()
     else:
         function_name = 'barrier_function'
-        barrier_function = 2#Barrier().calculate(data)
+        barrier_function = 2  # TODO: Barrier(data).calculate()
 
     time_taken = time() - start_time
 

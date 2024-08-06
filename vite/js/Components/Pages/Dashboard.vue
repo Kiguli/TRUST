@@ -30,8 +30,8 @@ const mode = ref();
 // -- Matrix inputs
 const monomials = ref();
 const stateSpace = ref();
-const initialSet = ref();
-const unsafeSets = ref();
+const initialState = ref();
+const unsafeStates = ref();
 
 const form = useForm({
     model,
@@ -40,8 +40,8 @@ const form = useForm({
     dataset,
     monomials,
     stateSpace,
-    initialSet,
-    unsafeSets,
+    initialState,
+    unsafeStates,
 });
 
 const submit = () => {
