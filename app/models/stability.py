@@ -1,5 +1,6 @@
 import sympy as sp
 import numpy as np
+import cvxpy as cp
 
 
 class Stability:
@@ -9,7 +10,9 @@ class Stability:
 
         self.model = data['model']
         self.timing = data['timing']
-        self.dataset = data['dataset']
+        self.X0 = data['X0']
+        self.X1 = data['X1']
+        self.U0 = data['U0']
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']
@@ -36,7 +39,7 @@ class Stability:
         :return: (Lyapunov_function, controller)
         """
 
-        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': 1}}
-        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x', 'values': {'H': 2, 'P': 3}}
+        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P}}
+        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x', 'values': {'H': H, 'P': P}}
 
         return lyapunov, controller

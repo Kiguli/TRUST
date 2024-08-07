@@ -49,7 +49,7 @@ onMounted(() => {
                     <div
                         :class="[
                             active
-                                ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-indigo-300'
+                                ? 'ring-2 ring-white/60'
                                 : '',
                             checked
                                 ? 'bg-indigo-900/75'
@@ -58,7 +58,7 @@ onMounted(() => {
                                 ? 'cursor-not-allowed opacity-25'
                                 : 'cursor-pointer',
                         ]"
-                        class="relative ring-2 ring-offset-2 ring-offset-transparent ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
+                        class="relative ring-2 ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
                         <div class="flex w-full items-center justify-between">
                             <div class="flex items-center">
                                 <div class="text-sm">

@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
-from time import time
+from time import time, sleep
 
 from app.models.stability import Stability
 
@@ -12,6 +12,11 @@ def calculate_result():
     data = request.get_json()
 
     start_time = time()
+
+    # return {
+    #     'stability_function': data,
+    #     'time_taken': time() - start_time,
+    # }
 
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
@@ -32,7 +37,7 @@ def calculate_result():
 def index():
     models = [
         {'title': "Linear", 'description': ""},
-        {'title': "Polynomial", 'description': ""},
+        {'title': "Non-Linear Polynomial", 'description': ""},
     ]
 
     timings = [
@@ -42,9 +47,9 @@ def index():
 
     modes = [
         {'title': "Stability", 'description': ""},
-        {'title': "Safety Barrier", 'description': ""},
-        {'title': "Reachability Barrier", 'description': "", 'disabled': True},
-        {'title': "Reach and Avoid Barrier", 'description': "", 'disabled': True},
+        {'title': "Safety", 'description': ""},
+        {'title': "Reachability", 'description': "", 'disabled': True},
+        {'title': "Reach and Avoid", 'description': "", 'disabled': True},
     ]
 
     return render_inertia('Dashboard', {

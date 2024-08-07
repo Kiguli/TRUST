@@ -4,17 +4,36 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 import ManualDataPanel from "@/Molecules/ManualDataPanel.vue";
 
+defineProps({
+    title: {
+        type: String,
+        default: "Add Dataset",
+    },
+    description: {
+        type: String,
+        default: "Enter or upload your dataset.",
+    },
+});
+
 const data = defineModel();
 
 const modes = [{ title: "Manual" }, { title: "Upload" }];
 </script>
 
 <template>
-    <div class="py-1">
-        <H2>Add Dataset</H2>
+    <div class="py-2">
+        <div class="mb-1.5">
+            <H2>
+                {{ title }}
+            </H2>
+            <p class="text-sm text-gray-400">
+                {{ description }}
+            </p>
+        </div>
 
         <TabGroup>
-            <TabList class="flex space-x-1 rounded-xl bg-blue-900/20 dark:bg-gray-900 p-1">
+            <TabList
+                class="flex space-x-1 rounded-xl bg-blue-900/20 p-1 dark:bg-gray-900">
                 <Tab
                     v-for="mode in modes"
                     :key="mode"

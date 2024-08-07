@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
 import { Head, router, useForm } from "@inertiajs/vue3";
 
@@ -20,7 +20,9 @@ defineProps({
 });
 
 // -- Data
-const dataset = ref();
+const X0 = ref();
+const X1 = ref();
+const U0 = ref();
 
 // -- Selections
 const model = ref();
@@ -37,7 +39,9 @@ const form = useForm({
     model,
     timing,
     mode,
-    dataset,
+    X0,
+    X1,
+    U0,
     monomials,
     stateSpace,
     initialState,
@@ -51,6 +55,17 @@ const submit = () => {
         only: ["result"],
     });
 };
+
+onMounted(() => {
+    // TESTING - default vals
+    form.X0 = '17.1\n17.8\n18.2'
+    form.U0 = '0.1\n0.4\n0.2'
+    form.X1 = '17.8\n18.2\n19.3'
+});
+
+watch(form, (newVal) => {
+    console.log(form.stateSpace);
+});
 </script>
 
 <template>
@@ -68,9 +83,11 @@ const submit = () => {
             <ProblemOptions
                 v-model="form.timing"
                 :options="timings"
-                title="Timing" />
-            <ProblemOptions v-model="form.mode" :options="modes" title="Mode" />
-            <DatasetInput v-model="form.dataset" />
+                title="Class" />
+            <ProblemOptions v-model="form.mode" :options="modes" title="Specification" />
+            <DatasetInput title="Add X0" v-model="form.X0" />
+            <DatasetInput title="Add X1" v-model="form.X1" />
+            <DatasetInput title="Add U0" v-model="form.U0" />
         </Section>
 
         <!-- Manual inputs -->
@@ -91,7 +108,7 @@ const submit = () => {
             <VectorInput
                 v-model="form.unsafeStates"
                 description="Enter the lower and upper bounds"
-                title="Unsafe Set" />
+                title="Unsafe Sets" />
         </Section>
 
         <!-- Output -->
@@ -116,7 +133,7 @@ const submit = () => {
         </Section>
 
         <div
-            class="sticky bottom-0 col-span-full flex h-20 w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:border-none dark:bg-gray-900 dark:shadow-inner">
+            class="sticky bottom-0 col-span-full flex min-h-20 w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:border-none dark:bg-gray-900 dark:shadow-inner">
             <div class="flex flex-col justify-center">
                 <h3
                     class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
