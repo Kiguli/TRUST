@@ -42,9 +42,9 @@ def sample_data():
         'model': fake.random_element(['Linear', 'Polynomial']),
         'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
         'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
-        'X0': [],
-        'X1': [],
-        'U0': [],
+        'X0': [17.1, 17.8, 18.2],
+        'U0': [0.1, 0.4, 0.2],
+        'X1': [17.8, 18.2, 19.3],
         'stateSpace': {
             'x1': [17, 20],
         },

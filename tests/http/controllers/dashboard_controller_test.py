@@ -17,7 +17,7 @@ def test_it_passes_in_the_models(client):
     assert isinstance(models, list)
     assert len(models) == 2
     assert models[0].title == "Linear"
-    assert models[1].title == "Polynomial"
+    assert models[1].title == "Non-Linear Polynomial"
 
 
 def test_it_passes_in_the_timings(client):
@@ -37,10 +37,10 @@ def test_it_passes_in_the_modes(client):
     assert isinstance(modes, list)
     assert len(modes) == 4
     assert modes[0].title == "Stability"
-    assert modes[1].title == "Safety Barrier"
-    assert modes[2].title == "Reachability Barrier"
+    assert modes[1].title == "Safety"
+    assert modes[2].title == "Reachability"
     assert modes[2].disabled is True
-    assert modes[3].title == "Reach and Avoid Barrier"
+    assert modes[3].title == "Reach and Avoid"
     assert modes[3].disabled is True
 
 

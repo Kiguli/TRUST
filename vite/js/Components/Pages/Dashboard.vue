@@ -21,8 +21,8 @@ defineProps({
 
 // -- Data
 const X0 = ref();
-const X1 = ref();
 const U0 = ref();
+const X1 = ref();
 
 // -- Selections
 const model = ref();
@@ -55,17 +55,6 @@ const submit = () => {
         only: ["result"],
     });
 };
-
-onMounted(() => {
-    // TESTING - default vals
-    form.X0 = '17.1\n17.8\n18.2'
-    form.U0 = '0.1\n0.4\n0.2'
-    form.X1 = '17.8\n18.2\n19.3'
-});
-
-watch(form, (newVal) => {
-    console.log(form.stateSpace);
-});
 </script>
 
 <template>
@@ -86,8 +75,8 @@ watch(form, (newVal) => {
                 title="Class" />
             <ProblemOptions v-model="form.mode" :options="modes" title="Specification" />
             <DatasetInput title="Add X0" v-model="form.X0" />
-            <DatasetInput title="Add X1" v-model="form.X1" />
             <DatasetInput title="Add U0" v-model="form.U0" />
+            <DatasetInput title="Add X1" v-model="form.X1" />
         </Section>
 
         <!-- Manual inputs -->

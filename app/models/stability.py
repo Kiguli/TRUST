@@ -39,7 +39,33 @@ class Stability:
         :return: (Lyapunov_function, controller)
         """
 
-        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P}}
-        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x', 'values': {'H': H, 'P': P}}
+        X0 = np.array([self.X0])
+        X1 = np.array([self.X1])
+
+        n = X0.shape[0]
+        T = X0.shape[1]
+
+        # Unknown terms
+        P = cp.Variable((n, n), symmetric=True)
+        H = cp.Variable((T, n))
+
+        block_matrix = cp.bmat([
+            [P, X1 @ H],
+            [H.T @ X1.T, P]
+        ])
+
+        constraints = [P >> 0, P == X0 @ H, block_matrix >> 0]
+
+        # Set up a simple objective just to calculate P and H
+        objective = cp.Minimize(cp.trace(P))
+
+        prob = cp.Problem(objective, constraints)
+        prob.solve()
+
+        if prob.status in ["infeasible", "unbounded"]:
+            raise ValueError("The problem is infeasible or unbounded.")
+
+        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P.value.tolist()}}
+        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x', 'values': {'H': H.value, 'P': P.value.tolist()}}
 
         return lyapunov, controller

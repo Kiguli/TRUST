@@ -1,14 +1,14 @@
 from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
 from time import time, sleep
-
+from json import dumps
 from app.models.stability import Stability
 
 bp = Blueprint('dashboard', __name__)
 
 
 def calculate_result():
-    # Validate the request data
+    # TODO: validate data
     data = request.get_json()
 
     start_time = time()
@@ -27,10 +27,12 @@ def calculate_result():
 
     time_taken = time() - start_time
 
-    return {
+    result = {
         function_name: locals()[function_name],
         'time_taken': time_taken,
     }
+
+    return str(result)
 
 
 @bp.route('/', endpoint='index', methods=['GET', 'POST'])

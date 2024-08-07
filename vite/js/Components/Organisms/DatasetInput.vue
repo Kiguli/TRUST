@@ -3,6 +3,7 @@ import H2 from "@/Atoms/H2.vue";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 import ManualDataPanel from "@/Molecules/ManualDataPanel.vue";
+import { ref, watch } from "vue";
 
 defineProps({
     title: {
@@ -15,9 +16,16 @@ defineProps({
     },
 });
 
-const data = defineModel();
+const dataModel = defineModel({ type: Array, default: () => [] });
+const data = ref("");
 
 const modes = [{ title: "Manual" }, { title: "Upload" }];
+
+watch(data, (value) => {
+    dataModel.value = value
+        .split(",")
+        .map((value) => Number(value.replace(" ", "")));
+});
 </script>
 
 <template>
