@@ -13,11 +13,6 @@ def calculate_result():
 
     start_time = time()
 
-    # return {
-    #     'stability_function': data,
-    #     'time_taken': time() - start_time,
-    # }
-
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
         stability_function = Stability(data).calculate()
