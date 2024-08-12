@@ -20,6 +20,8 @@ class Stability:
     def calculate(self):
         if self.model == 'Linear' and self.timing == 'Discrete-Time':
             lyapunov, controller = self._solve_discrete_time_linear_system()
+        elif self.model == 'Linear' and self.timing == 'Continuous-Time':
+            lyapunov, controller = self._solve_continuous_time_linear_system()
         else:
             lyapunov, controller = None, None
 
@@ -66,6 +68,35 @@ class Stability:
             raise ValueError("The problem is infeasible or unbounded.")
 
         lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P.value.tolist()}}
-        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x', 'values': {'H': H.value, 'P': P.value.tolist()}}
+        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x',
+                      'values': {'H': H.value.tolist(), 'P': P.value.tolist()}}
+
+        return lyapunov, controller
+
+    def _solve_continuous_time_linear_system(self) -> tuple:
+        X0 = np.array([self.X0])
+        X1 = np.array([self.X1])
+
+        n = X0.shape[0]
+        T = X0.shape[1]
+
+        P = cp.Variable((n, n), symmetric=True)
+        H = cp.Variable((T, n))
+
+        eqn = X1 @ H + H.T @ X1.T
+
+        constraints = [P >> 0, eqn << 0]
+
+        objective = cp.Minimize(cp.trace(P))
+
+        prob = cp.Problem(objective, constraints)
+        prob.solve()
+
+        if prob.status in ["infeasible", "unbounded"]:
+            raise ValueError("The problem is infeasible or unbounded.")
+
+        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P.value.tolist()}}
+        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x',
+                      'values': {'H': H.value.tolist(), 'P': P.value.tolist()}}
 
         return lyapunov, controller

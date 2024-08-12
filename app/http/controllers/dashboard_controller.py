@@ -32,7 +32,7 @@ def calculate_result():
         'time_taken': time_taken,
     }
 
-    return str(result)
+    return result
 
 
 @bp.route('/', endpoint='index', methods=['GET', 'POST'])
