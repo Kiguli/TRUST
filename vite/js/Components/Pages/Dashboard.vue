@@ -1,7 +1,7 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { ref } from "vue";
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
-import { Head, router, useForm } from "@inertiajs/vue3";
+import { Head, useForm } from "@inertiajs/vue3";
 
 import ProblemOptions from "@/Organisms/ProblemOptions.vue";
 import DatasetInput from "@/Organisms/DatasetInput.vue";
