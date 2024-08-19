@@ -51,7 +51,9 @@ def sample_data():
         'initialState': {
             'x1': [17, 18],
         },
-        'unsafeStates': {
-            'x1': [19, 20],
-        }
+        'unsafeStates': [
+            {
+                'x1': [19, 20]
+            },
+        ]
     }

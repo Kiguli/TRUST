@@ -43,10 +43,6 @@ class SafetyBarrier(Barrier):
 
         return super().result(P, U, Q, float(gamma_var), float(lambda_var))
 
-    def _calculate_lagrangian(self) -> list:
-        # TODO: what parameters need to be passed per lagrangian?
-        return [poly_variable(f'L{i}', self.state_space, self.degree) for i in range(len(self.state_space))]
-
     def _add_level_set_constraints(self, gamma, lambda_):
         gamma_var = self.problem.sym_to_var(gamma)
         self.problem.require(gamma_var > 0)
@@ -59,35 +55,38 @@ class SafetyBarrier(Barrier):
         return gamma_var, lambda_var
 
     def _add_lagrangian_constraints(self, gamma, lambda_) -> SOSConstraint:
+        x = self.x()
+
         # barrier = x^T @ P @ x
-        barrier = poly_variable('barrier', self.state_space, self.degree)
-        lie_derivative = np.array([sp.diff(barrier, xi) for xi in self.state_space])
+        barrier = poly_variable('barrier', x, self.degree)
+        lie_derivative = np.array([sp.diff(barrier, xi) for xi in x])
 
         # --- Lagrangian's ---
-        # TODO: pass relevant params
-        L = self._calculate_lagrangian()
-        L_init = self._calculate_lagrangian()
-        # TODO: support multiple unsafe regions
-        L_unsafe = self._calculate_lagrangian()
+        L = [poly_variable(f'L_{i + 1}', x, self.degree) for i in range(len(x))]
+        L_init = [poly_variable(f'L_init_{i + 1}', x, self.degree) for i in range(len(x))]
+        L_unsafe_list = []
+        for i in range(len(self.unsafe_states)):
+            L_unsafe_list.append([poly_variable(f'L_unsafe_{j}_{i + 1}', x, self.degree) for j in range(len(x))])
 
-        g = Barrier.generate_polynomial(self.state_space)
-        g_init = Barrier.generate_polynomial(self.initial_state)
-        g_unsafe = [Barrier.generate_polynomial(unsafe_state) for unsafe_state in self.unsafe_states]
+        g = self.generate_polynomial(self.state_space.values())
+        g_init = self.generate_polynomial(self.initial_state.values())
+        g_unsafe_list = [self.generate_polynomial(unsafe_state.values()) for unsafe_state in self.unsafe_states]
 
-        L_init_G_init = [L * g for L, g in zip(L_init, g_init)]
-        # TODO: support multiple unsafe regions
-        L_unsafe_G_unsafe = [L * g for L, g in zip(L_unsafe, g_unsafe)]
         L_G = [L * g for L, g in zip(L, g)]
+        L_init_G_init = [L * g for L, g in zip(L_init, g_init)]
+        L_unsafe_G_unsafe = []
+        for i in range(len(self.unsafe_states)):
+            L_unsafe_G_unsafe.append([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])])
 
-        [self.problem.require(i, self.state_space) for i in L]
-        # TODO: support multiple unsafe regions
-        [self.problem.require(i, self.state_space) for i in L_init]
-        [self.problem.require(i, self.state_space) for i in L_unsafe]
+        [self.problem.require(i, x) for i in L]
+        [self.problem.require(i, x) for i in L_init]
+        for L_unsafe in L_unsafe_list:
+            [self.problem.require(i, x) for i in L_unsafe]
 
-        self.problem.require(-barrier - sum(L_init_G_init) + gamma, self.state_space)
-        self.problem.require(barrier - sum(L_unsafe_G_unsafe) - lambda_, self.state_space)
-        self.problem.require(-np.sum(lie_derivative * f) - sum(L_G), self.state_space)
+        self.problem.require(-barrier - sum(L_init_G_init) + gamma, x)
+        self.problem.require(barrier - sum(L_unsafe_G_unsafe) - lambda_, x)
+        self.problem.require(-np.sum(lie_derivative * f) - sum(L_G), x)
 
-        barrier_constraint = self.problem.require(barrier, self.state_space)
+        barrier_constraint = self.problem.require(barrier, x)
 
         return barrier_constraint

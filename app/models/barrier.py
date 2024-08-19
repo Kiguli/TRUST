@@ -1,3 +1,6 @@
+import sympy as sp
+
+
 class Barrier:
     """Barrier Interface"""
 
@@ -33,14 +36,18 @@ class Barrier:
             'lambda': _lambda,
         }
 
-    @staticmethod
-    def generate_polynomial(space: list) -> list:
+    def generate_polynomial(self, space: list) -> list:
         """Generate the polynomial for the given space"""
 
+        lower_bounds = [dimension[0] for dimension in space]
+        upper_bounds = [dimension[1] for dimension in space]
+
+        return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x(), lower_bounds, upper_bounds)]
+
+    def x(self):
+        """
+        Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
+        """
+
         dimensions = len(self.state_space)
-        x = sp.symbols(f'x1:{dimensions + 1}')
-
-        lower_bounds = space[0]
-        upper_bounds = space[1]
-
-        return [(var - lower) * (upper - var) for var, lower, upper in zip(x, lower_bounds, upper_bounds)]
+        return sp.symbols(f'x1:{dimensions + 1}')
