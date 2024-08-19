@@ -34,7 +34,13 @@ class Barrier:
         }
 
     @staticmethod
-    def generate_polynomial(x) -> list:
-        """Generate the polynomial for the given bounds"""
-        lower_bounds, upper_bounds = zip(*[(0, 1) for _ in x])
+    def generate_polynomial(space: list) -> list:
+        """Generate the polynomial for the given space"""
+
+        dimensions = len(self.state_space)
+        x = sp.symbols(f'x1:{dimensions + 1}')
+
+        lower_bounds = space[0]
+        upper_bounds = space[1]
+
         return [(var - lower) * (upper - var) for var, lower, upper in zip(x, lower_bounds, upper_bounds)]
