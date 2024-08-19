@@ -43,6 +43,8 @@ class Stability:
             constraints = self._discrete_constraints(X0, X1, P, H)
         elif self.timing == 'Continuous-Time':
             constraints = self._continuous_constraints(X0, X1, P, H)
+        else:
+            constraints = []
 
         objective = cp.Minimize(cp.trace(P))
 

@@ -2,7 +2,16 @@ class Barrier:
     """Barrier Interface"""
 
     def __init__(self, data: dict):
-        pass
+        self.model = data['model']
+        self.timing = data['timing']
+        self.X0 = data['X0']
+        self.X1 = data['X1']
+        self.U0 = data['U0']
+        self.state_space = data['stateSpace']
+        self.initial_state = data['initialState']
+        self.unsafe_states = data['unsafeStates']
+        # TODO: ask user for custom degree
+        self.degree = len(self.state_space)
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
