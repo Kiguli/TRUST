@@ -70,10 +70,9 @@ class SafetyBarrier(Barrier):
         # TODO: support multiple unsafe regions
         L_unsafe = self._calculate_lagrangian()
 
-        # TODO: calculate g vars
-        g = []
-        g_init = []
-        g_unsafe = []
+        g = Barrier.generate_polynomial(self.state_space)
+        g_init = Barrier.generate_polynomial(self.initial_state)
+        g_unsafe = [Barrier.generate_polynomial(unsafe_state) for unsafe_state in self.unsafe_states]
 
         L_init_G_init = [L * g for L, g in zip(L_init, g_init)]
         # TODO: support multiple unsafe regions

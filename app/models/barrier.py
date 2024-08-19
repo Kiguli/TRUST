@@ -34,6 +34,7 @@ class Barrier:
         }
 
     @staticmethod
-    def _generate_polynomial(x, lower_bounds, upper_bounds):
+    def generate_polynomial(x) -> list:
         """Generate the polynomial for the given bounds"""
+        lower_bounds, upper_bounds = zip(*[(0, 1) for _ in x])
         return [(var - lower) * (upper - var) for var, lower, upper in zip(x, lower_bounds, upper_bounds)]
