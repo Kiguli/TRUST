@@ -74,19 +74,20 @@ class SafetyBarrier(Barrier):
 
         L_G = [L * g for L, g in zip(L, g)]
         L_init_G_init = [L * g for L, g in zip(L_init, g_init)]
-        L_unsafe_G_unsafe = []
+        L_unsafe_G_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe_G_unsafe.append([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])])
+            L_unsafe_G_unsafe_set.append([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])])
 
-        [self.problem.require(i, x) for i in L]
-        [self.problem.require(i, x) for i in L_init]
+        [self.problem.add_sos_constraint(i, x) for i in L]
+        [self.problem.add_sos_constraint(i, x) for i in L_init]
         for L_unsafe in L_unsafe_list:
-            [self.problem.require(i, x) for i in L_unsafe]
+            [self.problem.add_sos_constraint(i, x) for i in L_unsafe]
 
-        self.problem.require(-barrier - sum(L_init_G_init) + gamma, x)
-        self.problem.require(barrier - sum(L_unsafe_G_unsafe) - lambda_, x)
-        self.problem.require(-np.sum(lie_derivative * f) - sum(L_G), x)
+        self.problem.add_sos_constraint(-barrier - sum(L_init_G_init) + gamma, x)
+        for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
+            self.problem.add_sos_constraint(barrier - sum(L_unsafe_G_unsafe) - lambda_, x)
+        self.problem.add_sos_constraint(-np.sum(lie_derivative * f) - sum(L_G), x)
 
-        barrier_constraint = self.problem.require(barrier, x)
+        barrier_constraint = self.problem.add_sos_constraint(barrier, x)
 
         return barrier_constraint

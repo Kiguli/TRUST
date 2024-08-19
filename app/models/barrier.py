@@ -14,7 +14,7 @@ class Barrier:
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']
         # TODO: ask user for custom degree
-        self.degree = len(self.state_space)
+        self.degree = 2
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
