@@ -17,7 +17,8 @@ class Barrier:
         """Calculate the components of the Barrier Certificate"""
         raise NotImplementedError
 
-    def result(self, P, U, Q, gamma, _lambda):
+    @staticmethod
+    def result(P, U, Q, gamma, _lambda):
         """Return the result of the Barrier Certificate calculation"""
         return {
             'barrier': {
@@ -31,3 +32,8 @@ class Barrier:
             'gamma': gamma,
             'lambda': _lambda,
         }
+
+    @staticmethod
+    def _generate_polynomial(x, lower_bounds, upper_bounds):
+        """Generate the polynomial for the given bounds"""
+        return [(var - lower) * (upper - var) for var, lower, upper in zip(x, lower_bounds, upper_bounds)]
