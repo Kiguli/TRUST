@@ -42,18 +42,21 @@ def sample_data():
         'model': fake.random_element(['Linear', 'Polynomial']),
         'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
         'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
-        'X0': [17.1, 17.8, 18.2],
+        'X0': [[17.1, 6], [17.8, 7], [18.2, 8]],
         'U0': [0.1, 0.4, 0.2],
-        'X1': [17.8, 18.2, 19.3],
+        'X1': [[17.8, 9], [18.2, 10], [19.3, 11]],
         'stateSpace': {
             'x1': [17, 20],
+            'x2': [5, 15],
         },
         'initialState': {
             'x1': [17, 18],
+            'x2': [5, 7],
         },
         'unsafeStates': [
             {
-                'x1': [19, 20]
+                'x1': [19, 20],
+                'x2': [11, 15],
             },
         ]
     }

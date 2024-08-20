@@ -1,8 +1,10 @@
+from sympy.core import Add, Mul
 from sympy.matrices.expressions import Identity, MatrixSymbol
-from SumOfSquares import poly_variable, SOSProblem, SOSConstraint
+from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
 from picos.modeling.problem import SolutionFailure
 import numpy as np
 import sympy as sp
+import picos
 
 from app.models.barrier import Barrier
 
@@ -19,6 +21,69 @@ class SafetyBarrier(Barrier):
         self.problem = SOSProblem()
 
     def calculate(self):
+        results = None
+
+        if self.timing == 'Discrete-Time':
+            results = self._discrete_system()
+        elif self.timing == 'Continuous-Time':
+            results = self._continuous_system()
+
+        return results
+
+    def _discrete_system(self):
+        H = None
+        P = None
+        U = None
+
+        # 2.2 Discrete-time Linear System Barrier
+        # We now introduce $L_I(x),L_U(x),L(x)$ as vectors of SOS polynomials
+        # (probably use degree $2$ so also quadratic, could become a user chosen term later).
+        # We can solve the following using the SumOfSquares toolbox where we also
+        # add an additional constraint for the equality.
+        # We consider matrix $H\in\reals^{T\times n}$ and symmetric positive definite matrix $P\in\reals^{n\times n}$
+        # such that P_inverse = X0 @ H, and the following are sum-of-squares:
+        # 1. -x.T @ P @ x - L_init_T(x) @ g_init(x) + gamma
+        # 2. x.T @ P @ x - L_unsafe_T(x) @ g_unsafe(x) + lambda
+        # 3. Matrix([[ P_inverse, H.T @ X1.T], [X1 @ H, P_inverse]]) - L_T(x) @ g(x)
+        # We can define P_inverse as Z, i.e Z = X0 @ H, and
+        # 4. Matrix([[ Z, H.T @ X1.T], [X1 @ H, Z]]) >> 0
+
+        # --- Level Set Constraints ---
+        gamma = picos.RealVariable('gamma')
+        lambda_ = picos.RealVariable('lambda')
+
+        self.problem.require(gamma > 0)
+        self.problem.require(lambda_ > 0)
+        self.problem.require(lambda_ > gamma)
+
+        # --- SOS Constraints ---
+        x = self.x()
+        Z = matrix_variable('Z', list(x), 0, self.dimensions)
+        P = Z.inv()
+        H = matrix_variable('H', list(x), 0, self.dimensions)
+
+        self.problem.add_matrix_sos_constraint(mat=H, variables=list(x))
+        self.problem.add_matrix_sos_constraint(mat=P - (10 ** -6) * sp.eye(self.dimensions), variables=list(x))
+
+        barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
+
+        # Solve for Z and H first, so we can then solve for P
+        
+
+        return {
+            'barrier': {
+                'expression': 'x^T @ P @ x',
+                'values': {'P': P},
+            },
+            'controller': {
+                'expression': 'U_{0,T} @ H @ P @ x',
+                'values': {'U': U, 'H': H},
+            },
+            'gamma': gamma,
+            'lambda': lambda_,
+        }
+
+    def _continuous_system(self):
         gamma = sp.symbols('gamma')
         lambda_ = sp.symbols('lambda')
 
@@ -41,7 +106,18 @@ class SafetyBarrier(Barrier):
         U = None
         Q = None
 
-        return super().result(P, U, Q, float(gamma_var), float(lambda_var))
+        return {
+            'barrier': {
+                'expression': 'x^T @ P @ x',
+                'values': {'P': P},
+            },
+            'controller': {
+                'expression': 'U_{0,T} @ Q @ x',
+                'values': {'U': U, 'Q': Q},
+            },
+            'gamma': gamma,
+            'lambda': lambda_,
+        }
 
     def _add_level_set_constraints(self, gamma, lambda_):
         gamma_var = self.problem.sym_to_var(gamma)
@@ -57,9 +133,11 @@ class SafetyBarrier(Barrier):
     def _add_lagrangian_constraints(self, gamma, lambda_) -> SOSConstraint:
         x = self.x()
 
-        # barrier = x^T @ P @ x
-        barrier = poly_variable('barrier', x, self.degree)
-        lie_derivative = np.array([sp.diff(barrier, xi) for xi in x])
+        P = matrix_variable('P', list(x), 0, self.dimensions)
+        self._add_matrix_sos_const(self.problem, 'P_const', P - (10 ** -6) * sp.eye(self.dimensions), list(x))
+
+        barrier: sp.Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
+        # lie_derivative = np.array([sp.diff(barrier, xi) for xi in x])
 
         # --- Lagrangian's ---
         L = [poly_variable(f'L_{i + 1}', x, self.degree) for i in range(len(x))]
@@ -83,11 +161,30 @@ class SafetyBarrier(Barrier):
         for L_unsafe in L_unsafe_list:
             [self.problem.add_sos_constraint(i, x) for i in L_unsafe]
 
+        # TODO: fix barrier-sum operation
         self.problem.add_sos_constraint(-barrier - sum(L_init_G_init) + gamma, x)
         for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
             self.problem.add_sos_constraint(barrier - sum(L_unsafe_G_unsafe) - lambda_, x)
-        self.problem.add_sos_constraint(-np.sum(lie_derivative * f) - sum(L_G), x)
+        # self.problem.add_sos_constraint(-np.sum(lie_derivative * f) - sum(L_G), x)
 
         barrier_constraint = self.problem.add_sos_constraint(barrier, x)
 
         return barrier_constraint
+
+    def _add_matrix_sos_const(self, prob, name, mat, variables):
+        p, vs = self._matrix_sos_poly(name, mat)
+        return prob.add_sos_constraint(p, vs + variables)
+
+    @staticmethod
+    def _matrix_sos_poly(name, mat):
+        """Returns a polynomial that must be sum of squares for MAT to be sum of
+        squares. This polynomial is defined using auxiliary variables with NAME,
+        which are also returned.
+        """
+        n, m = mat.shape
+        assert n == m, 'Matrix must be square!'
+        # TODO: check that matrix is symmetric
+        aux_variables = sp.symbols(f'{name}_:{n}')
+        x = sp.Matrix([aux_variables])
+
+        return (x @ mat @ x.T)[0], list(aux_variables)
