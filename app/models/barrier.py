@@ -8,9 +8,9 @@ class Barrier:
     def __init__(self, data: dict):
         self.model = data['model']
         self.timing = data['timing']
-        self.X0 = data['X0']
-        self.X1 = data['X1']
-        self.U0 = data['U0']
+        self.X0: sp.MutableDenseMatrix = sp.MutableDenseMatrix(data['X0']).T
+        self.X1: sp.MutableDenseMatrix = sp.MutableDenseMatrix(data['X1']).T
+        self.U0: sp.MutableDenseMatrix = sp.MutableDenseMatrix(data['U0'])
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']

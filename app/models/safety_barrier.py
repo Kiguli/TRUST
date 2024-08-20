@@ -1,10 +1,11 @@
+from picos.modeling.problem import SolutionFailure
 from sympy.core import Add, Mul
 from sympy.matrices.expressions import Identity, MatrixSymbol
 from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
-from picos.modeling.problem import SolutionFailure
+from typing import List
 import numpy as np
-import sympy as sp
 import picos
+import sympy as sp
 
 from app.models.barrier import Barrier
 
@@ -68,7 +69,6 @@ class SafetyBarrier(Barrier):
         barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
 
         # Solve for Z and H first, so we can then solve for P
-        
 
         return {
             'barrier': {
@@ -137,6 +137,7 @@ class SafetyBarrier(Barrier):
         self._add_matrix_sos_const(self.problem, 'P_const', P - (10 ** -6) * sp.eye(self.dimensions), list(x))
 
         barrier: sp.Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
+        vals = barrier.values()[0]
         # lie_derivative = np.array([sp.diff(barrier, xi) for xi in x])
 
         # --- Lagrangian's ---
@@ -161,13 +162,29 @@ class SafetyBarrier(Barrier):
         for L_unsafe in L_unsafe_list:
             [self.problem.add_sos_constraint(i, x) for i in L_unsafe]
 
-        # TODO: fix barrier-sum operation
-        self.problem.add_sos_constraint(-barrier - sum(L_init_G_init) + gamma, x)
+        barrier_vals = barrier.values()[0]
+        sum_L_init_G_init = sum(L_init_G_init)
+        condition1 = -barrier_vals - sum_L_init_G_init + gamma
+
+        self.problem.add_sos_constraint(condition1, x)
         for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
-            self.problem.add_sos_constraint(barrier - sum(L_unsafe_G_unsafe) - lambda_, x)
+            condition2 = barrier.values()[0] - sum(L_unsafe_G_unsafe) - lambda_
+            self.problem.add_sos_constraint(condition2, x)
         # self.problem.add_sos_constraint(-np.sum(lie_derivative * f) - sum(L_G), x)
 
-        barrier_constraint = self.problem.add_sos_constraint(barrier, x)
+        Q = self.matrix_variable('q', list(x), 0, dim_1=self.X1.cols, dim_2=self.dimensions, hom=False, sym=False)
+        ct_lyapunov: sp.MutableDenseMatrix = self.X1 @ Q + Q.T @ self.X1.T
+
+        ct_vals = np.array(ct_lyapunov.values())
+
+        condition3_set = -ct_vals - sum(L_G)
+        for condition3 in condition3_set:
+            self.problem.add_sos_constraint(condition3, x)
+
+        Q_var = self.problem.sym_to_var(Q)
+        self.problem.require(self.X0 @ Q == sp.eye(self.dimensions))
+
+        barrier_constraint = self.problem.add_sos_constraint(barrier.values()[0], x)
 
         return barrier_constraint
 
@@ -188,3 +205,17 @@ class SafetyBarrier(Barrier):
         x = sp.Matrix([aux_variables])
 
         return (x @ mat @ x.T)[0], list(aux_variables)
+
+    @staticmethod
+    def matrix_variable(name: str, variables: List[sp.Symbol], deg: int, dim_1: int, dim_2: int,
+                        hom: bool = False, sym: bool = True) -> sp.Matrix:
+        """Returns a (symmetric) matrix variable of size dim_1 x dim_2"""
+        # arr = [[None] * dim for _ in range(dim)]
+        arr = np.empty((dim_1, dim_2), dtype=object)
+        for i in range(dim_1):
+            for j in range(dim_2):
+                if j < i and sym:
+                    arr[i][j] = arr[j][i]
+                else:
+                    arr[i][j] = poly_variable(f'{name}[{i}][{j}]', variables, deg, hom=hom)
+        return sp.Matrix(arr)
