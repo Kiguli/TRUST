@@ -28,10 +28,20 @@ class SafetyBarrier(Barrier):
             results = self._discrete_system()
         elif self.timing == 'Continuous-Time':
             results = self._continuous_system()
+        else:
+            raise ValueError(f"Invalid timing '{self.timing}' for Safety Barrier calculations.")
 
         return results
 
     def _discrete_system(self):
+        if self.model == 'Linear':
+            return self._discrete_linear_system()
+        elif self.model == 'Non-Linear Polynomial':
+            return self._discrete_nonlinear_system()
+        else:
+            raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
+
+
         H = None
         P = None
         U = None
