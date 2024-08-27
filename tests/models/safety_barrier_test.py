@@ -2,6 +2,30 @@ from app.models.safety_barrier import SafetyBarrier
 from tests import sample_data
 
 
+# Always P and Z is >> 0
+
+def test_it_must_be_in_safety_mode_for_safety_barriers(sample_data):
+    sample_data['mode'] = 'Invalid'
+
+    try:
+        SafetyBarrier(data=sample_data)
+        assert False
+    except ValueError as e:
+        assert str(e) == f"Invalid mode '{sample_data['mode']}' for Safety Barrier calculations."
+
+
+def test_it_requires_a_valid_timing_for_safety_barriers(sample_data):
+    sample_data['mode'] = 'Safety'
+    sample_data['timing'] = 'Invalid'
+    safety = SafetyBarrier(data=sample_data)
+
+    try:
+        safety.calculate()
+        assert False
+    except ValueError as e:
+        assert str(e) == f"Invalid timing '{sample_data['timing']}' for Safety Barrier calculations."
+
+
 # --- Discrete-Time Linear System Barrier ---
 
 def test_it_returns_the_correct_barrier_expression(sample_data):
