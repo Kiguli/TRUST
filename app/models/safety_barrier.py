@@ -60,6 +60,8 @@ class SafetyBarrier(Barrier):
         # --- SOS Constraints ---
         x = self.x()
         Z = matrix_variable('Z', list(x), 0, self.dimensions)
+        self.problem.add_matrix_sos_constraint(mat=Z - (10 ** -6) * sp.eye(self.dimensions), variables=list(x))
+
         P = Z.inv()
         H = matrix_variable('H', list(x), 0, self.dimensions)
 
