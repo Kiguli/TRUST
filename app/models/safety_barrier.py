@@ -2,7 +2,7 @@ from picos.modeling.problem import SolutionFailure
 from sympy.core import Add, Mul
 from sympy.matrices.expressions import Identity, MatrixSymbol
 from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
-from typing import List
+from typing import List, Union
 import numpy as np
 import picos
 import sympy as sp
@@ -188,18 +188,6 @@ class SafetyBarrier(Barrier):
             self.problem.add_sos_constraint(condition2, x)
         # self.problem.add_sos_constraint(-np.sum(lie_derivative * f) - sum(L_G), x)
 
-        Q = self.matrix_variable('q', list(x), 0, dim_1=self.X1.cols, dim_2=self.dimensions, hom=False, sym=False)
-        ct_lyapunov: sp.MutableDenseMatrix = self.X1 @ Q + Q.T @ self.X1.T
-
-        ct_vals = np.array(ct_lyapunov.values())
-
-        condition3_set = -ct_vals - sum(L_G)
-        for condition3 in condition3_set:
-            self.problem.add_sos_constraint(condition3, x)
-
-        Q_var = self.problem.sym_to_var(Q)
-        self.problem.require(self.X0 @ Q == sp.eye(self.dimensions))
-
         barrier_constraint = self.problem.add_sos_constraint(barrier.values()[0], x)
 
         return barrier_constraint
@@ -221,17 +209,3 @@ class SafetyBarrier(Barrier):
         x = sp.Matrix([aux_variables])
 
         return (x @ mat @ x.T)[0], list(aux_variables)
-
-    @staticmethod
-    def matrix_variable(name: str, variables: List[sp.Symbol], deg: int, dim_1: int, dim_2: int,
-                        hom: bool = False, sym: bool = True) -> sp.Matrix:
-        """Returns a (symmetric) matrix variable of size dim_1 x dim_2"""
-        # arr = [[None] * dim for _ in range(dim)]
-        arr = np.empty((dim_1, dim_2), dtype=object)
-        for i in range(dim_1):
-            for j in range(dim_2):
-                if j < i and sym:
-                    arr[i][j] = arr[j][i]
-                else:
-                    arr[i][j] = poly_variable(f'{name}[{i}][{j}]', variables, deg, hom=hom)
-        return sp.Matrix(arr)
