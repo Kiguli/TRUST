@@ -96,6 +96,20 @@ class SafetyBarrier(Barrier):
         gamma_var, lambda_var = self._add_level_set_constraints(gamma, lambda_)
         barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
 
+        x = self.x()
+
+        Q = matrix_variable('q', list(x), 0, dim=(self.X1.cols, self.dimensions), hom=False, sym=False)
+
+        # ct_lyapunov: sp.MutableDenseMatrix = self.X1 @ Q + Q.T @ self.X1.T
+        #
+        # ct_vals = np.array(ct_lyapunov.values())
+        #
+        # condition3_set = -ct_vals - sum(L_G)
+        # for condition3 in condition3_set:
+        #     self.problem.add_sos_constraint(condition3, x)
+
+        self.problem.require(self.X0 @ Q == sp.eye(self.dimensions))
+
         try:
             self.problem.solve(solver='mosek')
         except SolutionFailure as e:
