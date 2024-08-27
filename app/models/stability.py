@@ -61,16 +61,16 @@ class Stability:
         return lyapunov, controller
 
     @staticmethod
-    def _discrete_constraints(X0, X1, P, H) -> array:
+    def _discrete_constraints(X0, X1, Z, H) -> array:
         block_matrix = cp.bmat([
-            [P, X1 @ H],
-            [H.T @ X1.T, P]
+            [Z, X1 @ H],
+            [H.T @ X1.T, Z]
         ])
 
-        return [P >> 0, P == X0 @ H, block_matrix >> 0]
+        return [Z >> 0, Z == X0 @ H, block_matrix >> 0]
 
     @staticmethod
-    def _continuous_constraints(X0, X1, P, H) -> array:
+    def _continuous_constraints(X0, X1, Z, H) -> array:
         eqn = X1 @ H + H.T @ X1.T
 
-        return [P >> 0, P == X0 @ H, eqn << 0]
+        return [Z >> 0, Z == X0 @ H, eqn << 0]
