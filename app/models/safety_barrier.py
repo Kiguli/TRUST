@@ -131,8 +131,8 @@ class SafetyBarrier(Barrier):
                 'expression': 'U_{0,T} @ Q @ x',
                 'values': {'U': U, 'Q': Q},
             },
-            'gamma': gamma,
-            'lambda': lambda_,
+            'gamma': gamma_var,
+            'lambda': lambda_var
         }
 
     def _add_level_set_constraints(self, gamma, lambda_):
