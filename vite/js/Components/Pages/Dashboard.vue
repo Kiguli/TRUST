@@ -11,6 +11,7 @@ import Pre from "@/Atoms/Pre.vue";
 import Section from "@/Atoms/Section.vue";
 
 import route from "~/utilities/route.js";
+import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 
 defineProps({
     models: Array,
@@ -65,6 +66,21 @@ const submit = () => {
         @submit.prevent="submit">
         <!-- Input options -->
         <Section class="bg-gray-50 sm:border-r">
+            <div>
+                <H2> Upload MOSEK License </H2>
+                <p class="text-sm dark:text-gray-100">
+                    Please upload your MOSEK license file for this session.
+                </p>
+                <p class="text-sm text-gray-400">
+                    If you do not have a license, academics can get a free trial
+                    from the MOSEK website, or a paid version is available.
+                </p>
+
+                <UploadDataPanel
+                    :form="form"
+                    description="Upload or drag and drop your MOSEK license file." />
+            </div>
+
             <ProblemOptions
                 v-model="form.model"
                 :options="models"
@@ -73,14 +89,17 @@ const submit = () => {
                 v-model="form.timing"
                 :options="timings"
                 title="Class" />
-            <ProblemOptions v-model="form.mode" :options="modes" title="Specification" />
-            <DatasetInput title="Add X0" v-model="form.X0" />
-            <DatasetInput title="Add U0" v-model="form.U0" />
-            <DatasetInput title="Add X1" v-model="form.X1" />
+            <ProblemOptions
+                v-model="form.mode"
+                :options="modes"
+                title="Specification" />
+            <DatasetInput v-model="form.X0" title="Add X0" />
+            <DatasetInput v-model="form.U0" title="Add U0" />
+            <DatasetInput v-model="form.X1" title="Add X1" />
         </Section>
 
         <!-- Manual inputs -->
-        <Section class="bg-gray-100/80 border-t sm:border-t-0 lg:border-r">
+        <Section class="border-t bg-gray-100/80 sm:border-t-0 lg:border-r">
             <VectorInput
                 v-if="form.model !== 'Linear'"
                 v-model="form.monomials"
