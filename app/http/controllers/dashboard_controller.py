@@ -35,6 +35,7 @@ def calculate_result():
 
 @bp.route('/', endpoint='index', methods=['GET', 'POST'])
 def index():
+    # TODO: use enums for easier refactoring
     models = [
         {'title': "Linear", 'description': ""},
         {'title': "Non-Linear Polynomial", 'description': ""},
