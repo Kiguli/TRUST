@@ -130,23 +130,21 @@ class SafetyBarrier(Barrier):
         g_unsafe_list = [self.generate_polynomial(unsafe_state.values()) for unsafe_state in self.unsafe_states]
         g = self.generate_polynomial(self.state_space.values())
         # Compute the Lagrangian-polynomial products
-        L_init_G_init = Matrix([L * g for L, g in zip(L_init, g_init)])
+        L_init_G_init = sum([L * g for L, g in zip(L_init, g_init)])
         L_unsafe_G_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe_G_unsafe_set.append([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])])
-        L_unsafe_G_unsafe_set = Matrix(L_unsafe_G_unsafe_set)
-        L_G = Matrix([L * g for L, g in zip(L, g)])
+            L_unsafe_G_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])]))
+        L_G = [L * g for L, g in zip(L, g)]
 
         # Add the lagrangian SOS constraints
-        barrier = MatMul(MatMul(Matrix(x).T, P), Matrix(x))
+        barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
 
-        condition1a = MatAdd(barrier + L_init_G_init)
-        # condition1 = -barrier - sum(L_init_G_init) + gamma
-        # condition1 =
+        # TODO: raise an issue with SOS on github for the following (abstracted from barrier):
+        condition1a = barrier.add(L_init_G_init)
+        self.problem.add_matrix_sos_constraint(mat=condition1, variables=list(x))
 
-        self.problem.add_sos_constraint(condition1, list(x))
         for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
-            self.problem.add_sos_constraint(barrier - sum(L_unsafe_G_unsafe) + lambda_, x)
+            self.problem.add_sos_constraint(Add(barrier - L_unsafe_G_unsafe) + lambda_, x)
         matrix_dt_LS = matrix_Z_dt_LS - sum(L_G)
         # self.problem.add_matrix_sos_constraint()
 
