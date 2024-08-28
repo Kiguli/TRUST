@@ -1,4 +1,4 @@
-from picos import RealVariable, SolutionFailure
+from picos import RealVariable, SolutionFailure, I, Constant
 from sympy import Sum, Identity, MatAdd, MatMul, MatrixSymbol, Matrix, simplify, Add
 from typing import List, Union
 from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
@@ -48,64 +48,32 @@ class SafetyBarrier(Barrier):
         U = None
 
         x = self.x()
-
-        # 2.2 Discrete-time Linear System Barrier
-        # We now introduce $L_I(x),L_U(x),L(x)$ as vectors of SOS polynomials
-        # (probably use degree $2$ so also quadratic, could become a user chosen term later).
-        # We can solve the following using the SumOfSquares toolbox where we also
-        # add an additional constraint for the equality.
-        # We consider matrix $H\in\reals^{T\times n}$ and symmetric positive definite matrix $P\in\reals^{n\times n}$
-        # such that P_inverse = X0 @ H, and the following are sum-of-squares:
-        # 1. -x.T @ P @ x - L_init_T(x) @ g_init(x) + gamma
-        # 2. x.T @ P @ x - L_unsafe_T(x) @ g_unsafe(x) + lambda
-        # 3. Matrix([[ P_inverse, H.T @ X1.T], [X1 @ H, P_inverse]]) - L_T(x) @ g(x)
-        # We can define P_inverse as Z, i.e Z = X0 @ H, and
-        # 4. Matrix([[ Z, H.T @ X1.T], [X1 @ H, Z]]) >> 0
-
-        # initial_problem = pc.Problem()
+        X0 = Constant('X0', self.X0)
+        X1 = Constant('X0', self.X1)
 
         # Define H as a matrix of size T x n
-        # H = RealVariable('H', (self.X0.cols, self.dimensions))
-        # H = matrix_variable('H', list(x), deg=0, dim=(self.X0.cols, self.dimensions))
-        # H = cp.Variable((self.X0.cols, self.dimensions))
-        H = cp.Variable((self.X0.shape[1], self.dimensions))
+        H = self.problem.add_variable('H', (self.X0.shape[1], self.dimensions))
 
         # Define Z as a matrix of size n x n
-        # Z = RealVariable('Z', (self.dimensions, self.dimensions))
-        Z = cp.Variable((self.dimensions, self.dimensions), symmetric=True)
+        Z = self.problem.add_variable('Z', (self.dimensions, self.dimensions), vtype='symmetric')
         # Constrain matrix Z as positive definite (where all eigenvalues are greater than 10^-6)
-        # initial_problem.add_constraint(Z >> 0)
-        # Z = matrix_variable('Z', list(x), 0, self.dimensions)
-        # Z_sym = MatrixSymbol('Z', self.dimensions, self.dimensions)
-        # self.problem.add_matrix_sos_constraint(mat=Z - (10 ** -6) * sp.eye(self.dimensions), variables=list(x))
+        self.problem.add_constraint(Z - 1.0e-6 * I(sp.Matrix(x).shape[1]) >> 0)
         # Constrain Z = X0 @ H
-        # initial_problem.add_constraint(Z == self.X0 @ H)
-        # self.problem.add_matrix_sos_constraint(mat=Z - self.X0 @ H, variables=list(x))
-        # Constrain [[ Z, H.T @ X1.T], [X1 @ H, Z]] >> 0
-        dtLS_z = cp.bmat([
-            [Z, H.T @ self.X1.T],
-            [self.X1 @ H, Z]
-        ])
-        constraints = [Z >> 0, Z == self.X0 @ H, dtLS_z >> 0]
+        self.problem.add_constraint(Z == X0 * H)
 
-        # initial_problem.add_list_of_constraints(dtLS_z >> 0)
-        # matrix_Z_dt_LS = sp.Matrix([[Z, H.T @ self.X1.T], [self.X1 @ H, Z]])
-        # Z_constraint = self.problem.add_matrix_sos_constraint(mat=matrix_Z_dt_LS, variables=list(x))
+        # Constrain [[ Z, H.T @ X1.T], [X1 @ H, Z]] >> 0
+        schur_matrix: Matrix = ((Z & H.T * X1.T) // (X1 * H & Z))
+        self.problem.add_constraint(schur_matrix >> 0)
 
         # Solve for Z and H first, so we can then solve for P
-        # solution = initial_problem.solve(solver='mosek')
-        Z_problem = cp.Problem(cp.Minimize(cp.trace(Z)), constraints)
-        Z_problem.solve()
-        z_vals = Z.value
+        self.problem.solve()
 
-        # solution = self.problem.solve(solver='mosek')
-        # decomp = Z_constraint.get_sos_decomp().values()
-        # z_vals = solution.ap
-        # print(z_vals)
+        Z = np.array(Z)
+        H = np.array(H)
+        schur_np = np.array(schur_matrix)
 
         # Define P as Z_inverse
-        # P = Z.inv()
-        P = np.linalg.inv(z_vals)
+        P = np.linalg.inv(Z)
         # Constrain matrix Z as positive definite (where all eigenvalues are greater than 10^-6)
         # self.problem.add_matrix_sos_constraint(mat=P - (10 ** -6) * sp.eye(self.dimensions), variables=list(x))
 
@@ -134,24 +102,31 @@ class SafetyBarrier(Barrier):
         L_unsafe_G_unsafe_set = []
         for i in range(len(self.unsafe_states)):
             L_unsafe_G_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])]))
-        L_G = sum([L * g for L, g in zip(L, g)]) * Identity(sp.Matrix(x).shape[1])
+        L_G = sum([L * g for L, g in zip(L, g)])
 
         # Add the lagrangian SOS constraints
         barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
 
-        gamma_vec = gamma * Identity(sp.Matrix(x).shape[1])
-        L_init_G_init_vec = L_init_G_init * Identity(sp.Matrix(x).shape[1])
+        gamma_vec = gamma * Identity(1)
+        L_init_G_init_vec = L_init_G_init * Identity(1)
         condition1 = (-MatAdd(barrier, L_init_G_init_vec) + gamma_vec)[0]
         self.problem.add_sos_constraint(condition1, x)
 
         for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
-            lambda_vec = lambda_ * Identity(sp.Matrix(x).shape[1])
-            L_unsafe_G_unsafe_vec = L_unsafe_G_unsafe * Identity(sp.Matrix(x).shape[1])
-            condition2 = (MatAdd(barrier, L_unsafe_G_unsafe_vec) - lambda_vec)[0]
+            lambda_vec = lambda_ * Identity(1)
+            L_unsafe_G_unsafe_vec = L_unsafe_G_unsafe * Identity(1)
+            condition2 = (MatAdd(barrier, -L_unsafe_G_unsafe_vec) - lambda_vec)[0]
             self.problem.add_sos_constraint(condition2, x)
 
-        condition3 = MatAdd(Matrix(dtLS_z), -L_G)[0]
-        self.problem.add_matrix_sos_constraint(mat=condition3, variables=list(x))
+        # condition3 = sp.Matrix(np.subtract(schur_np, L_G))
+        def sub_LG(x):
+            return Add(x, - L_G)
+
+        schur_const = Constant('schur', schur_np)
+
+        condition3 = schur_const - L_G
+        for condition in condition3:
+            self.problem.add_sos_constraint(element, list(x))
 
         # Solve for P, gamma and lambda given the SOS barrier constraints.
 
@@ -164,6 +139,8 @@ class SafetyBarrier(Barrier):
         barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
 
         # Solve for Z and H first, so we can then solve for P
+
+        # TODO: output the simplified version: sp.simplify(barrier[0])
 
         return {
             'barrier': {
