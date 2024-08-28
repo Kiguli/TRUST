@@ -1,7 +1,7 @@
 from picos import RealVariable, SolutionFailure
-from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
-from sympy import Add, Mul, Sum, Identity, MatAdd, MatMul, MatrixSymbol, Matrix
+from sympy import Sum, Identity, MatAdd, MatMul, MatrixSymbol, Matrix, simplify, Add
 from typing import List, Union
+from SumOfSquares import poly_variable, SOSProblem, SOSConstraint, matrix_variable
 import cvxpy as cp
 import numpy as np
 import picos as pc
@@ -129,24 +129,29 @@ class SafetyBarrier(Barrier):
         g_init = self.generate_polynomial(self.initial_state.values())
         g_unsafe_list = [self.generate_polynomial(unsafe_state.values()) for unsafe_state in self.unsafe_states]
         g = self.generate_polynomial(self.state_space.values())
-        # Compute the Lagrangian-polynomial products
+        # Compute the Lagrangian-polynomial products (as matrices)
         L_init_G_init = sum([L * g for L, g in zip(L_init, g_init)])
         L_unsafe_G_unsafe_set = []
         for i in range(len(self.unsafe_states)):
             L_unsafe_G_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])]))
-        L_G = [L * g for L, g in zip(L, g)]
+        L_G = sum([L * g for L, g in zip(L, g)]) * Identity(sp.Matrix(x).shape[1])
 
         # Add the lagrangian SOS constraints
         barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
 
-        # TODO: raise an issue with SOS on github for the following (abstracted from barrier):
-        condition1a = barrier.add(L_init_G_init)
-        self.problem.add_matrix_sos_constraint(mat=condition1, variables=list(x))
+        gamma_vec = gamma * Identity(sp.Matrix(x).shape[1])
+        L_init_G_init_vec = L_init_G_init * Identity(sp.Matrix(x).shape[1])
+        condition1 = (-MatAdd(barrier, L_init_G_init_vec) + gamma_vec)[0]
+        self.problem.add_sos_constraint(condition1, x)
 
         for L_unsafe_G_unsafe in L_unsafe_G_unsafe_set:
-            self.problem.add_sos_constraint(Add(barrier - L_unsafe_G_unsafe) + lambda_, x)
-        matrix_dt_LS = matrix_Z_dt_LS - sum(L_G)
-        # self.problem.add_matrix_sos_constraint()
+            lambda_vec = lambda_ * Identity(sp.Matrix(x).shape[1])
+            L_unsafe_G_unsafe_vec = L_unsafe_G_unsafe * Identity(sp.Matrix(x).shape[1])
+            condition2 = (MatAdd(barrier, L_unsafe_G_unsafe_vec) - lambda_vec)[0]
+            self.problem.add_sos_constraint(condition2, x)
+
+        condition3 = MatAdd(Matrix(dtLS_z), -L_G)[0]
+        self.problem.add_matrix_sos_constraint(mat=condition3, variables=list(x))
 
         # Solve for P, gamma and lambda given the SOS barrier constraints.
 
