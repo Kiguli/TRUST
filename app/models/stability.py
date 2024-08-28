@@ -54,6 +54,8 @@ class Stability:
         if prob.status in ["infeasible", "unbounded"]:
             raise ValueError("The problem is infeasible or unbounded.")
 
+        # TODO: Z = P.inverse()
+        P = Z
         lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P.value.tolist()}}
         controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x',
                       'values': {'H': H.value.tolist(), 'P': P.value.tolist()}}

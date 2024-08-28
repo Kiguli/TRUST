@@ -29,9 +29,7 @@ def test_it_requires_a_valid_timing_for_safety_barriers(sample_data):
 # --- Discrete-Time Linear System Barrier ---
 
 def test_it_calculates_a_barrier_for_discrete_time_linear_system(sample_data):
-    sample_data['mode'] = 'Safety'
-    sample_data['timing'] = 'Discrete-Time'
-    sample_data['model'] = 'Linear'
+    sample_data = _discrete_linear_setup(sample_data)
 
     actual = SafetyBarrier(data=sample_data).calculate()
 
