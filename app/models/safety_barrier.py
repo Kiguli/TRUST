@@ -119,9 +119,15 @@ class SafetyBarrier(Barrier):
         try:
             self.problem.solve()
         except SolutionFailure as e:
-            raise ValueError(f"Failed to solve problem: {e}")
+            return {
+                'error': 'Failed to solve the problem.',
+                'description': str(e)
+            }
         except Exception as e:
-            raise ValueError(f"An unknown error occurred: {e}")
+            return {
+                'error': 'An unknown error occurred.',
+                'description': str(e)
+            }
 
         # TODO: output the simplified version: sp.simplify(barrier[0])
 
@@ -135,6 +141,11 @@ class SafetyBarrier(Barrier):
             },
             'gamma': gamma,
             'lambda': lambda_
+        }
+
+    def _discrete_nonlinear_system(self):
+        return {
+            'error': 'Not implemented yet.'
         }
 
     def _continuous_system(self):
