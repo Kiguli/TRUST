@@ -1,8 +1,9 @@
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSProblem, matrix_variable, poly_variable
+from SumOfSquares import SOSProblem, poly_variable
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Identity, MatAdd, Matrix
+from picos.expressions.data import cvxopt_inverse
+from sympy import Identity, Inverse, MatAdd, Matrix, eye
 
 from app.models.barrier import Barrier
 
@@ -35,6 +36,14 @@ class SafetyBarrier(Barrier):
             return self._discrete_linear_system()
         elif self.model == 'Non-Linear Polynomial':
             return self._discrete_nonlinear_system()
+        else:
+            raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
+
+    def _continuous_system(self):
+        if self.model == 'Linear':
+            return self._continuous_linear_system()
+        elif self.model == 'Non-Linear Polynomial':
+            return self._continuous_nonlinear_system()
         else:
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
@@ -148,48 +157,105 @@ class SafetyBarrier(Barrier):
             'error': 'Not implemented yet.'
         }
 
-    def _continuous_system(self):
-        gamma = sp.symbols('gamma')
-        lambda_ = sp.symbols('lambda')
+    def _continuous_linear_system(self):
 
-        # 2.4 Continuous-time Linear System Barrier
-        # eqn 9: I = X0 @ Q, where I is the identity matrix and X0 is given
-        # eqn 12: −[ X1 @ Q + Q_T @ X1_T ] − L_T(x) @ g(x), where X1 is given, L is the Lagrangian, and g is known
+        U = None
 
-        gamma_var, lambda_var = self._add_level_set_constraints(gamma, lambda_)
-        barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
+        # -- Solve for Z and H
 
         x = self.x()
+        X0 = Constant('X0', self.X0)
+        X1 = Constant('X0', self.X1)
 
-        Q = matrix_variable('q', list(x), 0, dim=(self.X1.cols, self.dimensions), hom=False, sym=False)
+        H = RealVariable('H', (self.X0.shape[1], self.dimensions))
+        Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
 
-        # ct_lyapunov: sp.MutableDenseMatrix = self.X1 @ Q + Q.T @ self.X1.T
-        #
-        # ct_vals = np.array(ct_lyapunov.values())
-        #
-        # condition3_set = -ct_vals - sum(L_g)
-        # for condition3 in condition3_set:
-        #     self.problem.add_sos_constraint(condition3, x)
+        self.problem.add_constraint(H.T * X1.T + X1 * H << 0)
 
-        self.problem.require(self.X0 @ Q == sp.eye(self.dimensions))
+        self.problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
+        self.problem.add_constraint(Z == X0 * H)
 
-        try:
-            self.problem.solve(solver='mosek')
-        except SolutionFailure as e:
-            raise ValueError(f"Failed to solve problem: {e}")
-        except Exception as e:
-            raise ValueError(f"An unknown error occurred: {e}")
+        self.problem.solve(solver='mosek')
 
-        # TODO: return the values
-        P = sum(barrier_constraint.get_sos_decomp())
-        U = None
-        Q = None
+        H = Matrix(H)
+        Z = Matrix(Z)
+
+        P = Z.inv()
+        P_inv = Z
+
+        # -- Solve for Q
+        Q = H @ P
+
+        # TODO: Assert I = X0 @ Q? (It is, up to 10^-6)
+
+        # -- Level set constraints
+
+        gamma = sp.symbols('gamma')
+        lambda_ = sp.symbols('lambda')
+        gamma_var = self.problem.sym_to_var(gamma)
+        lambda_var = self.problem.sym_to_var(lambda_)
+
+        self.problem.require(gamma_var > 0)
+        self.problem.require(lambda_var > 0)
+        self.problem.require(lambda_var > gamma_var)
+
+        # -- Lagrangian constraints
+
+        barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
 
         return {
-            'barrier': {'expression': 'x^T @ P @ x', 'values': {'P': P}, },
-            'controller': {'expression': 'U_{0,T} @ Q @ x', 'values': {'U': U, 'Q': Q}, }, 'gamma': gamma_var,
-            'lambda': lambda_var
+            'barrier': {
+                'expression': 'x^T @ P @ x',
+                'values': {'P': P},
+            },
+            'controller': {
+                'expression': 'U_{0,T} @ Q @ x',
+                'values': {'Q': Q},
+            },
+            'gamma': gamma,
+            'lambda': lambda_
         }
+        # gamma = sp.symbols('gamma')
+        # lambda_ = sp.symbols('lambda')
+        #
+        # # 2.4 Continuous-time Linear System Barrier
+        # # eqn 9: I = X0 @ Q, where I is the identity matrix and X0 is given
+        # # eqn 12: −[ X1 @ Q + Q_T @ X1_T ] − L_T(x) @ g(x), where X1 is given, L is the Lagrangian, and g is known
+        #
+        # gamma_var, lambda_var = self._add_level_set_constraints(gamma, lambda_)
+        # barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
+        #
+        # x = self.x()
+        #
+        # Q = matrix_variable('q', list(x), 0, dim=(self.X1.cols, self.dimensions), hom=False, sym=False)
+        #
+        # # ct_lyapunov: sp.MutableDenseMatrix = self.X1 @ Q + Q.T @ self.X1.T
+        # #
+        # # ct_vals = np.array(ct_lyapunov.values())
+        # #
+        # # condition3_set = -ct_vals - sum(L_g)
+        # # for condition3 in condition3_set:
+        # #     self.problem.add_sos_constraint(condition3, x)
+        #
+        # self.problem.require(self.X0 @ Q == sp.eye(self.dimensions))
+        #
+        # try:
+        #     self.problem.solve(solver='mosek')
+        # except SolutionFailure as e:
+        #     raise ValueError(f"Failed to solve problem: {e}")
+        # except Exception as e:
+        #     raise ValueError(f"An unknown error occurred: {e}")
+        #
+        # # TODO: return the values
+        # P = sum(barrier_constraint.get_sos_decomp())
+        # U = None
+        # Q = None
+        #
+        # return {
+        #     'barrier': {'expression': 'x^T @ P @ x', 'values': {'P': P}, },
+        #     'controller': {'expression': 'U_{0,T} @ Q @ x', 'values': {'U': U, 'Q': Q}, }, 'gamma': gamma_var,
+        #     'lambda': lambda_var
+        # }
 
     def _add_level_set_constraints(self, gamma, lambda_):
         gamma_var = self.problem.sym_to_var(gamma)
