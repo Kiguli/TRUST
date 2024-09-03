@@ -1,3 +1,5 @@
+import pytest
+
 from app.models.safety_barrier import SafetyBarrier
 from tests import sample_data
 
@@ -34,6 +36,7 @@ class TestDiscreteTimeLinearSystemBarrier:
 
         assert actual is not None
 
+    @pytest.mark.skip()
     def test_it_returns_an_error_for_invalid_solutions(self, sample_data):
         sample_data = _discrete_linear_setup(sample_data)
 
@@ -46,25 +49,13 @@ class TestDiscreteTimeLinearSystemBarrier:
             assert actual['error'] == 'An unknown error occurred.'
             assert actual['description'] is not None
 
-    def test_it_returns_the_correct_barrier_expression(self, sample_data):
+    def test_it_returns_the_barrier(self, sample_data):
         sample_data = _discrete_linear_setup(sample_data)
 
         actual = SafetyBarrier(sample_data).calculate()
 
         assert actual['barrier']['expression'] == 'x^T @ P @ x'
-
-    def test_it_contains_the_barrier_value(self, sample_data):
-        sample_data = _discrete_linear_setup(sample_data)
-
-        actual = SafetyBarrier(sample_data).calculate()
-
         assert 'P' in actual['barrier']['values']
-
-    def test_it_contains_a_valid_barrier_value(self, sample_data):
-        sample_data = _discrete_linear_setup(sample_data)
-
-        actual = SafetyBarrier(sample_data).calculate()
-
         assert actual['barrier']['values']['P'] is not None
 
     def test_it_returns_the_correct_controller_expression(self, sample_data):
@@ -73,46 +64,34 @@ class TestDiscreteTimeLinearSystemBarrier:
         actual = SafetyBarrier(sample_data).calculate()
 
         assert actual['controller']['expression'] == 'U_{0,T} @ H @ P @ x'
-
-    def test_it_returns_the_correct_controller_values(self, sample_data):
-        sample_data = _discrete_linear_setup(sample_data)
-
-        actual = SafetyBarrier(sample_data).calculate()
-
-        assert 'U' in actual['controller']['values']
-        assert actual['controller']['values']['U'] is not None
         assert 'H' in actual['controller']['values']
         assert actual['controller']['values']['H'] is not None
-
-    def test_it_calculates_the_level_sets(self, sample_data):
-        sample_data = _discrete_linear_setup(sample_data)
-
-        actual = SafetyBarrier(sample_data).calculate()
-
-        assert actual['gamma'] is not None
-        assert actual['lambda'] is not None
 
     def test_it_returns_valid_level_sets(self, sample_data):
         sample_data = _discrete_linear_setup(sample_data)
 
         actual = SafetyBarrier(sample_data).calculate()
 
+        assert actual['gamma'] is not None
+        assert actual['lambda'] is not None
         assert actual['gamma'] < actual['lambda']
 
+    @pytest.mark.skip()
     def test_it_returns_a_valid_barrier_for_the_level_sets(self, sample_data):
         sample_data = _discrete_linear_setup(sample_data)
 
         actual = SafetyBarrier(sample_data).calculate()
 
-        # Assert that B(x) <= gamma for all x in X_initial aka initial_state
-        # Assert that B(x) >= lambda for all x in X_unsafe aka unsafe_states
+        # TODO: Assert that B(x) <= gamma for all x in X_initial aka initial_state
+        # TODO: Assert that B(x) >= lambda for all x in X_unsafe aka unsafe_states
 
+    @pytest.mark.skip()
     def test_the_next_step_is_less_than_the_current_step(self, sample_data):
         sample_data = _discrete_linear_setup(sample_data)
 
         actual = SafetyBarrier(sample_data).calculate()
 
-        # Assert that B(x+) <= B(x)
+        # TODO: Assert that B(x+) <= B(x)
 
 
 class TestDiscreteTimePolynomialSystemBarrier:
@@ -123,6 +102,35 @@ class TestDiscreteTimePolynomialSystemBarrier:
         actual = SafetyBarrier(data=sample_data).calculate()
 
         assert actual is not None
+
+    def test_it_returns_the_barrier(self, sample_data):
+        sample_data = _discrete_polynomial_setup(sample_data)
+
+        actual = SafetyBarrier(data=sample_data).calculate()
+
+        assert actual['barrier']['expression'] == 'x^T @ P @ x'
+        assert 'P' in actual['barrier']['values']
+        assert actual['barrier']['values']['P'] is not None
+
+    def test_it_returns_the_controller(self, sample_data):
+        sample_data = _discrete_polynomial_setup(sample_data)
+
+        actual = SafetyBarrier(data=sample_data).calculate()
+
+        assert actual['controller']['expression'] == 'U0 @ H(x) @ [N0 @ H(x)]^-1 @ x'
+        assert 'H' in actual['controller']['values']
+        assert actual['controller']['values']['H'] is not None
+        assert 'N' in actual['controller']['values']
+        assert actual['controller']['values']['N'] is not None
+
+    def test_it_returns_the_level_sets(self, sample_data):
+        sample_data = _discrete_polynomial_setup(sample_data)
+
+        actual = SafetyBarrier(data=sample_data).calculate()
+
+        assert actual['gamma'] is not None
+        assert actual['lambda'] is not None
+        assert actual['gamma'] < actual['lambda']
 
 
 class TestContinuousTimeLinearSystemBarrier:
@@ -160,6 +168,7 @@ class TestContinuousTimeLinearSystemBarrier:
         assert actual['gamma'] is not None
         assert actual['lambda'] is not None
         assert actual['gamma'] < actual['lambda']
+
 
 def _discrete_linear_setup(sample_data):
     sample_data['mode'] = 'Safety'

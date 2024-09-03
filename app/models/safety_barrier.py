@@ -1,9 +1,9 @@
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSProblem, poly_variable
+from SumOfSquares import SOSProblem, poly_variable, matrix_variable
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
 from picos.expressions.data import cvxopt_inverse
-from sympy import Identity, Inverse, MatAdd, Matrix, eye
+from sympy import Identity, Inverse, MatAdd, Matrix, eye, simplify
 
 from app.models.barrier import Barrier
 
@@ -48,82 +48,72 @@ class SafetyBarrier(Barrier):
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
     def _discrete_linear_system(self):
+        problem = SOSProblem()
+
         U = None
 
-        x = self.x()
+        x = self.x
         X0 = Constant('X0', self.X0)
         X1 = Constant('X0', self.X1)
 
-        # -- Solve for Z and H
+        # -- Solve for H and Z
 
-        # Define H as a matrix of size T x n
         H = RealVariable('H', (self.X0.shape[1], self.dimensions))
-        # Define Z as a matrix of size n x n
         Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
 
-        self.problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
-        self.problem.add_constraint(Z == X0 * H)
+        problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
+        problem.add_constraint(Z == X0 * H)
 
         schur = ((Z & H.T * X1.T) // (X1 * H & Z))
-        self.problem.add_constraint(schur >> 0)
+        problem.add_constraint(schur >> 0)
 
-        self.problem.solve()
+        problem.solve(solver='mosek')
 
-        # -- Solve for P
+        H = Matrix(H)
+        Z = Matrix(Z)
 
-        P_inv = Matrix(Z)
-        P = Matrix(Z).inv()
-        self.problem.add_matrix_sos_constraint(P - (10 ** -6) * sp.eye(self.dimensions), list(x))
+        P = Z.inv()
+        P_inv = Z
 
-        # Define gamma and lambda
+        # -- Level set constraints
+
         gamma = sp.symbols('gamma')
         lambda_ = sp.symbols('lambda')
         gamma_var = self.problem.sym_to_var(gamma)
         lambda_var = self.problem.sym_to_var(lambda_)
-        # Constrain gamma and lambda
+
         self.problem.require(gamma_var > 0)
         self.problem.require(lambda_var > 0)
         self.problem.require(lambda_var > gamma_var)
 
-        barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
+        # -- Lagrangian polynomials
 
-        # Condition 1: Initial state
-
-        L_init = [poly_variable(f'L_init_{i + 1}', x, self.degree) for i in range(len(x))]
+        L_init = matrix_variable('l_init', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state.values())
-        L_init_g_init = sum([L * g for L, g in zip(L_init, g_init)])
+        Lg_init = sum(L_init @ g_init)
 
-        gamma_vec = gamma * Identity(1)
-        L_init_g_init_vec = L_init_g_init * Identity(1)
-        condition1 = (-MatAdd(barrier, L_init_g_init_vec) + gamma_vec)[0]
-        self.problem.add_sos_constraint(condition1, x)
-
-        # Condition 2: Unsafe states
-
-        L_unsafe_list = []
+        Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe_list.append([poly_variable(f'L_unsafe_{j}_{i + 1}', x, self.degree) for j in range(len(x))])
-        # Generate the polynomials for the state spaces
-        g_unsafe_list = [self.generate_polynomial(unsafe_state.values()) for unsafe_state in self.unsafe_states]
-        L_unsafe_g_unsafe_set = []
-        for i in range(len(self.unsafe_states)):
-            L_unsafe_g_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe_list[i], g_unsafe_list[i])]))
+            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+            g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
+            Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
-        for L_unsafe_g_unsafe in L_unsafe_g_unsafe_set:
-            lambda_vec = lambda_ * Identity(1)
-            L_unsafe_g_unsafe_vec = L_unsafe_g_unsafe * Identity(1)
-            condition2 = (MatAdd(barrier, -L_unsafe_g_unsafe_vec) - lambda_vec)[0]
-            self.problem.add_sos_constraint(condition2, x)
+        L = matrix_variable('l', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        g = self.generate_polynomial(self.state_space.values())
+        Lg = sum(L @ g)
 
-        # Condition 3: State space
+        # -- SOS constraints
 
-        L = Matrix([poly_variable(f'L_{i + 1}', x, self.degree) for i in range(len(x))])
-        g = Matrix(self.generate_polynomial(self.state_space.values()))
-        L_g = (L.T @ g)[0]
+        barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
 
-        schur_arr = np.array(schur)
-        condition3 = schur_arr - L_g
-        self.problem.add_matrix_sos_constraint(condition3, list(x))
+        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+
+        for Lg_unsafe in Lg_unsafe_set:
+            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+
+        schur = Matrix(schur)
+        Lg_matrix = Matrix(np.full(schur.shape, Lg))
+        self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
 
         try:
             self.problem.solve()
@@ -146,10 +136,10 @@ class SafetyBarrier(Barrier):
             },
             'controller': {
                 'expression': 'U_{0,T} @ H @ P @ x',
-                'values': {'U': U, 'H': H}
+                'values': {'H': H}
             },
-            'gamma': gamma,
-            'lambda': lambda_
+            'gamma': gamma_var.value,
+            'lambda': lambda_var.value
         }
 
     def _discrete_nonlinear_system(self):
@@ -158,24 +148,25 @@ class SafetyBarrier(Barrier):
         }
 
     def _continuous_linear_system(self):
+        problem = SOSProblem()
 
         U = None
 
-        # -- Solve for Z and H
+        # -- Solve for H and Z
 
-        x = self.x()
+        x = self.x
         X0 = Constant('X0', self.X0)
         X1 = Constant('X0', self.X1)
 
         H = RealVariable('H', (self.X0.shape[1], self.dimensions))
         Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
 
-        self.problem.add_constraint(H.T * X1.T + X1 * H << 0)
+        problem.add_constraint(H.T * X1.T + X1 * H << 0)
 
-        self.problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
-        self.problem.add_constraint(Z == X0 * H)
+        problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
+        problem.add_constraint(Z == X0 * H)
 
-        self.problem.solve(solver='mosek')
+        problem.solve(solver='mosek')
 
         H = Matrix(H)
         Z = Matrix(Z)
@@ -199,9 +190,37 @@ class SafetyBarrier(Barrier):
         self.problem.require(lambda_var > 0)
         self.problem.require(lambda_var > gamma_var)
 
-        # -- Lagrangian constraints
+        # -- Lagrangian polynomials
 
-        barrier: Matrix = sp.Matrix(x).T @ P @ sp.Matrix(x)
+        L_init = matrix_variable('l_init', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        g_init = self.generate_polynomial(self.initial_state.values())
+        Lg_init = sum(L_init @ g_init)
+
+        Lg_unsafe_set = []
+        for i in range(len(self.unsafe_states)):
+            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+            g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
+            Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
+
+        L = matrix_variable('l', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        g = self.generate_polynomial(self.state_space.values())
+        Lg = sum(L @ g)
+
+        # -- SOS constraints
+
+        barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
+
+        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+
+        for Lg_unsafe in Lg_unsafe_set:
+            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+
+        schur = self.X1 @ Q + Q.T @ self.X1.T
+        Lg_matrix = Matrix(np.full(schur.shape, Lg))
+        self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(x))
+
+        # -- Solve
+        self.problem.solve(solver='mosek')
 
         return {
             'barrier': {
@@ -212,8 +231,8 @@ class SafetyBarrier(Barrier):
                 'expression': 'U_{0,T} @ Q @ x',
                 'values': {'Q': Q},
             },
-            'gamma': gamma,
-            'lambda': lambda_
+            'gamma': gamma_var.value,
+            'lambda': lambda_var.value
         }
         # gamma = sp.symbols('gamma')
         # lambda_ = sp.symbols('lambda')
@@ -225,7 +244,7 @@ class SafetyBarrier(Barrier):
         # gamma_var, lambda_var = self._add_level_set_constraints(gamma, lambda_)
         # barrier_constraint = self._add_lagrangian_constraints(gamma, lambda_)
         #
-        # x = self.x()
+        # x = self.x
         #
         # Q = matrix_variable('q', list(x), 0, dim=(self.X1.cols, self.dimensions), hom=False, sym=False)
         #

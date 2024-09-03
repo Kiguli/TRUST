@@ -1,7 +1,9 @@
 import numpy as np
 import sympy as sp
+from sympy import Matrix
 
 
+# TODO: [Use Pydantic](https://thatgardnerone.atlassian.net/browse/PHD-125)
 class Barrier:
     """Barrier Interface"""
 
@@ -22,14 +24,15 @@ class Barrier:
         """Calculate the components of the Barrier Certificate"""
         raise NotImplementedError
 
-    def generate_polynomial(self, space: list) -> list:
+    def generate_polynomial(self, space: list) -> Matrix:
         """Generate the polynomial for the given space"""
 
         lower_bounds = [dimension[0] for dimension in space]
         upper_bounds = [dimension[1] for dimension in space]
 
-        return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x(), lower_bounds, upper_bounds)]
+        return Matrix([(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)])
 
+    @property
     def x(self):
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
