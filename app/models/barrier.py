@@ -16,9 +16,6 @@ class Barrier:
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']
-        # TODO: ask user for custom degree
-        self.degree = 2
-        self.dimensions = len(self.state_space)
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
@@ -41,3 +38,21 @@ class Barrier:
         dimensions = len(self.state_space)
 
         return sp.symbols(f'x1:{dimensions + 1}')
+
+    @property
+    def degree(self):
+        return self.dimensions
+
+    @property
+    def dimensions(self):
+        """
+        Return the number of dimensions in the state space
+        """
+        return len(self.state_space)
+
+    @property
+    def num_samples(self):
+        """
+        Return the number of samples
+        """
+        return self.X0.shape[1]

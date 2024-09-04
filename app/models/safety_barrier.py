@@ -49,11 +49,9 @@ class SafetyBarrier(Barrier):
     def _discrete_linear_system(self):
         problem = SOSProblem()
 
-        U = None
-
         x = self.x
         X0 = Constant('X0', self.X0)
-        X1 = Constant('X0', self.X1)
+        X1 = Constant('X1', self.X1)
 
         # -- Solve for H and Z
 
@@ -72,7 +70,6 @@ class SafetyBarrier(Barrier):
         Z = Matrix(Z)
 
         P = Z.inv()
-        P_inv = Z
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
@@ -123,7 +120,7 @@ class SafetyBarrier(Barrier):
 
         x = self.x
         X0 = Constant('X0', self.X0)
-        X1 = Constant('X0', self.X1)
+        X1 = Constant('X1', self.X1)
 
         # -- Solve for H and Z
 
@@ -193,7 +190,7 @@ class SafetyBarrier(Barrier):
 
         x = self.x
         X0 = Constant('X0', self.X0)
-        X1 = Constant('X0', self.X1)
+        X1 = Constant('X1', self.X1)
 
         H = RealVariable('H', (self.X0.shape[1], self.dimensions))
         Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
@@ -262,18 +259,18 @@ class SafetyBarrier(Barrier):
 
     def __compute_lagrangians(self):
         x = self.x
-        L_init = matrix_variable('l_init', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        L_init = matrix_variable('l_init', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state.values())
         Lg_init = sum(L_init @ g_init)
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False,
+            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False,
                                        sym=False)
             g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
             Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
-        L = matrix_variable('l', list(x), 0, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        L = matrix_variable('l', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
         g = self.generate_polynomial(self.state_space.values())
         Lg = sum(L @ g)
 
