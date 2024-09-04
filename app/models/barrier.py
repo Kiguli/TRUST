@@ -41,18 +41,25 @@ class Barrier:
 
     @property
     def degree(self):
-        return self.dimensions
+        return self.dimensionality
 
     @property
-    def dimensions(self):
+    def dimensionality(self):
         """
-        Return the number of dimensions in the state space
+        Return the dimensionality in the state space
         """
         return len(self.state_space)
 
     @property
     def num_samples(self):
         """
-        Return the number of samples
+        Return the number of samples, T
         """
         return self.X0.shape[1]
+
+    @property
+    def N(self):
+        """
+        Return the number of monomial terms, N
+        """
+        return len(self.monomials)

@@ -2,7 +2,7 @@ import numpy as np
 import sympy as sp
 from SumOfSquares import SOSProblem, matrix_variable
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Matrix, simplify
+from sympy import Matrix, diff, simplify
 
 from app.models.barrier import Barrier
 
@@ -32,21 +32,21 @@ class SafetyBarrier(Barrier):
 
     def _discrete_system(self):
         if self.model == 'Linear':
-            return self._discrete_linear_system()
+            return self._discrete_linear()
         elif self.model == 'Non-Linear Polynomial':
-            return self._discrete_nonlinear_system()
+            return self._discrete_nps()
         else:
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
     def _continuous_system(self):
         if self.model == 'Linear':
-            return self._continuous_linear_system()
+            return self._continuous_linear()
         elif self.model == 'Non-Linear Polynomial':
-            return self._continuous_nonlinear_system()
+            return self._continuous_nps()
         else:
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
-    def _discrete_linear_system(self):
+    def _discrete_linear(self):
         problem = SOSProblem()
 
         x = self.x
@@ -55,8 +55,8 @@ class SafetyBarrier(Barrier):
 
         # -- Solve for H and Z
 
-        H = RealVariable('H', (self.X0.shape[1], self.dimensions))
-        Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
+        H = RealVariable('H', (self.X0.shape[1], self.dimensionality))
+        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
         problem.add_constraint(Z == X0 * H)
@@ -115,7 +115,7 @@ class SafetyBarrier(Barrier):
             'lambda': lambda_var.value
         }
 
-    def _discrete_nonlinear_system(self):
+    def _discrete_nps(self):
         problem = SOSProblem()
 
         x = self.x
@@ -128,9 +128,9 @@ class SafetyBarrier(Barrier):
 
         # -- Solve for H and Z
 
-        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
 
-        Z = SymmetricVariable('Z', self.dimensions)
+        Z = SymmetricVariable('Z', self.dimensionality)
 
         # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
         schur = Matrix([
@@ -191,7 +191,7 @@ class SafetyBarrier(Barrier):
             },
         }
 
-    def _continuous_linear_system(self):
+    def _continuous_linear(self):
         problem = SOSProblem()
 
         U = None
@@ -202,8 +202,8 @@ class SafetyBarrier(Barrier):
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
 
-        H = RealVariable('H', (self.X0.shape[1], self.dimensions))
-        Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
+        H = RealVariable('H', (self.X0.shape[1], self.dimensionality))
+        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         problem.add_constraint(H.T * X1.T + X1 * H << 0)
 
@@ -256,6 +256,58 @@ class SafetyBarrier(Barrier):
             'lambda': lambda_var.value
         }
 
+    def _continuous_nps(self):
+        """Solve for a continuous non-linear polynomial system."""
+
+        # TODO: approximate X1 as the derivatives of the state at each sampling time, if not provided.
+
+        # `tau` is the fixed sampling time for the system
+        # N0 = [M(x(0)), M(x(tau)), M(x(2*tau)), ..., M(x((T-1)*tau))]
+
+        # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
+
+        problem = SOSProblem()
+
+        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.num_samples, self.dimensionality), sym=False)
+
+        # Z = P^-1, where P is a positive definite matrix of size (N, N), where N is the number of monomial terms
+        Z = N0 @ Hx
+        problem.require(Z >> 0)
+
+        dMdx = diff(self.Mx, self.x)
+        schur = -[dMdx @ self.X1 @ Hx + Hx.T @ self.X1.T @ dMdx.T]
+        problem.require(schur >= 0)
+
+        problem.solve(solver='mosek')
+
+        # --- (2) Then, solve SOS conditions for gamma and lambda ---
+
+        P = Z.inv()
+
+        barrier = Mx.T @ P @ self.Mx
+
+        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+        self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+        self.problem.add_sos_constraint(schur - Lg, x)
+
+        self.problem.solve(solver='mosek')
+
+        # Q(x) = H(x) @ P
+        controller = U0 @ Hx @ P @ self.Mx
+
+        return {
+            'barrier': {
+                'expression': 'M(x)^T @ P @ M(x)',
+                'values': {'P': P}
+            },
+            'controller': {
+                'expression': 'U0 @ H(x) @ P @ M(x)',
+                'values': {
+                    'H(x)': Hx
+                }
+            },
+        }
+
     def __level_set_constraints(self):
         gamma, lambda_ = sp.symbols('gamma lambda')
         gamma_var = self.problem.sym_to_var(gamma)
@@ -269,18 +321,18 @@ class SafetyBarrier(Barrier):
 
     def __compute_lagrangians(self):
         x = self.x
-        L_init = matrix_variable('l_init', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        L_init = matrix_variable('l_init', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state.values())
         Lg_init = sum(L_init @ g_init)
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False,
+            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
                                        sym=False)
             g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
             Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
-        L = matrix_variable('l', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+        L = matrix_variable('l', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g = self.generate_polynomial(self.state_space.values())
         Lg = sum(L @ g)
 
