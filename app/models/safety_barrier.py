@@ -122,23 +122,29 @@ class SafetyBarrier(Barrier):
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
 
-        # -- Solve for H and Z
-
-        H = RealVariable('H', (self.X0.shape[1], self.dimensions))
-        Z = SymmetricVariable('Z', (self.dimensions, self.dimensions))
-
         # Q(x) is a (T x n) matrix polynomial such that Theta(x) = N0 @ Q(x)
         # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
         # N0 is an (N x T) full row rank matrix, N0 = [M(x(0)), M(x(1)), ..., M(x(T-1))]
 
-        H = Matrix(H)
-        Z = Matrix(Z)
+        # -- Solve for H and Z
 
-        Hx = H @ Matrix(x)
-        schur = ((Z & Hx.T @ X1.T) // (X1 @ Hx & Z))
-        problem.add_constraint(schur >> 0)
+        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensions), hom=False, sym=False)
+
+        Z = SymmetricVariable('Z', self.dimensions)
+
+        # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
+        schur = Matrix([
+            [Z, Hx.T @ self.X1.T],
+            [self.X1 @ Hx, Z]
+        ])
+        problem.require(schur >> 0)
+
+        problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
+        problem.require()
 
         problem.solve(solver='mosek')
+
+        Z = Matrix(Z)
 
         P = Z.inv()
         P_inv = Z
@@ -161,9 +167,13 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
 
-        schur = Matrix(schur)
-        Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
+        Hx_var = H_var @ Matrix(x)
+        schur_matrix = Matrix([
+            [Z_var, Hx_var.T @ self.X1.T],
+            [self.X1 @ Hx_var, Z_var]
+        ])
+        Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
+        self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
 
         self.problem.solve()
 
