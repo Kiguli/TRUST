@@ -15,8 +15,8 @@ const model = defineModel({ type: Object, default: () => ({}) })
 
 <template>
     <div
-        class="mt-2 flex h-56 flex-col items-center rounded-lg border-2 border-dashed border-gray-300 p-4 focus:border-blue-300 focus:outline-none dark:border-gray-600">
-        <div class="py-12 text-center text-sm">
+        class="mt-2 flex min-h-56 flex-col items-center rounded-lg border-2 border-dashed border-gray-300 p-4 focus:border-blue-300 focus:outline-none dark:border-gray-600">
+        <div class="py-10 text-center text-sm">
             <p class="mb-1 font-medium text-gray-900 dark:text-gray-200">
                 Choose a file.
             </p>

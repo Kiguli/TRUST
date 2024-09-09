@@ -1,19 +1,21 @@
 <script setup>
-import { ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
 import { Head, useForm } from "@inertiajs/vue3";
 
-import ProblemOptions from "@/Organisms/ProblemOptions.vue";
-import DatasetInput from "@/Organisms/DatasetInput.vue";
 import H2 from "@/Atoms/H2.vue";
-import VectorInput from "@/Organisms/VectorInput.vue";
 import Pre from "@/Atoms/Pre.vue";
 import Section from "@/Atoms/Section.vue";
+import ProblemOptions from "@/Organisms/ProblemOptions.vue";
+import DatasetInput from "@/Organisms/DatasetInput.vue";
+import VectorInput from "@/Organisms/VectorInput.vue";
 
 import route from "~/utilities/route.js";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
+import H3 from "@/Atoms/H3.vue";
+import { useInterval } from "@vueuse/core";
 
-defineProps({
+const props = defineProps({
     models: Array,
     timings: Array,
     modes: Array,
@@ -49,13 +51,45 @@ const form = useForm({
     unsafeStates,
 });
 
+const deltaTime = ref(0);
+
 const submit = () => {
     form.post(route("dashboard.index"), {
         preserveState: true,
         preserveScroll: true,
         only: ["result"],
+        onStart: () => {
+            deltaTime.value = useInterval(1000)
+        },
+        onSuccess: () => {
+            deltaTime.value = null;
+        },
     });
 };
+
+const calculateTxt = computed(() => {
+    const delta = deltaTime?.value;
+    const deltaHtml = delta?.value > 0 ? `<span class="text-sm opacity-70 font-mono">(${delta?.value}s)</span>` : "";
+
+    // Show keyboard shortcut
+    const platform = navigator.userAgent.toLowerCase();
+    const shortcut = (platform.includes("mac") ? "Cmd" : "Ctrl") + "+Enter";
+    const shortcutHtml = `<Kbd class="text-sm opacity-70">(${shortcut})</Kbd>`;
+    const calculateHtml = `Calculate ${shortcutHtml}`;
+
+
+    return form.processing ? `Calculating... ${deltaHtml}` : calculateHtml;
+})
+
+const submitBtn = ref();
+
+onMounted(() => {
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            submitBtn.value.click();
+        }
+    });
+});
 </script>
 
 <template>
@@ -123,7 +157,45 @@ const submit = () => {
         <Section
             class="border-t bg-gray-200/60 sm:col-span-full lg:col-span-1 lg:border-t-0">
             <H2>Output</H2>
-            <Pre v-if="result" title="Server results">{{ result }}</Pre>
+
+            <div v-if="result">
+                <div>
+                    <p class="text-sm text-gray-400">
+                        Calculated in <pre class="inline-block">{{ result.time_taken }}</pre>
+                    </p>
+                </div>
+
+                <div class="my-6">
+                    <H3>Barrier</H3>
+                    <Pre title="Barrier expression">
+                        {{ result.barrier_function.barrier.expression }}
+                    </Pre>
+                    <Pre title="P">
+                        {{ result.barrier_function.barrier.values.P }}
+                    </Pre>
+                </div>
+
+                <div class="my-6">
+                    <H3>Controller</H3>
+                    <Pre title="Controller expression">
+                        {{ result.barrier_function.controller.expression }}
+                    </Pre>
+                    <Pre title="H">
+                        {{ result.barrier_function.controller.values.H }}
+                    </Pre>
+                </div>
+
+                <div class="my-6">
+                    <H3>Level Sets</H3>
+                    <Pre title="Gamma">
+                        {{ result.barrier_function.gamma }}
+                    </Pre>
+                    <Pre title="Lambda">
+                        {{ result.barrier_function.lambda }}
+                    </Pre>
+                </div>
+            </div>
+
             <div v-else class="flex items-center gap-x-2">
                 <div class="flex justify-center pt-px">
                     <span class="relative flex h-3 w-3">
@@ -160,11 +232,11 @@ const submit = () => {
             </div>
             <div class="flex items-center gap-x-2">
                 <button
+                    ref="submitBtn"
                     :disabled="form.processing"
-                    class="order-1 flex h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 sm:px-5 sm:py-2.5"
-                    type="submit">
-                    Calculate
-                </button>
+                    class="order-1 flex items-baseline gap-x-1 h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
+                    type="submit"
+                    v-html="calculateTxt"/>
                 <button
                     class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5">
                     Reset
