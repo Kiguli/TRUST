@@ -3,21 +3,35 @@ from flask_inertia import lazy_include, render_inertia
 from time import time, sleep
 from json import dumps
 
+import tests
 from app.models.stability import Stability
 from app.models.safety_barrier import SafetyBarrier
 
 bp = Blueprint('dashboard', __name__)
 
 
-def calculate_result():
+def calculate_result(update_cache=False):
+    """
+    Calculate the result of the user's input.
+
+    :param  update_cache whether to update the cache or not
+    :return: the result of the calculation
+    """
+
     # TODO: validate data
-    data = request.get_json()
+    # data = request.get_json()
+
+    # TODO: DEBUG - use test data
+    data = tests.fake_data()
+    data['mode'] = 'Safety'
+    data['timing'] = 'Discrete-Time'
+    data['model'] = 'Linear'
 
     start_time = time()
 
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
-        stability_function = Stability(data).calculate()
+        stability_function = Stability().create(data).calculate()
     else:
         function_name = 'barrier_function'
         # barrier = BarrierFactory()
@@ -27,7 +41,7 @@ def calculate_result():
 
     result = {
         function_name: locals()[function_name],
-        'time_taken': time_taken,
+        'time_taken': f"{time_taken:.5f}s",
     }
 
     return result

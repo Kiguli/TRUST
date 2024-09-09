@@ -1,8 +1,8 @@
-from flask.testing import FlaskClient, FlaskCliRunner
-from flask import Flask
-from faker import Faker
-from flask_inertia.unittest import InertiaTestResponse
 import pytest
+from faker import Faker
+from flask import Flask
+from flask.testing import FlaskCliRunner, FlaskClient
+from flask_inertia.unittest import InertiaTestResponse
 
 from app import create_app
 
@@ -38,6 +38,10 @@ def runner(app) -> FlaskCliRunner:
 
 @pytest.fixture
 def sample_data():
+    return fake_data()
+
+
+def fake_data():
     return {
         'model': fake.random_element(['Linear', 'Polynomial']),
         'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
