@@ -75,7 +75,6 @@ class TestDiscreteTimeLinearBarrier:
         assert actual['gamma'] is not None
         assert actual['lambda'] is not None
         assert actual['gamma'] < actual['lambda']
-        print(actual)
 
     @pytest.mark.skip()
     def test_it_returns_a_valid_barrier_for_the_level_sets(self, sample_data):
