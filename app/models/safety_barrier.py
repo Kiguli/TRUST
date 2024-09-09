@@ -11,6 +11,7 @@ class SafetyBarrier(Barrier):
     """Safety Barrier Certificate"""
 
     def __init__(self, data: dict):
+        # TODO: migrate to builder pattern
         if data['mode'] != 'Safety':
             raise ValueError(f"Invalid mode '{data['mode']}' for Safety Barrier calculations.")
 
@@ -101,7 +102,10 @@ class SafetyBarrier(Barrier):
                 'description': str(e)
             }
 
-        # TODO: output the simplified version: sp.simplify(barrier[0])
+        # TODO: output the simplified version: sp.simplify(barrier[0])?
+
+        P = np.array2string(np.array(P))
+        H = np.array2string(np.array(H))
 
         return {
             'barrier': {
@@ -111,8 +115,8 @@ class SafetyBarrier(Barrier):
                 'expression': 'U_{0,T} @ H @ P @ x',
                 'values': {'H': H}
             },
-            'gamma': gamma_var.value,
-            'lambda': lambda_var.value
+            'gamma': str(gamma_var.value),
+            'lambda': str(lambda_var.value)
         }
 
     def _discrete_nps(self):
@@ -321,18 +325,24 @@ class SafetyBarrier(Barrier):
 
     def __compute_lagrangians(self):
         x = self.x
-        L_init = matrix_variable('l_init', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+
+        degree = self.degree
+
+        # TODO: remove
+        degree = 0
+
+        L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state.values())
         Lg_init = sum(L_init @ g_init)
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
+            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
                                        sym=False)
             g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
             Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
-        L = matrix_variable('l', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+        L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g = self.generate_polynomial(self.state_space.values())
         Lg = sum(L @ g)
 
