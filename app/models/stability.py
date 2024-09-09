@@ -1,11 +1,25 @@
-import sympy as sp
-import numpy as np
-import cvxpy as cp
 import array
+from typing import Self
+
+import cvxpy as cp
+import numpy as np
 
 
 class Stability:
-    def __init__(self, data: dict):
+    def __init__(self):
+        self.model = None
+        self.timing = None
+        self.X0 = None
+        self.X1 = None
+        self.U0 = None
+        self.state_space = None
+        self.initial_state = None
+        self.unsafe_states = None
+
+    def create(self, data: dict):
+        """
+        Create a new instance of the Stability class with the given data.
+        """
         if data['mode'] != 'Stability':
             raise ValueError(f"Invalid mode '{data["mode"]}' for Stability calculations.")
 
@@ -28,6 +42,40 @@ class Stability:
             'lyapunov': lyapunov,
             'controller': controller,
         }
+
+    # --- Builder Pattern ---
+
+    def model(self, model: str) -> Self:
+        self.model = model
+        return self
+
+    def timing(self, timing: str) -> Self:
+        self.timing = timing
+        return self
+
+    def X0(self, X0: array) -> Self:
+        self.X0 = X0
+        return self
+
+    def X1(self, X1: array) -> Self:
+        self.X1 = X1
+        return self
+
+    def U0(self, U0: array) -> Self:
+        self.U0 = U0
+        return self
+
+    def state_space(self, state_space: array) -> Self:
+        self.state_space = state_space
+        return self
+
+    def initial_state(self, initial_state: array) -> Self:
+        self.initial_state = initial_state
+        return self
+
+    def unsafe_states(self, unsafe_states: array) -> Self:
+        self.unsafe_states = unsafe_states
+        return self
 
     def _solve_linear_system(self) -> tuple:
         X0 = np.array([self.X0])
@@ -56,9 +104,18 @@ class Stability:
 
         # TODO: Z = P.inverse()
         P = Z
-        lyapunov = {'expression': 'x^T @ P @ x', 'values': {'P': P.value.tolist()}}
-        controller = {'expression': 'U_{0,T} @ H @ P^{-1} @ x',
-                      'values': {'H': H.value.tolist(), 'P': P.value.tolist()}}
+
+        H = np.array2string(np.array(H.value))
+        P = np.array2string(np.array(P.value))
+
+        lyapunov = {
+            'expression': 'x^T @ P @ x',
+            'values': {'P': P}
+        }
+        controller = {
+            'expression': 'U_{0,T} @ H @ P^{-1} @ x',
+            'values': {'H': H}
+        }
 
         return lyapunov, controller
 

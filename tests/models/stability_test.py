@@ -3,7 +3,7 @@ from tests import sample_data
 
 
 def test_it_calculates_the_lyapunov_function_and_controller(sample_data):
-    stability = Stability(data=sample_data)
+    stability = Stability().create(sample_data)
 
     actual = stability.calculate()
 
@@ -20,7 +20,7 @@ def test_it_solves_discrete_time_linear_systems(sample_data):
     sample_data['mode'] = 'Stability'
     sample_data['model'] = 'Linear'
     sample_data['timing'] = 'Discrete-Time'
-    stability = Stability(data=sample_data)
+    stability = Stability().create(sample_data)
 
     actual = stability.calculate()
 
@@ -42,7 +42,7 @@ def test_it_solves_continuous_time_linear_systems(sample_data):
     sample_data['mode'] = 'Stability'
     sample_data['model'] = 'Linear'
     sample_data['timing'] = 'Continuous-Time'
-    stability = Stability(data=sample_data)
+    stability = Stability().create(sample_data)
 
     actual = stability.calculate()
 
