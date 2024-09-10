@@ -228,6 +228,7 @@ def _discrete_polynomial_setup(sample_data):
     sample_data['mode'] = 'Safety'
     sample_data['timing'] = 'Discrete-Time'
     sample_data['model'] = 'Non-Linear Polynomial'
+    sample_data['monomials'] = ['x1', 'x2', 'x3', 'x1*x2', 'x2*x3', 'x1*x3']
 
     return sample_data
 
@@ -236,5 +237,6 @@ def _continuous_polynomial_setup(sample_data):
     sample_data['mode'] = 'Safety'
     sample_data['timing'] = 'Continuous-Time'
     sample_data['model'] = 'Non-Linear Polynomial'
+    sample_data['monomials'] = ['x1', 'x2', 'x1**x2', 'x2 - x1']
 
     return sample_data

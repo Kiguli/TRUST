@@ -1,8 +1,9 @@
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSProblem, matrix_variable
+import picos as pc
+from SumOfSquares import SOSProblem, matrix_variable, poly_variable
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Matrix, diff, simplify
+from sympy import Matrix, diff, simplify, symbols, sympify
 
 from app.models.barrier import Barrier
 
@@ -265,14 +266,38 @@ class SafetyBarrier(Barrier):
 
         # TODO: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
-        # `tau` is the fixed sampling time for the system
+        # Monomials M(x) = ['x1', 'x2', 'x1*x2', 'x2-x1']
         # N0 = [M(x(0)), M(x(tau)), M(x(2*tau)), ..., M(x((T-1)*tau))]
+        # N0 is a (N x T) matrix, where N is the number of monomial terms and T is the number of samples.
+
+        N = self.N
+        T = self.num_samples
+
+        # Create symbolic expressions for each monomial and tau
+        Mx = [sympify(m) for m in self.monomials]
+        syms = symbols(f"x1:{self.dimensionality + 1}")
+        tau = symbols('tau')  # TODO: allow user to specify tau
+
+        N0 = []
+        for state in self.X0.T:
+            row = []
+            for m in Mx:
+                value = m.subs({x: state[i] for i, x in enumerate(syms)})
+                row.append(value)
+            N0.append(row)
 
         # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
 
         problem = SOSProblem()
 
-        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.num_samples, self.dimensionality), sym=False)
+        Hx = matrix_variable('Hx', list(self.x), self.degree, dim=(self.num_samples, self.dimensionality), sym=False)
+
+        Mx = Matrix(self.monomials)
+
+        x = symbols('x')
+        tau = symbols('tau')
+
+        N0 = Matrix([Matrix([m.subs(x, tau * i) for m in Mx]).transpose() for i in range(self.num_samples)])
 
         # Z = P^-1, where P is a positive definite matrix of size (N, N), where N is the number of monomial terms
         Z = N0 @ Hx
@@ -297,7 +322,7 @@ class SafetyBarrier(Barrier):
         self.problem.solve(solver='mosek')
 
         # Q(x) = H(x) @ P
-        controller = U0 @ Hx @ P @ self.Mx
+        #controller = U0 @ Hx @ P @ self.Mx
 
         return {
             'barrier': {

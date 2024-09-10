@@ -10,6 +10,7 @@ class Barrier:
     def __init__(self, data: dict):
         self.model = data['model']
         self.timing = data['timing']
+        self.monomials = data.get('monomials', [])
         self.X0 = np.transpose(np.array(data['X0']))
         self.X1 = np.transpose(np.array(data['X1']))
         self.U0 = np.array(data['U0'])
@@ -41,6 +42,8 @@ class Barrier:
 
     @property
     def degree(self):
+        """Default the degree to the dimensionality"""
+        # TODO: allow a custom degree
         return self.dimensionality
 
     @property
