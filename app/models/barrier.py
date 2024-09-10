@@ -49,7 +49,7 @@ class Barrier:
     @property
     def dimensionality(self):
         """
-        Return the dimensionality in the state space
+        Return the dimensionality in the state space, n
         """
         return len(self.state_space)
 
