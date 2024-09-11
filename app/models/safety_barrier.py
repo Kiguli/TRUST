@@ -317,27 +317,36 @@ class SafetyBarrier(Barrier):
 
         Z = Z.value
         H_x = H_x.value
+        schur = schur.value
 
         # --- (2) Then, solve SOS conditions for gamma and lambda ---
 
         P = np.linalg.inv(Z)
 
-        # Sub in the state values for M(x)
-        # M_x = np.array([[m.subs({x: self.X0.T[i][j] for j, x in enumerate(mon_syms)}) for m in M_x] for i in range(N)])
-
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        barrier = M_x.T @ P @ M_x
+        barrier = np.array(M_x).T @ P @ M_x
 
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, self.x)
         Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        self.problem.add_sos_constraint(schur - Lg_matrix, self.x)
+        self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(self.x))
 
-        self.problem.solve(solver='mosek')
+        try:
+            self.problem.solve(solver='mosek')
+        except SolutionFailure as e:
+            return {
+                'error': 'Failed to solve the problem.',
+                'description': str(e)
+            }
+        except Exception as e:
+            return {
+                'error': 'An unknown error occurred.',
+                'description': str(e)
+            }
 
         # Q(x) = H(x) @ P
         #controller = U0 @ Hx @ P @ self.M_x
@@ -353,6 +362,8 @@ class SafetyBarrier(Barrier):
                     'H(x)': H_x
                 }
             },
+            'gamma': gamma_var.value,
+            'lambda': lambda_var.value
         }
 
     def __level_set_constraints(self):
