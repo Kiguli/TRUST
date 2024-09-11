@@ -16,7 +16,7 @@ class Stability:
         self.initial_state = None
         self.unsafe_states = None
 
-    def create(self, data: dict):
+    def create(self, data: dict) -> Self:
         """
         Create a new instance of the Stability class with the given data.
         """
@@ -31,6 +31,8 @@ class Stability:
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']
+
+        return self
 
     def calculate(self):
         if self.model == 'Linear':

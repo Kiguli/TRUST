@@ -271,7 +271,9 @@ class SafetyBarrier(Barrier):
         # N0 is a (N x T) matrix, where N is the number of monomial terms and T is the number of samples.
 
         N = self.N
+        n = self.dimensionality
         T = self.num_samples
+        x = self.x
 
         # Create symbolic expressions for each monomial and tau
         Mx = [sympify(m) for m in self.monomials]
@@ -286,6 +288,8 @@ class SafetyBarrier(Barrier):
                 row.append(value)
             N0.append(row)
 
+        N0 = np.array(N0).T
+
         # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
 
         problem = SOSProblem()
@@ -293,9 +297,6 @@ class SafetyBarrier(Barrier):
         Hx = matrix_variable('Hx', list(self.x), self.degree, dim=(self.num_samples, self.dimensionality), sym=False)
 
         Mx = Matrix(self.monomials)
-
-        x = symbols('x')
-        tau = symbols('tau')
 
         N0 = Matrix([Matrix([m.subs(x, tau * i) for m in Mx]).transpose() for i in range(self.num_samples)])
 
@@ -351,9 +352,8 @@ class SafetyBarrier(Barrier):
     def __compute_lagrangians(self):
         x = self.x
 
+        # TODO: remove (degree 0 for faster feedback, invalid maths)
         degree = self.degree
-
-        # TODO: remove
         degree = 0
 
         L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
