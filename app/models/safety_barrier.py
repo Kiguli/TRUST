@@ -262,7 +262,9 @@ class SafetyBarrier(Barrier):
         }
 
     def _continuous_nps(self):
-        """Solve for a continuous non-linear polynomial system."""
+        """
+        Solve for a continuous non-linear polynomial system.
+        """
 
         # TODO: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
@@ -277,7 +279,7 @@ class SafetyBarrier(Barrier):
 
         # Create symbolic expressions for each monomial and tau
         M_x = [sympify(m) for m in self.monomials]
-        tau = symbols('tau')  # TODO: allow user to specify tau
+        tau = symbols('tau')  # TODO: allow user to specify tau?
 
         N0 = []
         for state in self.X0.T.tolist():
@@ -295,7 +297,7 @@ class SafetyBarrier(Barrier):
         Z = cp.Variable((N, N), symmetric=True)
 
         # Compute dMdx
-        dMdx = np.array([[m.diff(x) for x in mon_syms] for m in M_x])
+        dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
         # Sub in the values of X0 for x1 and x2
         dMdx = np.array([[
             d.subs({x: self.X0.T[i][j] for j, x in enumerate(mon_syms)}) for d in row
