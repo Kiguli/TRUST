@@ -31,7 +31,7 @@ class Barrier:
         return Matrix([(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)])
 
     @property
-    def x(self):
+    def x(self) -> list[sp.Symbol]:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """

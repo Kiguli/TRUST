@@ -1,9 +1,9 @@
+import cvxpy as cp
 import numpy as np
 import sympy as sp
-import picos as pc
-from SumOfSquares import SOSProblem, matrix_variable, poly_variable
+from SumOfSquares import SOSProblem, matrix_variable
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Matrix, diff, simplify, symbols, sympify
+from sympy import Matrix, simplify, symbols, sympify
 
 from app.models.barrier import Barrier
 
@@ -273,57 +273,74 @@ class SafetyBarrier(Barrier):
         N = self.N
         n = self.dimensionality
         T = self.num_samples
-        x = self.x
+        mon_syms = self.x
 
         # Create symbolic expressions for each monomial and tau
-        Mx = [sympify(m) for m in self.monomials]
-        syms = symbols(f"x1:{self.dimensionality + 1}")
+        M_x = [sympify(m) for m in self.monomials]
         tau = symbols('tau')  # TODO: allow user to specify tau
 
         N0 = []
-        for state in self.X0.T:
+        for state in self.X0.T.tolist():
             row = []
-            for m in Mx:
-                value = m.subs({x: state[i] for i, x in enumerate(syms)})
+            for m in M_x:
+                value = m.subs({x: state[i] for i, x in enumerate(mon_syms)})
                 row.append(value)
             N0.append(row)
 
         N0 = np.array(N0).T
 
         # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
+        # Note: Z = P^-1
 
-        problem = SOSProblem()
+        Z = cp.Variable((N, N), symmetric=True)
 
-        Hx = matrix_variable('Hx', list(self.x), self.degree, dim=(self.num_samples, self.dimensionality), sym=False)
+        # Compute dMdx
+        dMdx = np.array([[m.diff(x) for x in mon_syms] for m in M_x])
+        # Sub in the values of X0 for x1 and x2
+        dMdx = np.array([[
+            d.subs({x: self.X0.T[i][j] for j, x in enumerate(mon_syms)}) for d in row
+        ] for i, row in enumerate(dMdx)])
 
-        Mx = Matrix(self.monomials)
+        H_x = cp.Variable((T, N))
 
-        N0 = Matrix([Matrix([m.subs(x, tau * i) for m in Mx]).transpose() for i in range(self.num_samples)])
+        # Add the constraints
+        constraint1 = N0 @ H_x == Z
+        schur = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
+        constraint2 = schur << 0
 
-        # Z = P^-1, where P is a positive definite matrix of size (N, N), where N is the number of monomial terms
-        Z = N0 @ Hx
-        problem.require(Z >> 0)
+        # Solve for the matrices Z and H_x
+        objective = cp.Minimize(cp.trace(Z))
+        constraints = [constraint1, constraint2, Z >> 0]
+        problem = cp.Problem(objective, constraints)
 
-        dMdx = diff(self.Mx, self.x)
-        schur = -[dMdx @ self.X1 @ Hx + Hx.T @ self.X1.T @ dMdx.T]
-        problem.require(schur >= 0)
+        problem.solve()
 
-        problem.solve(solver='mosek')
+        Z = Z.value
+        H_x = H_x.value
 
         # --- (2) Then, solve SOS conditions for gamma and lambda ---
 
-        P = Z.inv()
+        P = np.linalg.inv(Z)
 
-        barrier = Mx.T @ P @ self.Mx
+        # Sub in the state values for M(x)
+        # M_x = np.array([[m.subs({x: self.X0.T[i][j] for j, x in enumerate(mon_syms)}) for m in M_x] for i in range(N)])
 
-        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
-        self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
-        self.problem.add_sos_constraint(schur - Lg, x)
+        gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
+
+        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
+
+        barrier = M_x.T @ P @ M_x
+
+        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
+        for Lg_unsafe in Lg_unsafe_set:
+            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, self.x)
+        Lg_matrix = Matrix(np.full(schur.shape, Lg))
+        self.problem.add_sos_constraint(schur - Lg_matrix, self.x)
 
         self.problem.solve(solver='mosek')
 
         # Q(x) = H(x) @ P
-        #controller = U0 @ Hx @ P @ self.Mx
+        #controller = U0 @ Hx @ P @ self.M_x
 
         return {
             'barrier': {
@@ -333,7 +350,7 @@ class SafetyBarrier(Barrier):
             'controller': {
                 'expression': 'U0 @ H(x) @ P @ M(x)',
                 'values': {
-                    'H(x)': Hx
+                    'H(x)': H_x
                 }
             },
         }
