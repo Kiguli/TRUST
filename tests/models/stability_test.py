@@ -88,9 +88,41 @@ class TestContinuousTimeNonlinearPolynomialSafety:
         assert response["controller"]["values"]["H(x)"] is not None
 
 
+class TestDiscreteTimeNonlinearPolynomialSafety:
+
+    def test_it_returns_a_response(self, sample_data):
+        sample_data = _discrete_polynomial_setup(sample_data)
+
+        response = Stability().create(sample_data).calculate()
+
+        assert isinstance(response, dict)
+        assert "lyapunov" in response
+        assert "controller" in response
+
+    def test_it_returns_the_Lyapunov_function(self, sample_data):
+        sample_data = _discrete_polynomial_setup(sample_data)
+
+        response = Stability().create(sample_data).calculate()
+
+        assert "expression" in response["lyapunov"]
+        assert "values" in response["lyapunov"]
+        assert "P" in response["lyapunov"]["values"]
+        assert response["lyapunov"]["values"]["P"] is not None
+        assert isinstance(response["lyapunov"]["values"]["P"], list)
+
+
 def _continuous_polynomial_setup(sample_data):
     sample_data["mode"] = "Stability"
     sample_data["timing"] = "Continuous-Time"
+    sample_data["model"] = "Non-Linear Polynomial"
+    sample_data["monomials"] = ["x1", "x2", "x1*x2", "x2 - x1"]
+
+    return sample_data
+
+
+def _discrete_polynomial_setup(sample_data):
+    sample_data["mode"] = "Stability"
+    sample_data["timing"] = "Discrete-Time"
     sample_data["model"] = "Non-Linear Polynomial"
     sample_data["monomials"] = ["x1", "x2", "x1*x2", "x2 - x1"]
 

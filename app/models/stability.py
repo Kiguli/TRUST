@@ -29,7 +29,7 @@ class Stability:
 
         self.model = data["model"]
         self.timing = data["timing"]
-        self.monomials = data.get('monomials', [])
+        self.monomials = data.get("monomials", [])
         self.X0 = np.transpose(np.array(data["X0"]))
         self.X1 = np.transpose(np.array(data["X1"]))
         self.U0 = np.array(data["U0"])
@@ -39,18 +39,17 @@ class Stability:
 
         return self
 
-    def calculate(self):
+    def calculate(self) -> dict:
+        results = {}
+
         if self.model == "Linear":
-            lyapunov, controller = self._solve_linear_system()
+            results = self._solve_linear()
         elif self.model == "Non-Linear Polynomial":
-            return self._solve_polynomial()
+            results = self._solve_polynomial()
 
-        return {
-            "lyapunov": lyapunov,
-            "controller": controller,
-        }
+        return results
 
-    def _solve_linear_system(self) -> tuple:
+    def _solve_linear(self) -> dict:
         X0 = np.array([self.X0])
         X1 = np.array([self.X1])
 
@@ -75,16 +74,18 @@ class Stability:
         if prob.status in ["infeasible", "unbounded"]:
             raise ValueError("The problem is infeasible or unbounded.")
 
-        # TODO: Z = P.inverse()
-        P = Z
+        P_inv = np.linalg.inv(P.value)
 
         H = np.array2string(np.array(H.value))
         P = np.array2string(np.array(P.value))
 
-        lyapunov = {"expression": "x^T @ P @ x", "values": {"P": P}}
-        controller = {"expression": "U_{0,T} @ H @ P^{-1} @ x", "values": {"H": H}}
-
-        return lyapunov, controller
+        return {
+            "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": P}},
+            "controller": {
+                "expression": "U_{0,T} @ H @ P^{-1} @ x",
+                "values": {"H": H},
+            },
+        }
 
     def _solve_polynomial(self) -> dict:
         if self.timing == "Discrete-Time":
@@ -108,18 +109,14 @@ class Stability:
         # H_x is (T x N) matrix
         H_x = cp.Variable((T, N))
 
-        M_x = self.calculate_M_x()
-        N0 = self.calculate_N0(M_x)
+        M_x = self._calculate_M_x()
+        N0 = self._calculate_N0(M_x)
         dMdx = self.calculate_dMdx(M_x)
 
         schur = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
 
         # Add the constraints
-        constraints = [
-            P_inv >> 0,
-            N0 @ H_x == P_inv,
-            schur << 0
-        ]
+        constraints = [P_inv >> 0, N0 @ H_x == P_inv, schur << 0]
 
         # Solve for P_inv and H_x
         objective = cp.Minimize(cp.trace(P_inv))
@@ -130,13 +127,43 @@ class Stability:
         H_x = H_x.value
 
         return {
-            "lyapunov": {
-                "expression": "M(x)^T @ P @ M(x)",
-                "values": {"P": P}
-            },
+            "lyapunov": {"expression": "M(x)^T @ P @ M(x)", "values": {"P": P}},
             "controller": {
-                'expression': "U0 @ H(x) @ P @ M(x)",
-                'values': {"H(x)": H_x}
+                "expression": "U0 @ H(x) @ P @ M(x)",
+                "values": {"H(x)": H_x},
+            },
+        }
+
+    def __discrete_polynomial(self) -> dict:
+        N = self.N
+        n = self.dimensionality
+        T = self.num_samples
+
+        # Theta(x) = N0 @ Q(x)
+        # Q(x) = H(x) @ P
+        # M(x) = Theta(x) @ x, where x ∈ X, with X being the state space.
+        # M(x) = N0 @ H(x) @ P @ x
+        # Therefore, Theta(x) = N0 @ H(x) @ P
+
+        M_x = self._calculate_M_x()
+        Theta_x = self._calculate_Theta_x(M_x)
+        # N0 = [M(x(0)), M(x(τ )), M(x(2τ )), . . . , M(x((T − 1)τ ))]
+        N0 = self._calculate_N0(M_x)
+
+        # H(x) is a (T x N) matrix
+        # P is a (N x N) symmetric positive definite matrix (then so is P_inv)
+        # Q(x) is a (T x N) matrix
+        # N0 is a (N x T) matrix
+
+        # Solve for P_inv and H(x) using the following two equations (with Mosek):
+        # (1) N0 @ H(x) = Theta(x) @ P_inv
+        # (2) [[P_inv, H(x).T @ X1.T], [X1 @ H(x), P_inv]] >> 0
+
+        return {
+            "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": "P"}},
+            "controller": {
+                "expression": "U0 @ H @ P^{-1} @ x",
+                "values": {"H": "H"},
             },
         }
 
@@ -144,16 +171,22 @@ class Stability:
         dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
         # x is a list of symbols for the state space, from x1 to xN
         # Substitute the initial conditions, X0, into the expression
-        dMdx = np.array([[
-            d.subs({x: self.X0.T[i][j] for j, x in enumerate(self.x)}) for d in row
-        ] for i, row in enumerate(dMdx)])
+        dMdx = np.array(
+            [
+                [
+                    d.subs({x: self.X0.T[i][j] for j, x in enumerate(self.x)})
+                    for d in row
+                ]
+                for i, row in enumerate(dMdx)
+            ]
+        )
         return dMdx
 
-    def calculate_M_x(self):
+    def _calculate_M_x(self):
         M_x = [sp.sympify(m) for m in self.monomials]
         return M_x
 
-    def calculate_N0(self, M_x):
+    def _calculate_N0(self, M_x):
         N0 = []
         for state in self.X0.T.tolist():
             row = []
@@ -161,8 +194,15 @@ class Stability:
                 value = m.subs({x: state[i] for i, x in enumerate(self.x)})
                 row.append(value)
             N0.append(row)
-        N0 = np.array(N0).T
-        return N0
+
+        return np.array(N0).T
+
+    def _calculate_Theta_x(self, M_x):
+        Theta_x = {}
+        for i, expr in enumerate(M_x):
+            Theta_x[expr] = [expr.coeff(x) for x in self.x]
+
+        return sp.Matrix(list(Theta_x.values()))
 
     @staticmethod
     def _discrete_constraints(X0, X1, Z, H) -> array:
@@ -204,7 +244,7 @@ class Stability:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """
-        return sp.symbols(f'x1:{self.dimensionality + 1}')
+        return sp.symbols(f"x1:{self.dimensionality + 1}")
 
     # --- Builder Pattern ---
 
