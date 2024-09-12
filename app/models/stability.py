@@ -141,23 +141,28 @@ class Stability:
 
         # Theta(x) = N0 @ Q(x)
         # Q(x) = H(x) @ P
-        # M(x) = Theta(x) @ x, where x ∈ X, with X being the state space.
+        # So, Theta(x) = N0 @ H(x) @ P
         # M(x) = N0 @ H(x) @ P @ x
-        # Therefore, Theta(x) = N0 @ H(x) @ P
 
         M_x = self._calculate_M_x()
         Theta_x = self._calculate_Theta_x(M_x)
-        # N0 = [M(x(0)), M(x(τ )), M(x(2τ )), . . . , M(x((T − 1)τ ))]
         N0 = self._calculate_N0(M_x)
 
-        # H(x) is a (T x N) matrix
-        # P is a (N x N) symmetric positive definite matrix (then so is P_inv)
-        # Q(x) is a (T x N) matrix
-        # N0 is a (N x T) matrix
+        # P is a symmetric positive definite (n x n) matrix, therefore so is P_inv
+        P_inv = cp.Variable((n, n), symmetric=True)
+        H_x = cp.Variable((T, N))
 
         # Solve for P_inv and H(x) using the following two equations (with Mosek):
         # (1) N0 @ H(x) = Theta(x) @ P_inv
         # (2) [[P_inv, H(x).T @ X1.T], [X1 @ H(x), P_inv]] >> 0
+
+        schur = cp.bmat([[P_inv, H_x.T @ self.X1.T], [self.X1 @ H_x, P_inv]])
+
+        constraints = [P_inv >> 0, N0 @ H_x == Theta_x @ P_inv, schur >> 0]
+
+        objective = cp.Minimize(cp.trace(P_inv))
+        prob = cp.Problem(objective, constraints)
+        prob.solve()
 
         return {
             "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": "P"}},
@@ -187,12 +192,16 @@ class Stability:
         return M_x
 
     def _calculate_N0(self, M_x):
+        """
+        N0 is an (N x T) full row-rank matrix.
+        N0 = [M(x(0)), M(x(1)), M(x(2)), ..., M(x(T − 1))]
+        """
         N0 = []
 
         for k in range(self.num_samples):
             N0.append([m.subs({x: self.X0.T[k][i] for i, x in enumerate(self.x)}) for m in M_x])
 
-        return np.array(N0)
+        return np.array(N0).T
 
     def _calculate_Theta_x(self, M_x):
         Theta_x = {}
