@@ -188,14 +188,11 @@ class Stability:
 
     def _calculate_N0(self, M_x):
         N0 = []
-        for state in self.X0.T.tolist():
-            row = []
-            for m in M_x:
-                value = m.subs({x: state[i] for i, x in enumerate(self.x)})
-                row.append(value)
-            N0.append(row)
 
-        return np.array(N0).T
+        for k in range(self.num_samples):
+            N0.append([m.subs({x: self.X0.T[k][i] for i, x in enumerate(self.x)}) for m in M_x])
+
+        return np.array(N0)
 
     def _calculate_Theta_x(self, M_x):
         Theta_x = {}
