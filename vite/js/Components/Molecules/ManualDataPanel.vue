@@ -58,12 +58,6 @@ watchEffect(() => {
             placeholder="e.g. 1, 2, 3"
             required
             rows="5" />
-
-        <p>
-            <small class="text-gray-400 text-sm">
-                Dimensions: {{ data[0]?.length || 1 }}
-            </small>
-        </p>
     </div>
 </template>
 
