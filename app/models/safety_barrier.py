@@ -340,6 +340,7 @@ class SafetyBarrier(Barrier):
         try:
             self.problem.solve(solver='mosek')
         except SolutionFailure as e:
+            # TODO: include info on what wasn't feasible
             return {
                 'error': 'Failed to solve the problem.',
                 'description': str(e)

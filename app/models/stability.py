@@ -138,6 +138,7 @@ class Stability:
         N = self.N
         n = self.dimensionality
         T = self.num_samples
+        X = self.state_space
 
         # Theta(x) = N0 @ Q(x)
         # Q(x) = H(x) @ P
@@ -145,12 +146,20 @@ class Stability:
         # M(x) = N0 @ H(x) @ P @ x
 
         M_x = self._calculate_M_x()
+
+        # TODO: refactor to use the solver to calculate Theta_x given M_x and x.
         Theta_x = self._calculate_Theta_x(M_x)
+        # Sub in the x1, x2, ..., xN values from the state space, X.
+        Theta_x = np.array([
+            [t.subs({x: X[f"{x}"][i] for i, x in enumerate(self.x)}) for t in row]
+            for row in Theta_x
+        ])
+
         N0 = self._calculate_N0(M_x)
 
         # P is a symmetric positive definite (n x n) matrix, therefore so is P_inv
         P_inv = cp.Variable((n, n), symmetric=True)
-        H_x = cp.Variable((T, N))
+        H_x = cp.Variable((T, n))
 
         # Solve for P_inv and H(x) using the following two equations (with Mosek):
         # (1) N0 @ H(x) = Theta(x) @ P_inv
@@ -203,12 +212,15 @@ class Stability:
 
         return np.array(N0).T
 
-    def _calculate_Theta_x(self, M_x):
+    def _calculate_Theta_x(self, M_x: list[sp.Expr]) -> list:
+        """
+        Theta_x is an (N x n) matrix.
+        """
         Theta_x = {}
         for i, expr in enumerate(M_x):
             Theta_x[expr] = [expr.coeff(x) for x in self.x]
 
-        return sp.Matrix(list(Theta_x.values()))
+        return list(Theta_x.values())
 
     @staticmethod
     def _discrete_constraints(X0, X1, Z, H) -> array:
