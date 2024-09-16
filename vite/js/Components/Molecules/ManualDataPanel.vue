@@ -9,7 +9,10 @@ const inputError = ref(false);
 watchEffect(() => {
     inputError.value = false;
 
-    if (!userData.value) return;
+    if (!userData.value) {
+        data.value = [];
+        return;
+    }
 
     const parsed = userData.value
         // split the input by newlines or by comma-newlines
