@@ -15,8 +15,8 @@ const model = defineModel({ type: Object, default: () => ({}) })
 
 <template>
     <div
-        class="mt-2 flex min-h-56 flex-col items-center rounded-lg border-2 border-dashed border-gray-300 p-4 focus:border-blue-300 focus:outline-none dark:border-gray-600">
-        <div class="py-10 text-center text-sm">
+        class="mt-2 flex flex-col items-center rounded-lg border-2 border-dashed border-gray-300 p-4 focus:border-blue-300 focus:outline-none dark:border-gray-600">
+        <div class="pt-2 pb-5 text-center text-sm">
             <p class="mb-1 font-medium text-gray-900 dark:text-gray-200">
                 Choose a file.
             </p>
@@ -34,7 +34,7 @@ const model = defineModel({ type: Object, default: () => ({}) })
             class="block w-full rounded-lg border border-gray-300 bg-gray-100 text-sm text-gray-500 focus:outline-none dark:border-none dark:bg-gray-950"
             type="file"
             @input="model = $event.target.files[0]" />
-        <progress v-if="form.progress" :value="form.progress.percentage" max="100">
+        <progress v-if="form?.progress" :value="form.progress.percentage" max="100">
             {{ form.progress.percentage }}
         </progress>
     </div>
