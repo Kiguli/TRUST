@@ -3,7 +3,6 @@ import H2 from "@/Atoms/H2.vue";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 import ManualDataPanel from "@/Molecules/ManualDataPanel.vue";
-import { ref, watch } from "vue";
 
 defineProps({
     title: {
@@ -14,18 +13,15 @@ defineProps({
         type: String,
         default: "Enter or upload your dataset.",
     },
+    form: {
+        type: Object,
+        required: true,
+    },
 });
 
-const dataModel = defineModel({ type: Array, default: () => [] });
-const data = ref("");
+const data = defineModel();
 
 const modes = [{ title: "Manual" }, { title: "Upload" }];
-
-watch(data, (value) => {
-    dataModel.value = value
-        .split(",")
-        .map((value) => Number(value.replace(" ", "")));
-});
 </script>
 
 <template>
@@ -61,7 +57,7 @@ watch(data, (value) => {
 
             <TabPanels class="mt-2">
                 <TabPanel v-for="mode in modes" :key="mode">
-                    <UploadDataPanel v-if="mode.title === 'Upload'" />
+                    <UploadDataPanel v-if="mode.title === 'Upload'" :form="form" />
                     <ManualDataPanel v-else v-model="data" />
                 </TabPanel>
             </TabPanels>
