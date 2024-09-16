@@ -1,55 +1,42 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
+import { computed, ref, watchEffect } from "vue";
 import { Head, useForm } from "@inertiajs/vue3";
+import { useInterval } from "@vueuse/core";
 
 import H2 from "@/Atoms/H2.vue";
+import H3 from "@/Atoms/H3.vue";
 import Pre from "@/Atoms/Pre.vue";
 import Section from "@/Atoms/Section.vue";
-import ProblemOptions from "@/Organisms/ProblemOptions.vue";
+import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 import DatasetInput from "@/Organisms/DatasetInput.vue";
+import ProblemOptions from "@/Organisms/ProblemOptions.vue";
+import StickyFooter from "@/Organisms/StickyFooter.vue";
 import VectorInput from "@/Organisms/VectorInput.vue";
 
 import route from "~/utilities/route.js";
-import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
-import H3 from "@/Atoms/H3.vue";
-import { useInterval } from "@vueuse/core";
 
-const props = defineProps({
+defineProps({
     models: Array,
     timings: Array,
     modes: Array,
     result: null,
 });
 
-// -- Data
-const X0 = ref();
-const U0 = ref();
-const X1 = ref();
-
-// -- Selections
-const model = ref();
-const timing = ref();
-const mode = ref();
-
-// -- Matrix inputs
-const monomials = ref();
-const stateSpace = ref();
-const initialState = ref();
-const unsafeStates = ref();
-
 const form = useForm({
-    model,
-    timing,
-    mode,
-    X0,
-    X1,
-    U0,
-    monomials,
-    stateSpace,
-    initialState,
-    unsafeStates,
+    model: null,
+    timing: null,
+    mode: null,
+    X0: null,
+    X1: null,
+    U0: null,
+    monomials: null,
+    stateSpace: null,
+    initialState: null,
+    unsafeStates: null,
 });
+
+const samples = ref(0);
+const dimension = ref(1);
 
 const deltaTime = ref(0);
 
@@ -59,7 +46,7 @@ const submit = () => {
         preserveScroll: true,
         only: ["result"],
         onStart: () => {
-            deltaTime.value = useInterval(1000)
+            deltaTime.value = useInterval(1000);
         },
         onSuccess: () => {
             deltaTime.value = null;
@@ -77,18 +64,12 @@ const calculateTxt = computed(() => {
     const shortcutHtml = `<Kbd class="text-sm opacity-70">(${shortcut})</Kbd>`;
     const calculateHtml = `Calculate ${shortcutHtml}`;
 
-
     return form.processing ? `Calculating... ${deltaHtml}` : calculateHtml;
-})
+});
 
-const submitBtn = ref();
-
-onMounted(() => {
-    window.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            submitBtn.value.click();
-        }
-    });
+watchEffect(() => {
+    samples.value = form.X0?.length ?? 0;
+    dimension.value = form.X0?.[0]?.length ?? 1;
 });
 </script>
 
@@ -116,20 +97,21 @@ onMounted(() => {
             </div>
 
             <ProblemOptions
-                v-model="form.model"
-                :options="models"
-                title="Model" />
-            <ProblemOptions
                 v-model="form.timing"
                 :options="timings"
                 title="Class" />
             <ProblemOptions
+                v-model="form.model"
+                :options="models"
+                title="Model" />
+            <ProblemOptions
                 v-model="form.mode"
                 :options="modes"
                 title="Specification" />
-            <DatasetInput v-model="form.X0" title="Add X0" />
-            <DatasetInput v-model="form.U0" title="Add U0" />
-            <DatasetInput v-model="form.X1" title="Add X1" />
+
+            <DatasetInput v-model="form.X0" :form="form" title="Add X0" />
+            <DatasetInput v-model="form.U0" :form="form" title="Add U0" />
+            <DatasetInput v-model="form.X1" :form="form" title="Add X1" />
         </Section>
 
         <!-- Manual inputs -->
@@ -161,7 +143,8 @@ onMounted(() => {
             <div v-if="result">
                 <div>
                     <p class="text-sm text-gray-400">
-                        Calculated in <pre class="inline-block">{{ result.time_taken }}</pre>
+                        Calculated in
+                        <pre class="inline-block">{{ result.time_taken }}</pre>
                     </p>
                 </div>
 
@@ -212,37 +195,7 @@ onMounted(() => {
             </div>
         </Section>
 
-        <div
-            class="sticky bottom-0 col-span-full flex min-h-20 w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:border-none dark:bg-gray-900 dark:shadow-inner">
-            <div class="flex flex-col justify-center">
-                <h3
-                    class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
-                    <a
-                        class="flex w-min cursor-pointer items-center gap-x-0.5"
-                        href="https://github.com/kiguli/sintrajbc"
-                        target="_blank">
-                        <span class="inline-block flex-none">SinTra-SB</span>
-                        <LinkIcon class="h-4 w-4 flex-none text-gray-500" />
-                    </a>
-                </h3>
-                <p class="line-clamp-2 text-xs text-gray-400">
-                    Single Trajectory Data-Driven Control Synthesis for
-                    Stability and Barrier Certificates
-                </p>
-            </div>
-            <div class="flex items-center gap-x-2">
-                <button
-                    ref="submitBtn"
-                    :disabled="form.processing"
-                    class="order-1 flex items-baseline gap-x-1 h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
-                    type="submit"
-                    v-html="calculateTxt"/>
-                <button
-                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5">
-                    Reset
-                </button>
-            </div>
-        </div>
+        <StickyFooter :form="form" :text="calculateTxt" />
     </form>
 </template>
 
