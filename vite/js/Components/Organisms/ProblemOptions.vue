@@ -55,7 +55,7 @@ onMounted(() => {
                                 ? 'bg-indigo-900/75'
                                 : 'bg-white dark:bg-gray-900',
                             option.disabled
-                                ? 'cursor-not-allowed opacity-25'
+                                ? 'cursor-not-allowed opacity-30'
                                 : 'cursor-pointer',
                         ]"
                         class="relative ring-2 ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">

@@ -1,7 +1,11 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 
 import H2 from "@/Atoms/H2.vue";
+import { dim } from "picocolors";
+import Input from "@/Atoms/Input.vue";
+import LabelledInput from "@/Molecules/LabelledInput.vue";
+import Label from "@/Atoms/Label.vue";
 
 defineProps({
     title: {
@@ -12,37 +16,40 @@ defineProps({
         type: String,
         default: "",
     },
+    dimensions: {
+        type: Number,
+        required: true,
+    },
 });
 
-const matrixModel = defineModel({ type: Array, default: () => [] });
-const matrix = ref([]);
+const vectorData = ref([]);
+const inputError = ref(false);
 
-function updateMatrix(i, event) {
+const updateMatrix = (i, event) => {
+    inputError.value = false;
+
     const oldValue = event.target.value;
-    let newValue = oldValue;
 
-    // Remove whitespace
-    newValue = newValue.replace(" ", "");
-    // Split by comma
-    newValue = newValue.split(",");
-    // Convert to numbers
-    newValue = newValue.map((value) => Number(value));
-    // Remove empty values
-    newValue = newValue.filter((value) => value);
+    if (!oldValue) {
+        vectorData.value[i - 1] = [];
+        return;
+    }
 
-    // Update the matrix
-    matrix.value[i - 1] = newValue;
+    const parsed = oldValue
+        .split(",")
+        .map((value) => Number(value))
+        .filter((value) => value);
 
-    // Update the parent
-    matrixModel.value = matrix.value.filter((value) => value.length);
+    // If the input has more than two values, show an error
+    if (parsed.length > 2) {
+        inputError.value = true;
+        console.error("Invalid dataset: too many values.");
+        return;
+    }
 
-    // Restore the user input
-    event.target.value = oldValue;
+    console.log(i, event.target.value, parsed);
+    vectorData.value[i - 1] = parsed;
 }
-
-onMounted(() => {
-    matrixModel.value = [];
-});
 </script>
 
 <template>
@@ -52,39 +59,29 @@ onMounted(() => {
             {{ description }}
         </p>
         <div
-            v-for="i in matrixModel.length + 1"
+            v-for="i in dimensions"
             :key="i"
             class="mt-2 flex rounded-md shadow-sm">
-            <label
-                :for="`x${i}`"
-                class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 px-3 text-sm text-gray-500 dark:border-2 dark:border-gray-950 dark:text-gray-200">
+            <Label
+                :for="`x${i}`">
                 x<sub class="mt-1">{{ i }}</sub>
-            </label>
-            <input
+            </Label>
+            <Input
                 :id="`x${i}`"
-                :required="i === 1"
+                @input="updateMatrix(i, $event)"
                 aria-autocomplete="none"
                 autocapitalize="off"
                 autocomplete="off"
-                class="block h-10 w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 px-2 py-1.5 text-sm leading-6 text-gray-900 outline-none ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-300 dark:border-none dark:bg-gray-950 dark:text-gray-100 dark:outline-none dark:ring-0"
-                placeholder="e.g. 1, 2"
-                type="text"
-                @input="updateMatrix(i, $event)" />
+                :class="[
+                    inputError ? 'ring-2 ring-inset ring-red-600' : '',
+                ]"
+                :placeholder="i === 1 ? 'e.g. 1, 2' : '...'"
+                required
+                type="text" />
         </div>
-
-        <div class="flex w-full" v-show="false">
-            <button
-                class="mt-2 rounded-md bg-purple-600/75 px-4 py-2 text-sm text-white hover:bg-purple-700/75 active:bg-purple-800/75"
-                @click="dimensions++">
-                Add dimension
-            </button>
-
-            <button
-                class="ml-2 mt-2 rounded-md px-2.5 py-2 text-sm text-gray-400 hover:text-white hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:border-gray-500 active:text-white"
-                @click="clear">
-                Clear
-            </button>
-        </div>
+        <p class="text-sm text-gray-400">
+            {{ vectorData ?? 'empty' }}
+        </p>
     </div>
 </template>
 

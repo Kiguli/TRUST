@@ -14,6 +14,9 @@ import StickyFooter from "@/Organisms/StickyFooter.vue";
 import VectorInput from "@/Organisms/VectorInput.vue";
 
 import route from "~/utilities/route.js";
+import Input from "@/Atoms/Input.vue";
+import LabelledInput from "@/Molecules/LabelledInput.vue";
+import Label from "@/Atoms/Label.vue";
 
 defineProps({
     models: Array,
@@ -116,22 +119,65 @@ watchEffect(() => {
 
         <!-- Manual inputs -->
         <Section class="border-t bg-gray-100/80 sm:border-t-0 lg:border-r">
-            <VectorInput
+            <div
+                class="py-1">
+                <H2>Dimensions</H2>
+                <p class="text-sm text-gray-400">
+                    The auto-calculated dimensions from your dataset.
+                </p>
+                <div class="mt-2 flex rounded-md shadow-sm">
+                    <Label for="monomials" class="opacity-30">
+                        Dimensions
+                    </Label>
+                    <Input
+                        id="monomials"
+                        disabled
+                        :value="dimension"
+                        type="text" />
+                </div>
+            </div>
+
+            <div
                 v-if="form.model !== 'Linear'"
-                v-model="form.monomials"
-                description="Enter the lower and upper bounds"
-                title="Monomials" />
+                class="py-1">
+                <H2>Monomials</H2>
+                <p class="text-sm text-gray-400">
+                    Enter the monomials in terms of
+                    <pre class="inline">x1</pre>
+                    <span v-if="dimension > 1">
+                        to
+                        <pre class="inline">x{{ dimension }}</pre>.
+                    </span>
+                </p>
+                <div class="mt-2 flex rounded-md shadow-sm">
+                    <Label for="monomials">
+                        Monomials
+                    </Label>
+                    <Input
+                        id="monomials"
+                        v-model="form.monomials"
+                        aria-autocomplete="none"
+                        autocapitalize="off"
+                        placeholder="e.g. x1; 2 * x2; x3 - x1"
+                        required
+                        type="text" />
+                </div>
+            </div>
+
             <VectorInput
                 v-model="form.stateSpace"
-                description="Enter the lower and upper bounds"
+                :dimensions="dimension"
+                description="Enter the lower and upper bounds."
                 title="State Space" />
             <VectorInput
                 v-model="form.initialState"
-                description="Enter the lower and upper bounds"
+                :dimensions="dimension"
+                description="Enter the lower and upper bounds."
                 title="Initial Set" />
             <VectorInput
                 v-model="form.unsafeStates"
-                description="Enter the lower and upper bounds"
+                :dimensions="dimension"
+                description="Enter the lower and upper bounds."
                 title="Unsafe Sets" />
         </Section>
 
