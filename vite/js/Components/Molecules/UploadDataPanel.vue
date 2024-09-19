@@ -8,9 +8,9 @@ defineProps({
         type: String,
         default: "Drag and drop or select a file to upload.",
     },
-})
+});
 
-const model = defineModel({ type: Object, default: () => ({}) })
+const model = defineModel({ type: Object, default: () => ({}) });
 </script>
 
 <template>
@@ -32,6 +32,7 @@ const model = defineModel({ type: Object, default: () => ({}) })
                 'file:active:ring-2 file:active:ring-white/60 file:active:ring-offset-2 file:active:ring-offset-violet-300',
             ]"
             class="block w-full rounded-lg border border-gray-300 bg-gray-100 text-sm text-gray-500 focus:outline-none dark:border-none dark:bg-gray-950"
+            required
             type="file"
             @input="model = $event.target.files[0]" />
         <progress v-if="form?.progress" :value="form.progress.percentage" max="100">

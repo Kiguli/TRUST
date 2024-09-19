@@ -15,7 +15,6 @@ import VectorInput from "@/Organisms/VectorInput.vue";
 
 import route from "~/utilities/route.js";
 import Input from "@/Atoms/Input.vue";
-import LabelledInput from "@/Molecules/LabelledInput.vue";
 import Label from "@/Atoms/Label.vue";
 
 defineProps({
