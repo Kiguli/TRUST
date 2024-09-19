@@ -34,7 +34,6 @@ def calculate_result(update_cache=False):
         stability_function = Stability().create(data).calculate()
     else:
         function_name = 'barrier_function'
-        # barrier = BarrierFactory()
         barrier_function = SafetyBarrier(data).calculate()
 
     time_taken = time() - start_time

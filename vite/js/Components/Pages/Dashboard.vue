@@ -70,8 +70,8 @@ const calculateTxt = computed(() => {
 });
 
 watchEffect(() => {
-    samples.value = form.X0?.length ?? 0;
-    dimension.value = form.X0?.[0]?.length ?? 1;
+    dimension.value = Math.max(form.X0?.length ?? 1, 1)
+    samples.value = form.X0?.[0]?.length ?? 0;
 });
 </script>
 
@@ -125,13 +125,13 @@ watchEffect(() => {
                     The auto-calculated dimensions from your dataset.
                 </p>
                 <div class="mt-2 flex rounded-md shadow-sm">
-                    <Label for="monomials" class="opacity-30">
+                    <Label class="opacity-30" for="monomials">
                         Dimensions
                     </Label>
                     <Input
                         id="monomials"
-                        disabled
                         :value="dimension"
+                        disabled
                         type="text" />
                 </div>
             </div>
@@ -196,7 +196,7 @@ watchEffect(() => {
                 <div class="my-6">
                     <H3>Barrier</H3>
                     <Pre title="Barrier expression">
-                        {{ result.barrier_function.barrier.expression }}
+                        <span v-html="result.barrier_function.barrier.expression"></span>
                     </Pre>
                     <Pre title="P">
                         {{ result.barrier_function.barrier.values.P }}
@@ -206,7 +206,7 @@ watchEffect(() => {
                 <div class="my-6">
                     <H3>Controller</H3>
                     <Pre title="Controller expression">
-                        {{ result.barrier_function.controller.expression }}
+                        <span v-html="result.barrier_function.controller.expression"></span>
                     </Pre>
                     <Pre title="H">
                         {{ result.barrier_function.controller.values.H }}

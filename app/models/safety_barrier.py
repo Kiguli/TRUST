@@ -57,7 +57,7 @@ class SafetyBarrier(Barrier):
 
         # -- Solve for H and Z
 
-        H = RealVariable('H', (self.X0.shape[1], self.dimensionality))
+        H = RealVariable('H', (self.num_samples, self.dimensionality))
         Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
@@ -105,15 +105,15 @@ class SafetyBarrier(Barrier):
 
         # TODO: output the simplified version: sp.simplify(barrier[0])?
 
-        P = np.array2string(np.array(P))
-        H = np.array2string(np.array(H))
+        P = np.array2string(np.array(P), separator=', ')
+        H = np.array2string(np.array(H), separator=', ')
 
         return {
             'barrier': {
-                'expression': 'x^T @ P @ x', 'values': {'P': P},
+                'expression': 'x<sup>T</sup>Px', 'values': {'P': P},
             },
             'controller': {
-                'expression': 'U_{0,T} @ H @ P @ x',
+                'expression': 'U<sub>0</sub>HPx',
                 'values': {'H': H}
             },
             'gamma': str(gamma_var.value),
@@ -182,16 +182,18 @@ class SafetyBarrier(Barrier):
 
         self.problem.solve()
 
+        P = np.array2string(np.array(P), separator=', ')
+        H = np.array2string(np.array(Hx_var), separator=', ')
+
         return {
             'barrier': {
-                'expression': 'x^T @ P @ x',
+                'expression': 'x<sup>T</sup>Px',
                 'values': {'P': P},
             },
             'controller': {
-                'expression': 'U0 @ H(x) @ [N0 @ H(x)]^-1 @ x',
+                'expression': 'U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x',
                 'values': {
                     'H': H,
-                    'N': N
                 }
             },
         }
@@ -250,11 +252,11 @@ class SafetyBarrier(Barrier):
 
         return {
             'barrier': {
-                'expression': 'x^T @ P @ x',
+                'expression': 'x<sup>T</sup>Px',
                 'values': {'P': P},
             },
             'controller': {
-                'expression': 'U_{0,T} @ Q @ x',
+                'expression': 'U<sub>0</sub>Qx',
                 'values': {'Q': Q},
             },
             'gamma': gamma_var.value,
@@ -356,11 +358,11 @@ class SafetyBarrier(Barrier):
 
         return {
             'barrier': {
-                'expression': 'M(x)^T @ P @ M(x)',
+                'expression': 'M(x)<sup>T</sup>PM(x)',
                 'values': {'P': P}
             },
             'controller': {
-                'expression': 'U0 @ H(x) @ P @ M(x)',
+                'expression': 'U<sub>0</sub>H(x)PM(x)',
                 'values': {
                     'H(x)': H_x
                 }

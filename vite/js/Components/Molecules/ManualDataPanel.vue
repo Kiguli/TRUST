@@ -39,11 +39,15 @@ watchEffect(() => {
 <template>
     <div
         class="flex flex-col rounded-lg border-2 border-dashed border-gray-300 p-4 dark:border-gray-600">
-        <label class="pb-2 text-sm font-medium text-gray-900 dark:text-gray-200" for="dataset">
-            Enter your dataset.
+        <label class="pb-2 text-sm font-medium text-gray-900 dark:text-gray-200 space-y-1" for="dataset">
+            <span>Enter your dataset.</span>
+            <span class="inline-block text-gray-400">
+                The data should be sequential over a time horizon of T steps,
+                and each row should represent an additional dimension for your system.
+            </span>
         </label>
         <p class="text-sm text-gray-400 pb-2">
-            Each row should be a data point, with columns separated by commas.
+
         </p>
 
         <textarea
@@ -58,7 +62,7 @@ watchEffect(() => {
             autocomplete="off"
             class="block min-h-24 w-full rounded-lg border-0 outline-none px-2 font-mono py-1.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:bg-gray-950"
             name="dataset"
-            placeholder="e.g. 1, 2, 3"
+            placeholder="e.g. 1.2, 2.3, 3.4"
             required
             rows="5" />
     </div>

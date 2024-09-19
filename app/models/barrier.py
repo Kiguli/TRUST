@@ -11,8 +11,8 @@ class Barrier:
         self.model = data['model']
         self.timing = data['timing']
         self.monomials = data.get('monomials', [])
-        self.X0 = np.transpose(np.array(data['X0']))
-        self.X1 = np.transpose(np.array(data['X1']))
+        self.X0 = np.array(data['X0'])
+        self.X1 = np.array(data['X1'])
         self.U0 = np.array(data['U0'])
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
