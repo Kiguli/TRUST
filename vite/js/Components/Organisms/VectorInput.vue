@@ -41,12 +41,7 @@ const updateMatrix = (i, event) => {
         .filter((value) => value !== undefined);
 
     inputError.value = parsed.some((value) => isNaN(value));
-
-    // If the input has more than two values, show an error
-    if (parsed.length > 2) {
-        inputError.value = true;
-        return;
-    }
+    inputError.value = parsed.length > 2;
 
     vectorData.value[i - 1] = parsed;
 }
