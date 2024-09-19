@@ -1,6 +1,16 @@
+<script setup>
+defineProps({
+    hasError: {
+        type: Boolean,
+        default: false,
+    },
+})
+</script>
+
 <template>
     <input
         :class="[
+            hasError ? 'ring-2 ring-inset ring-red-600 dark:ring-2 focus:ring-red-600' : '',
             'block h-10 w-full min-w-0 flex-1 rounded-r-md border-0 px-2 py-1.5',
             'text-sm leading-6 text-gray-900 outline-none ring-1 ring-inset ring-gray-300 ',
             'placeholder:text-gray-400',

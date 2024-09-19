@@ -37,17 +37,22 @@ const updateMatrix = (i, event) => {
 
     const parsed = oldValue
         .split(",")
-        .map((value) => Number(value))
+        .map((value) => {
+            const parsed = Number(value);
+            if (isNaN(parsed)) {
+                inputError.value = true;
+                return null;
+            }
+            return parsed;
+        })
         .filter((value) => value);
 
     // If the input has more than two values, show an error
     if (parsed.length > 2) {
         inputError.value = true;
-        console.error("Invalid dataset: too many values.");
         return;
     }
 
-    console.log(i, event.target.value, parsed);
     vectorData.value[i - 1] = parsed;
 }
 </script>
@@ -72,16 +77,11 @@ const updateMatrix = (i, event) => {
                 aria-autocomplete="none"
                 autocapitalize="off"
                 autocomplete="off"
-                :class="[
-                    inputError ? 'ring-2 ring-inset ring-red-600' : '',
-                ]"
+                :has-error="inputError"
                 :placeholder="i === 1 ? 'e.g. 1, 2' : '...'"
                 required
                 type="text" />
         </div>
-        <p class="text-sm text-gray-400">
-            {{ vectorData ?? 'empty' }}
-        </p>
     </div>
 </template>
 
