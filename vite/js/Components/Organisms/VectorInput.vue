@@ -37,15 +37,10 @@ const updateMatrix = (i, event) => {
 
     const parsed = oldValue
         .split(",")
-        .map((value) => {
-            const parsed = Number(value);
-            if (isNaN(parsed)) {
-                inputError.value = true;
-                return null;
-            }
-            return parsed;
-        })
-        .filter((value) => value);
+        .map(Number)
+        .filter((value) => value !== undefined);
+
+    inputError.value = parsed.some((value) => isNaN(value));
 
     // If the input has more than two values, show an error
     if (parsed.length > 2) {
