@@ -44,7 +44,7 @@ onMounted(() => {
             <button
                 ref="submitBtn"
                 :disabled="form.processing"
-                class="order-1 flex items-baseline gap-x-1 h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 focus:ring-blue-600 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
+                class="order-1 flex items-baseline gap-x-1 h-min rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none hover:bg-blue-700/75 ring-2 ring-inset ring-transparent focus:ring-gray-100 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
                 type="submit"
                 v-html="text" />
             <button

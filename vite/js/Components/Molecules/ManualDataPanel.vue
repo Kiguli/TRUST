@@ -28,7 +28,6 @@ watchEffect(() => {
     const columns = parsed.map((row) => row.length);
     if (columns.some((col) => col !== columns[0])) {
         inputError.value = true;
-        console.error("Invalid dataset: rows have different numbers of columns.");
         return;
     }
 

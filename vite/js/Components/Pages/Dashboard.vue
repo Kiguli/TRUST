@@ -16,6 +16,7 @@ import VectorInput from "@/Organisms/VectorInput.vue";
 import route from "~/utilities/route.js";
 import Input from "@/Atoms/Input.vue";
 import Label from "@/Atoms/Label.vue";
+import VectorInputSet from "@/Organisms/VectorInputSet.vue";
 
 defineProps({
     models: Array,
@@ -31,10 +32,10 @@ const form = useForm({
     X0: null,
     X1: null,
     U0: null,
-    monomials: null,
-    stateSpace: null,
-    initialState: null,
-    unsafeStates: null,
+    monomials: [],
+    stateSpace: [],
+    initialState: [],
+    unsafeStates: [[]],
 });
 
 const samples = ref(0);
@@ -173,7 +174,7 @@ watchEffect(() => {
                 :dimensions="dimension"
                 description="Enter the lower and upper bounds."
                 title="Initial Set" />
-            <VectorInput
+            <VectorInputSet
                 v-model="form.unsafeStates"
                 :dimensions="dimension"
                 description="Enter the lower and upper bounds."
