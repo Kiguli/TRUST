@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref, watchEffect } from "vue";
-import { Head, useForm } from "@inertiajs/vue3";
-import { useInterval } from "@vueuse/core";
+import { computed, ref, watch, watchEffect } from "vue";
+import { Head, router, useForm } from "@inertiajs/vue3";
+import { useInterval, watchDebounced } from "@vueuse/core";
 
 import H2 from "@/Atoms/H2.vue";
 import H3 from "@/Atoms/H3.vue";
@@ -18,10 +18,11 @@ import Input from "@/Atoms/Input.vue";
 import Label from "@/Atoms/Label.vue";
 import VectorInputSet from "@/Organisms/VectorInputSet.vue";
 
-defineProps({
+const props = defineProps({
     models: Array,
     timings: Array,
     modes: Array,
+    monomials: Array | Boolean,
     result: null,
 });
 
@@ -32,7 +33,7 @@ const form = useForm({
     X0: null,
     X1: null,
     U0: null,
-    monomials: [],
+    monomials: "",
     stateSpace: [],
     initialState: [],
     unsafeStates: [[]],
@@ -64,16 +65,65 @@ const calculateTxt = computed(() => {
     // Show keyboard shortcut
     const platform = navigator.userAgent.toLowerCase();
     const shortcut = (platform.includes("mac") ? "Cmd" : "Ctrl") + "+Enter";
-    const shortcutHtml = `<Kbd class="text-sm opacity-70">(${shortcut})</Kbd>`;
+    const shortcutHtml = `<kbd class="text-sm opacity-70">(${shortcut})</kbd>`;
     const calculateHtml = `Calculate ${shortcutHtml}`;
 
     return form.processing ? `Calculating... ${deltaHtml}` : calculateHtml;
 });
 
+const monomials = ref();
+
 watchEffect(() => {
-    dimension.value = Math.max(form.X0?.length ?? 1, 1)
+    dimension.value = Math.max(form.X0?.length ?? 1, 1);
     samples.value = form.X0?.[0]?.length ?? 0;
 });
+
+watchDebounced(monomials, () => {
+    form.errors.monomials = undefined;
+
+    if (!monomials.value) {
+        return;
+    }
+
+    const monomialTerms = monomials.value.split(";").map((term) => {
+        // error if contains comma
+        if (term.includes(",")) {
+            form.errors.monomials = "Monomial terms should be split by semicolon";
+            return;
+        }
+
+        return term.trim();
+    });
+
+    if (!monomialTerms) {
+        form.errors.monomials = "Invalid monomial terms";
+        return;
+    }
+
+    router.post(
+        route("dashboard.index"),
+        {
+            monomials: {
+                terms: monomialTerms,
+                dimensions: dimension.value,
+            },
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ["monomials"],
+            onSuccess: () => {
+                console.log(props.monomials);
+                if (props.monomials) {
+                    form.monomials = props.monomials;
+                } else {
+                    form.errors.monomials = `Monomials must be in terms of x1` +
+                        (dimension.value > 1 ? ` to x${dimension.value}` : "");
+                }
+            },
+        },
+    );
+}, 500);
 </script>
 
 <template>
@@ -126,11 +176,11 @@ watchEffect(() => {
                     The auto-calculated dimensions from your dataset.
                 </p>
                 <div class="mt-2 flex rounded-md shadow-sm">
-                    <Label class="opacity-30" for="monomials">
+                    <Label class="opacity-30" for="dimensions">
                         Dimensions
                     </Label>
                     <Input
-                        id="monomials"
+                        id="dimensions"
                         :value="dimension"
                         disabled
                         type="text" />
@@ -155,13 +205,15 @@ watchEffect(() => {
                     </Label>
                     <Input
                         id="monomials"
-                        v-model="form.monomials"
+                        v-model="monomials"
+                        :has-error="form.errors.monomials !== undefined"
                         aria-autocomplete="none"
                         autocapitalize="off"
                         placeholder="e.g. x1; 2 * x2; x3 - x1"
                         required
                         type="text" />
                 </div>
+                <p v-if="form.errors.monomials" class="text-xs mt-2 text-red-600">{{ form.errors.monomials }}</p>
             </div>
 
             <VectorInput

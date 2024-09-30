@@ -43,7 +43,7 @@ def sample_data():
 
 def fake_data():
     return {
-        'model': fake.random_element(['Linear', 'Polynomial']),
+        'model': fake.random_element(['Linear', 'Non-Linear Polynomial']),
         'timing': fake.random_element(['Discrete-Time', 'Continuous-Time']),
         'mode': fake.random_element(['Stability', 'Safety Barrier', 'Reachability Barrier', 'Reach and Avoid Barrier']),
         'X0': [

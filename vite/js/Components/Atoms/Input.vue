@@ -5,10 +5,14 @@ defineProps({
         default: false,
     },
 })
+
+const model = defineModel();
+
 </script>
 
 <template>
     <input
+        v-model="model"
         :class="[
             hasError ? 'ring-2 ring-inset ring-red-600 dark:ring-2 focus:ring-red-600' : '',
             'block h-10 w-full min-w-0 flex-1 rounded-r-md border-0 px-2 py-1.5',

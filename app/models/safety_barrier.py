@@ -123,6 +123,9 @@ class SafetyBarrier(Barrier):
     def _discrete_nps(self):
         problem = SOSProblem()
 
+        print('-------------- X0 --------------')
+        print(self.X0)
+
         x = self.x
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
@@ -387,7 +390,7 @@ class SafetyBarrier(Barrier):
 
         # TODO: remove (degree 0 for faster feedback, invalid maths)
         degree = self.degree
-        degree = 0
+        # degree = 0
 
         L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state.values())

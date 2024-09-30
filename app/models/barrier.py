@@ -11,7 +11,7 @@ class Barrier:
         self.model = data['model']
         self.timing = data['timing']
         self.monomials = data.get('monomials', [])
-        self.X0 = np.array(data['X0'])
+        self.X0 = self.__X0(data['X0'])
         self.X1 = np.array(data['X1'])
         self.U0 = np.array(data['U0'])
         self.state_space = data['stateSpace']
@@ -66,3 +66,15 @@ class Barrier:
         Return the number of monomial terms, N
         """
         return len(self.monomials)
+
+    @staticmethod
+    def __X0(dataX0: list) -> np.array:
+        """
+        Get the initial state of the system as a numpy array of floats
+        """
+
+        for i in range(len(dataX0)):
+            for j in range(len(dataX0[i])):
+                dataX0[i][j] = float(dataX0[i][j])
+
+        return np.array(dataX0)
