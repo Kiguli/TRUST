@@ -24,8 +24,6 @@ watchEffect(() => {
         // remove empty values
         .map((row) => row.filter((col) => col !== ""));
 
-    console.log(parsed);
-
     // If any row has a different number of columns, show an error
     const columns = parsed.map((row) => row.length);
     if (columns.some((col) => col !== columns[0])) {
