@@ -11,9 +11,9 @@ class Barrier:
         self.model = data['model']
         self.timing = data['timing']
         self.monomials = data.get('monomials', [])
-        self.X0 = self.__X0(data['X0'])
-        self.X1 = np.array(data['X1'])
-        self.U0 = np.array(data['U0'])
+        self.X0 = self.parse_dataset(data['X0'])
+        self.X1 = self.parse_dataset(data['X1'])
+        self.U0 = self.parse_dataset(data['U0'])
         self.state_space = data['stateSpace']
         self.initial_state = data['initialState']
         self.unsafe_states = data['unsafeStates']
@@ -68,13 +68,13 @@ class Barrier:
         return len(self.monomials)
 
     @staticmethod
-    def __X0(dataX0: list) -> np.array:
+    def parse_dataset(data: list) -> np.array:
         """
         Get the initial state of the system as a numpy array of floats
         """
 
-        for i in range(len(dataX0)):
-            for j in range(len(dataX0[i])):
-                dataX0[i][j] = float(dataX0[i][j])
+        for i in range(len(data)):
+            for j in range(len(data[i])):
+                data[i][j] = float(data[i][j])
 
-        return np.array(dataX0)
+        return np.array(data)

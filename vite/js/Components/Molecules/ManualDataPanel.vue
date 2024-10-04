@@ -18,11 +18,13 @@ watchEffect(() => {
         // split the input by newlines or by comma-newlines
         .split(/\n|,\n/)
         // Remove any whitespace within a row
-        .map((row) => row.replace(/\s/g, ""))
-        // split each row by commas
-        .map((row) => row.split(","))
+        .map((row) => row.replace(/,\s+/g, ","))
+        // Split columns by comma rather than whitespace
+        .map((row) => row.replace(/\s+/g, ",").split(","))
         // remove empty values
         .map((row) => row.filter((col) => col !== ""));
+
+    console.log(parsed);
 
     // If any row has a different number of columns, show an error
     const columns = parsed.map((row) => row.length);
