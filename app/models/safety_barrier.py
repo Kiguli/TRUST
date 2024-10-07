@@ -49,35 +49,41 @@ class SafetyBarrier(Barrier):
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
     def _discrete_linear(self):
+        T = self.num_samples
+        n = self.dimensionality
+        x = self.x
+
+        # -- Part 1: Solve for H and Z
+
         problem = SOSProblem()
 
-        x = self.x
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
 
-        # -- Solve for H and Z
+        H = RealVariable('H', (T, n))
+        Z = SymmetricVariable('Z', (n, n))
 
-        H = RealVariable('H', (self.num_samples, self.dimensionality))
-        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
-
-        problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
         problem.add_constraint(Z == X0 * H)
+        # Z must be positive definite
+        problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
 
         schur = ((Z & H.T * X1.T) // (X1 * H & Z))
         problem.add_constraint(schur >> 0)
 
         problem.solve(solver='mosek')
 
+        # -- Part 2: SOS ---
+
         H = Matrix(H)
         Z = Matrix(Z)
-
         P = Z.inv()
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
+        # barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
+        barrier = sum(Matrix(x).T @ P @ Matrix(x))
 
         # -- SOS constraints
 
@@ -383,21 +389,20 @@ class SafetyBarrier(Barrier):
         x = self.x
 
         degree = self.degree
-        degree = 0
 
         L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        g_init = self.generate_polynomial(list(self.initial_state.values()))
+        g_init = self.generate_polynomial(self.initial_state)
         Lg_init = sum(L_init @ g_init)
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
             L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
                                        sym=False)
-            g_unsafe = self.generate_polynomial(list(self.unsafe_states[i].values()))
+            g_unsafe = self.generate_polynomial(self.unsafe_states[i])
             Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
         L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        g = self.generate_polynomial(list(self.state_space.values()))
+        g = self.generate_polynomial(self.state_space)
         Lg = sum(L @ g)
 
         return Lg_init, Lg_unsafe_set, Lg
@@ -407,10 +412,7 @@ class SafetyBarrier(Barrier):
         Compute the N0 matrix by evaluating the monomials at each time step.
         """
 
-        n = self.dimensionality
         T = self.num_samples
-        x = self.x
-        x_dict = {f"x{i+1}": val for i, val in enumerate(self.X0[0])}
 
         # Initialise the N0 matrix
         N0 = np.zeros((self.N, T))
