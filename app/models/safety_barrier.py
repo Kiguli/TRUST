@@ -67,7 +67,9 @@ class SafetyBarrier(Barrier):
         # Z must be positive definite
         problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
 
-        schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        # Z X1^TH^T; X1H Z
+        # schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        schur = ((Z & X1 * H) // (H.T * X1.T & Z))
         problem.add_constraint(schur >> 0)
 
         problem.solve(solver='mosek')
