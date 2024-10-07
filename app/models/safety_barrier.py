@@ -407,3 +407,26 @@ class SafetyBarrier(Barrier):
         Lg = sum(L @ g)
 
         return Lg_init, Lg_unsafe_set, Lg
+
+    def __compute_N0(self) -> list:
+        """
+        Compute the N0 matrix by evaluating the monomials at each time step.
+        """
+
+        n = self.dimensionality
+        T = self.num_samples
+        x = self.x
+        x_dict = {f"x{i+1}": val for i, val in enumerate(self.X0[0])}
+
+        # Initialise the N0 matrix
+        N0 = np.zeros((T, self.N))
+
+        for t in range(self.num_samples):
+            # Get the x values at time t
+            x_t = self.X0[:, t]
+
+            for i in range(self.N):
+                expr = sympify(self.monomials[i])
+                N0[t, i] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
+
+        return N0
