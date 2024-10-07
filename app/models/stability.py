@@ -30,9 +30,9 @@ class Stability:
         self.model = data["model"]
         self.timing = data["timing"]
         self.monomials = data.get("monomials", [])
-        self.X0 = np.transpose(np.array(data["X0"]))
-        self.X1 = np.transpose(np.array(data["X1"]))
-        self.U0 = np.array(data["U0"])
+        self.X0 = self.parse_dataset(data["X0"])
+        self.X1 = self.parse_dataset(data["X1"])
+        self.U0 = self.parse_dataset(data["U0"])
         self.state_space = data["stateSpace"]
         self.initial_state = data["initialState"]
         self.unsafe_states = data["unsafeStates"]
@@ -297,3 +297,16 @@ class Stability:
     def unsafe_states(self, unsafe_states: array) -> Self:
         self.unsafe_states = unsafe_states
         return self
+
+    @staticmethod
+    def parse_dataset(data: list) -> np.array:
+        """
+        Get the initial state of the system as a numpy array of floats
+        """
+
+        for i in range(len(data)):
+            for j in range(len(data[i])):
+                data[i][j] = float(data[i][j])
+
+        return np.array(data)
+
