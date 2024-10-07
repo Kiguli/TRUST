@@ -3,7 +3,6 @@ import sympy as sp
 from sympy import Matrix
 
 
-# TODO: [Use Pydantic](https://thatgardnerone.atlassian.net/browse/PHD-125)
 class Barrier:
     """Barrier Interface"""
 
@@ -14,9 +13,9 @@ class Barrier:
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
         self.U0 = self.parse_dataset(data['U0'])
-        self.state_space = data['stateSpace']
-        self.initial_state = data['initialState']
-        self.unsafe_states = data['unsafeStates']
+        self.state_space: dict = data['stateSpace']
+        self.initial_state: dict = data['initialState']
+        self.unsafe_states: dict = data['unsafeStates']
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
