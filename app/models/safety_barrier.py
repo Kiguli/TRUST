@@ -388,23 +388,21 @@ class SafetyBarrier(Barrier):
     def __compute_lagrangians(self):
         x = self.x
 
-        # TODO: remove (degree 0 for faster feedback, invalid maths)
         degree = self.degree
-        # degree = 0
 
         L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        g_init = self.generate_polynomial(self.initial_state.values())
+        g_init = self.generate_polynomial(list(self.initial_state.values()))
         Lg_init = sum(L_init @ g_init)
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
             L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
                                        sym=False)
-            g_unsafe = self.generate_polynomial(self.unsafe_states[i].values())
+            g_unsafe = self.generate_polynomial(list(self.unsafe_states[i].values()))
             Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
 
         L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        g = self.generate_polynomial(self.state_space.values())
+        g = self.generate_polynomial(list(self.state_space.values()))
         Lg = sum(L @ g)
 
         return Lg_init, Lg_unsafe_set, Lg
