@@ -389,6 +389,7 @@ class SafetyBarrier(Barrier):
         x = self.x
 
         degree = self.degree
+        degree = 0
 
         L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(list(self.initial_state.values()))

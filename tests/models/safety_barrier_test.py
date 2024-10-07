@@ -54,7 +54,7 @@ class TestDiscreteTimeLinearBarrier:
 
         actual = SafetyBarrier(sample_data).calculate()
 
-        assert actual['barrier']['expression'] == 'x^T @ P @ x'
+        assert actual['barrier']['expression'] == 'x<sup>T</sup>Px'
         assert 'P' in actual['barrier']['values']
         assert actual['barrier']['values']['P'] is not None
 
@@ -63,7 +63,7 @@ class TestDiscreteTimeLinearBarrier:
 
         actual = SafetyBarrier(sample_data).calculate()
 
-        assert actual['controller']['expression'] == 'U_{0,T} @ H @ P @ x'
+        assert actual['controller']['expression'] == 'U<sub>0</sub>HPx'
         assert 'H' in actual['controller']['values']
         assert actual['controller']['values']['H'] is not None
 
