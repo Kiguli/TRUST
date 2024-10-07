@@ -288,15 +288,7 @@ class SafetyBarrier(Barrier):
         M_x = [sympify(m) for m in self.monomials]
         tau = symbols('tau')  # TODO: allow user to specify tau?
 
-        N0 = []
-        for state in self.X0.T.tolist():
-            row = []
-            for m in M_x:
-                value = m.subs({x: state[i] for i, x in enumerate(mon_syms)})
-                row.append(value)
-            N0.append(row)
-
-        N0 = np.array(N0).T
+        N0 = self.__compute_N0()
 
         # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
         # Note: Z = P^-1
@@ -421,7 +413,7 @@ class SafetyBarrier(Barrier):
         x_dict = {f"x{i+1}": val for i, val in enumerate(self.X0[0])}
 
         # Initialise the N0 matrix
-        N0 = np.zeros((T, self.N))
+        N0 = np.zeros((self.N, T))
 
         for t in range(self.num_samples):
             # Get the x values at time t
@@ -429,6 +421,6 @@ class SafetyBarrier(Barrier):
 
             for i in range(self.N):
                 expr = sympify(self.monomials[i])
-                N0[t, i] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
+                N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         return N0
