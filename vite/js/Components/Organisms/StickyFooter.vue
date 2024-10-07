@@ -48,6 +48,7 @@ onMounted(() => {
                 type="submit"
                 v-html="text" />
             <button
+                type="reset"
                 class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5">
                 Reset
             </button>
