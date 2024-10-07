@@ -34,10 +34,7 @@ class Barrier:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """
-
-        dimensions = len(self.state_space)
-
-        return sp.symbols(f'x1:{dimensions + 1}')
+        return sp.symbols(f'x1:{self.dimensionality + 1}')
 
     @property
     def degree(self):
