@@ -123,10 +123,17 @@ class SafetyBarrier(Barrier):
     def _discrete_nps(self):
         problem = SOSProblem()
 
-        print('-------------- X0 --------------')
-        print(self.X0)
-
         x = self.x
+
+        # M(x) = Theta(x) @ x
+        # i.e. Theta(x) = M(x) @ x^-1
+
+        # Since we're given M(x) by the user, i.e. self.monomials:
+        N0 = self.__compute_N0()
+
+        # Theta(x) = N0 @ Q(x)
+        # i.e. Q(x) = N0^-1 @ Theta(x)
+
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
 
@@ -134,11 +141,10 @@ class SafetyBarrier(Barrier):
         # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
         # N0 is an (N x T) full row rank matrix, N0 = [M(x(0)), M(x(1)), ..., M(x(T-1))]
 
-        # -- Solve for H and Z
+        # -- Part 1: Solve for H and Z
 
         Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-
-        Z = SymmetricVariable('Z', self.dimensionality)
+        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
         schur = Matrix([
@@ -152,15 +158,12 @@ class SafetyBarrier(Barrier):
 
         problem.solve(solver='mosek')
 
+        # --- Part 2: SOS ---
+
         Z = Matrix(Z)
 
         P = Z.inv()
         P_inv = Z
-
-        # Q(x) = H(x) @ P
-        # Q(x).T @ X1.T @ P @ X1 @ Q(x) <= P
-
-        # N0 @ H(x) = Theta(x) @ P_inv
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
@@ -175,10 +178,9 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
 
-        Hx_var = H_var @ Matrix(x)
         schur_matrix = Matrix([
-            [Z_var, Hx_var.T @ self.X1.T],
-            [self.X1 @ Hx_var, Z_var]
+            [Z, Hx.T @ self.X1.T],
+            [self.X1 @ Hx, Z]
         ])
         Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
         self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
@@ -186,7 +188,7 @@ class SafetyBarrier(Barrier):
         self.problem.solve()
 
         P = np.array2string(np.array(P), separator=', ')
-        H = np.array2string(np.array(Hx_var), separator=', ')
+        H = np.array2string(np.array(Hx), separator=', ')
 
         return {
             'barrier': {
