@@ -108,7 +108,7 @@ class TestDiscreteTimeNonlinearPolynomialBarrier:
 
         actual = SafetyBarrier(data=sample_data).calculate()
 
-        assert actual['barrier']['expression'] == 'x^T @ P @ x'
+        assert actual['barrier']['expression'] == 'x<sup>T</sup>Px'
         assert 'P' in actual['barrier']['values']
         assert actual['barrier']['values']['P'] is not None
 
@@ -117,7 +117,7 @@ class TestDiscreteTimeNonlinearPolynomialBarrier:
 
         actual = SafetyBarrier(data=sample_data).calculate()
 
-        assert actual['controller']['expression'] == 'U0 @ H(x) @ [N0 @ H(x)]^-1 @ x'
+        assert actual['controller']['expression'] == 'U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x'
         assert 'H' in actual['controller']['values']
         assert actual['controller']['values']['H'] is not None
         assert 'N' in actual['controller']['values']
