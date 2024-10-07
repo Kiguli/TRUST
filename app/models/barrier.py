@@ -15,7 +15,7 @@ class Barrier:
         self.U0 = self.parse_dataset(data['U0'])
         self.state_space: dict = data['stateSpace']
         self.initial_state: dict = data['initialState']
-        self.unsafe_states: dict = data['unsafeStates']
+        self.unsafe_states: list[dict] = data['unsafeStates']
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
