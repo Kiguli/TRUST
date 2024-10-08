@@ -13,9 +13,9 @@ class Barrier:
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
         self.U0 = self.parse_dataset(data['U0'])
-        self.state_space: list = data['stateSpace']
-        self.initial_state: list = data['initialState']
-        self.unsafe_states: list[list] = data['unsafeStates']
+        self.state_space = data['stateSpace']
+        self.initial_state = data['initialState']
+        self.unsafe_states = data['unsafeStates']
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
@@ -24,8 +24,8 @@ class Barrier:
     def generate_polynomial(self, space: list) -> Matrix:
         """Generate the polynomial for the given space"""
 
-        lower_bounds = [dimension[0] for dimension in space]
-        upper_bounds = [dimension[1] for dimension in space]
+        lower_bounds = [float(dimension[0]) for dimension in space]
+        upper_bounds = [float(dimension[1]) for dimension in space]
 
         return Matrix([(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)])
 

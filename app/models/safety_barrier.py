@@ -93,7 +93,7 @@ class SafetyBarrier(Barrier):
 
         condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x))
+            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x))
 
         schur = Matrix(schur)
         Lg_matrix = Matrix(np.full(schur.shape, Lg))
@@ -132,7 +132,7 @@ class SafetyBarrier(Barrier):
             }
 
         # TODO: output the simplified barrier: sp.simplify(barrier)? – issue with simplify() not working
-        barrier = np.array2string(np.array(barrier), separator=', ')
+        barrier = np.array2string(np.array(simplify(barrier)), separator=', ')
 
         controller = self.U0 @ H @ P @ Matrix(x)
         controller = np.array2string(np.array(controller), separator=', ')
@@ -209,7 +209,7 @@ class SafetyBarrier(Barrier):
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
 
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
 
         schur_matrix = Matrix([
             [Z, Hx.T @ self.X1.T],
@@ -279,7 +279,7 @@ class SafetyBarrier(Barrier):
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
 
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
 
         schur = self.X1 @ Q + Q.T @ self.X1.T
         Lg_matrix = Matrix(np.full(schur.shape, Lg))
@@ -365,7 +365,7 @@ class SafetyBarrier(Barrier):
 
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, self.x)
+            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
         Lg_matrix = Matrix(np.full(schur.shape, Lg))
         self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(self.x))
 
@@ -449,7 +449,7 @@ class SafetyBarrier(Barrier):
             x_t = self.X0[:, t]
 
             for i in range(self.N):
-                expr = sympify(self.monomials[i])
+                expr = sympify(self.monomials['terms'][i])
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         return N0
