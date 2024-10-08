@@ -248,7 +248,7 @@ watchDebounced(monomials, () => {
 
                 <div class="my-6">
                     <H3>Barrier</H3>
-                    <Pre title="Barrier expression">
+                    <Pre title="B(x) = x<sup>T</sup>Px">
                         <span v-html="result.barrier_function.barrier.expression"></span>
                     </Pre>
                     <Pre title="P">
@@ -258,7 +258,7 @@ watchDebounced(monomials, () => {
 
                 <div class="my-6">
                     <H3>Controller</H3>
-                    <Pre title="Controller expression">
+                    <Pre title="u = U<sub>0</sub>HPx">
                         <span v-html="result.barrier_function.controller.expression"></span>
                     </Pre>
                     <Pre title="H">
@@ -268,10 +268,10 @@ watchDebounced(monomials, () => {
 
                 <div class="my-6">
                     <H3>Level Sets</H3>
-                    <Pre title="Gamma">
+                    <Pre title="&gamma;">
                         {{ result.barrier_function.gamma }}
                     </Pre>
-                    <Pre title="Lambda">
+                    <Pre title="&lambda;">
                         {{ result.barrier_function.lambda }}
                     </Pre>
                 </div>

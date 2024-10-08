@@ -67,9 +67,8 @@ class SafetyBarrier(Barrier):
         # Z must be positive definite
         problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
 
-        # Z X1^TH^T; X1H Z
-        # schur = ((Z & H.T * X1.T) // (X1 * H & Z))
-        schur = ((Z & X1 * H) // (H.T * X1.T & Z))
+        schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        # schur = ((Z & X1 * H) // (H.T * X1.T & Z))
         problem.add_constraint(schur >> 0)
 
         problem.solve(solver='mosek')
@@ -111,17 +110,22 @@ class SafetyBarrier(Barrier):
                 'description': str(e)
             }
 
-        # TODO: output the simplified version: sp.simplify(barrier[0])?
+        # TODO: output the simplified barrier: sp.simplify(barrier)? – issue with simplify() not working
+        barrier = np.array2string(np.array(barrier), separator=', ')
+
+        controller = self.U0 @ H @ P @ Matrix(x)
+        controller = np.array2string(np.array(controller), separator=', ')
 
         P = np.array2string(np.array(P), separator=', ')
         H = np.array2string(np.array(H), separator=', ')
 
+
         return {
             'barrier': {
-                'expression': 'x<sup>T</sup>Px', 'values': {'P': P},
+                'expression': barrier, 'values': {'P': P},
             },
             'controller': {
-                'expression': 'U<sub>0</sub>HPx',
+                'expression': controller,
                 'values': {'H': H}
             },
             'gamma': str(gamma_var.value),
