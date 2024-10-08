@@ -84,18 +84,20 @@ class SafetyBarrier(Barrier):
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
         # barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
-        barrier = sum(Matrix(x).T @ P @ Matrix(x))
+        barrier = (Matrix(x).T * P * Matrix(x))[0]
+        barrier_constraint = self.problem.add_sos_constraint(barrier, x)
 
         # -- SOS constraints
 
-        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
 
+        condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x)
+            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe + lambda_, x))
 
         schur = Matrix(schur)
         Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
+        condition3 = self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
 
         try:
             self.problem.solve()
@@ -108,6 +110,25 @@ class SafetyBarrier(Barrier):
             return {
                 'error': 'An unknown error occurred.',
                 'description': str(e)
+            }
+
+        # --- Validate the results ---
+
+        barrier_decomp = barrier_constraint.get_sos_decomp()
+        first_decomp = condition1.get_sos_decomp()
+        second_decomps = [cond.get_sos_decomp() for cond in condition2]
+        third_decomp = condition3.get_sos_decomp()
+
+        isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
+
+        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps or len(third_decomp) <= 0:
+            return {
+                'error': 'Constraints are not sum-of-squares.'
+            }
+
+        if barrier_decomp.free_symbols == 0:
+            return {
+                'error': 'Barrier is scalar.'
             }
 
         # TODO: output the simplified barrier: sp.simplify(barrier)? – issue with simplify() not working
