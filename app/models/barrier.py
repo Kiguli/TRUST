@@ -9,7 +9,7 @@ class Barrier:
     def __init__(self, data: dict):
         self.model = data['model']
         self.timing = data['timing']
-        self.monomials = data.get('monomials', [])
+        self.monomials: dict = data.get('monomials', {})
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
         self.U0 = self.parse_dataset(data['U0'])
@@ -57,11 +57,18 @@ class Barrier:
         return self.X0.shape[1]
 
     @property
+    def M_x(self):
+        """
+        Return the monomial terms.
+        """
+        return self.monomials['terms']
+
+    @property
     def N(self):
         """
         Return the number of monomial terms, N
         """
-        return len(self.monomials)
+        return len(self.M_x)
 
     @staticmethod
     def parse_dataset(data: list) -> np.array:
