@@ -333,6 +333,7 @@ class SafetyBarrier(Barrier):
 
         # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
         # Note: Z = P^-1
+        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
 
         Z = cp.Variable((N, N), symmetric=True)
 
@@ -355,6 +356,8 @@ class SafetyBarrier(Barrier):
         constraints = [constraint1, constraint2, Z >> 0]
         problem = cp.Problem(objective, constraints)
 
+        problem.require(Theta_x @ Z == N0 @ H_x)
+
         problem.solve()
 
         Z = Z.value
@@ -364,6 +367,7 @@ class SafetyBarrier(Barrier):
         # --- (2) Then, solve SOS conditions for gamma and lambda ---
 
         P = np.linalg.inv(Z)
+        self.problem.add_constraint(Q_x == Hx @ P)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
