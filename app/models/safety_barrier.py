@@ -161,7 +161,10 @@ class SafetyBarrier(Barrier):
         # M(x) = Theta(x) @ x
         # i.e. Theta(x) = M(x) @ x^-1
 
-        # Since we're given M(x) by the user, i.e. self.monomials:
+        # Since we're given M(x) by the user, i.e. self.monomials,
+        # we can then use the solver to find Theta(x).
+        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+
         N0 = self.__compute_N0()
 
         # Theta(x) = N0 @ Q(x)
@@ -174,10 +177,12 @@ class SafetyBarrier(Barrier):
         # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
         # N0 is an (N x T) full row rank matrix, N0 = [M(x(0)), M(x(1)), ..., M(x(T-1))]
 
-        # -- Part 1: Solve for H and Z
+        # -- Part 1: Solve for Theta(x) H and Z
 
         Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
+
+        # Add the simultaneous constraints, schur and theta
 
         # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
         schur = Matrix([
@@ -185,6 +190,8 @@ class SafetyBarrier(Barrier):
             [self.X1 @ Hx, Z]
         ])
         problem.require(schur >> 0)
+
+        problem.require(Theta_x @ Z == N0 @ Hx)
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
         problem.require()
