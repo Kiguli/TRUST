@@ -159,16 +159,17 @@ class SafetyBarrier(Barrier):
         x = self.x
 
         # M(x) = Theta(x) @ x
-        # i.e. Theta(x) = M(x) @ x^-1
+        # i.e. Theta(x) = M(x) @ x^-1 (but we can use the solver to find Theta(x) directly)
 
         # Since we're given M(x) by the user, i.e. self.monomials,
         # we can then use the solver to find Theta(x).
         Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
 
-        N0 = self.__compute_N0()
-
         # Theta(x) = N0 @ Q(x)
         # i.e. Q(x) = N0^-1 @ Theta(x)
+
+        N0 = self.__compute_N0()
+
 
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
@@ -179,11 +180,11 @@ class SafetyBarrier(Barrier):
 
         # -- Part 1: Solve for Theta(x) H and Z
 
+        Q_x = matrix_variable('Q_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
-
         # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
         schur = Matrix([
             [Z, Hx.T @ self.X1.T],
@@ -201,9 +202,9 @@ class SafetyBarrier(Barrier):
         # --- Part 2: SOS ---
 
         Z = Matrix(Z)
-
         P = Z.inv()
-        P_inv = Z
+
+        self.problem.add_constraint(Q_x == Hx @ P)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
