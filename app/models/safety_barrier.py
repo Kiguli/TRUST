@@ -1,8 +1,9 @@
 import cvxpy as cp
 import numpy as np
+import picos as pc
 import sympy as sp
-from SumOfSquares import SOSProblem, matrix_variable
-from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
+from SumOfSquares import SOSProblem, matrix_variable, poly_variable
+from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
 from sympy import Matrix, simplify, symbols, sympify
 
 from app.models.barrier import Barrier
@@ -75,6 +76,7 @@ class SafetyBarrier(Barrier):
 
         # -- Part 2: SOS ---
 
+        # TODO: Consider np.array
         H = Matrix(H)
         Z = Matrix(Z)
         P = Z.inv()
@@ -95,9 +97,9 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x))
 
-        schur = Matrix(schur)
-        Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        condition3 = self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
+        # schur = Matrix(schur)
+        # Lg_matrix = Matrix(np.full(schur.shape, Lg))
+        # condition3 = self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
 
         try:
             self.problem.solve()
@@ -117,11 +119,11 @@ class SafetyBarrier(Barrier):
         barrier_decomp = barrier_constraint.get_sos_decomp()
         first_decomp = condition1.get_sos_decomp()
         second_decomps = [cond.get_sos_decomp() for cond in condition2]
-        third_decomp = condition3.get_sos_decomp()
+        # third_decomp = condition3.get_sos_decomp()
 
         isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
 
-        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps or len(third_decomp) <= 0:
+        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps:
             return {
                 'error': 'Constraints are not sum-of-squares.'
             }
@@ -154,22 +156,38 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
-        problem = SOSProblem()
+        # Create the 1st problem.
+        problem = Problem()
 
-        x = self.x
+        # Solve for Theta(x), where M(x) = Theta(x) @ x
+        # (We're given the monomials M(x) by the user, i.e. self.monomials)
+        x = list(self.x)
+        M_x = self.M_x
+        N = self.N
+        n = self.dimensionality
+
+        Theta = RealVariable('Theta', (N, n))
+        Theta_x = sum(Theta[i] * x[i] for i in range(N))
+
+        eqn25 = np.array(Theta_x) @ np.array(x) - np.array(M_x).astype(object)
+
+        problem.require(eqn25)
 
         # M(x) = Theta(x) @ x
         # i.e. Theta(x) = M(x) @ x^-1 (but we can use the solver to find Theta(x) directly)
 
         # Since we're given M(x) by the user, i.e. self.monomials,
         # we can then use the solver to find Theta(x).
-        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(len(self.monomials['terms']), self.dimensionality), hom=False, sym=False)
+
+        problem.require(np.array(self.monomials['terms']) == np.array(np.array(Theta_x) @ np.array(x)))
+
+        # TODO: assert M(x) = Theta(x)x
 
         # Theta(x) = N0 @ Q(x)
         # i.e. Q(x) = N0^-1 @ Theta(x)
 
         N0 = self.__compute_N0()
-
 
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
@@ -185,11 +203,11 @@ class SafetyBarrier(Barrier):
         Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
-        # schur = (Z & Hx.T @ self.X1.T) // (self.X1 @ Hx & Z)
-        schur = Matrix([
-            [Z, Hx.T @ self.X1.T],
-            [self.X1 @ Hx, Z]
-        ])
+        schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (np.array(self.X1 * Hx) & np.array(Z))
+        # schur = Matrix([
+        #     [Z, Hx.T @ self.X1.T],
+        #     [self.X1 @ Hx, Z]
+        # ])
         problem.require(schur >> 0)
 
         problem.require(Theta_x @ Z == N0 @ Hx)
@@ -429,20 +447,23 @@ class SafetyBarrier(Barrier):
 
         degree = self.degree
 
-        L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+        L_init = [poly_variable('Li' + str(i + 1), x, degree) for i in range(len(x))]
+
+        # L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state)
-        Lg_init = sum(L_init @ g_init)
+        Lg_init = sum([L_init * g_init for L_init, g_init in zip(L_init, g_init)])
 
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
-            L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False,
-                                       sym=False)
+            # L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+            L_unsafe = [poly_variable(f'Lu{i}{j}', x, degree) for j in range(len(x))]
             g_unsafe = self.generate_polynomial(self.unsafe_states[i])
-            Lg_unsafe_set.append(sum(L_unsafe @ g_unsafe))
+            Lg_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe, g_unsafe)]))
 
-        L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+        # L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
+        L = [poly_variable('L' + str(i + 1), x, degree) for i in range(len(x))]
         g = self.generate_polynomial(self.state_space)
-        Lg = sum(L @ g)
+        Lg = sum([L * g for L, g in zip(L, g)])
 
         return Lg_init, Lg_unsafe_set, Lg
 

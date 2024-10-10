@@ -1,6 +1,6 @@
 import numpy as np
 import sympy as sp
-from sympy import Matrix
+from sympy import Matrix, sympify
 
 
 class Barrier:
@@ -21,13 +21,13 @@ class Barrier:
         """Calculate the components of the Barrier Certificate"""
         raise NotImplementedError
 
-    def generate_polynomial(self, space: list) -> Matrix:
+    def generate_polynomial(self, space: list) -> list:
         """Generate the polynomial for the given space"""
 
         lower_bounds = [float(dimension[0]) for dimension in space]
         upper_bounds = [float(dimension[1]) for dimension in space]
 
-        return Matrix([(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)])
+        return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)]
 
     @property
     def x(self) -> list[sp.Symbol]:
@@ -57,11 +57,11 @@ class Barrier:
         return self.X0.shape[1]
 
     @property
-    def M_x(self):
+    def M_x(self) -> list:
         """
         Return the monomial terms.
         """
-        return self.monomials['terms']
+        return [sympify(term) for term in self.monomials['terms']]
 
     @property
     def N(self):
