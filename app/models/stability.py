@@ -4,6 +4,9 @@ from typing import Self
 import cvxpy as cp
 import numpy as np
 import sympy as sp
+from SumOfSquares import SOSProblem
+from picos import Constant, RealVariable, SymmetricVariable, I
+from sympy import Matrix
 
 
 class Stability:
@@ -50,34 +53,34 @@ class Stability:
         return results
 
     def _solve_linear(self) -> dict:
-        X0 = np.array([self.X0])
-        X1 = np.array([self.X1])
+        # X0 = np.array([self.X0])
+        # X1 = np.array([self.X1])
 
-        n = X0.shape[0]
-        T = X0.shape[1]
+        n = self.X0.shape[0]
+        T = self.X0.shape[1]
 
-        P = cp.Variable((n, n), symmetric=True)
-        H = cp.Variable((T, n))
+        # P = cp.Variable((n, n), symmetric=True)
+        # H = cp.Variable((T, n))
 
         if self.timing == "Discrete-Time":
-            constraints = self._discrete_constraints(X0, X1, P, H)
+            H, Z = self._discrete_constraints()
         elif self.timing == "Continuous-Time":
-            constraints = self._continuous_constraints(X0, X1, P, H)
-        else:
-            constraints = []
+            H, Z = self._continuous_constraints()
+        # else:
+        #     constraints = []
 
-        objective = cp.Minimize(cp.trace(P))
+        # objective = cp.Minimize(cp.trace(P))
 
-        prob = cp.Problem(objective, constraints)
-        prob.solve()
+        # prob = cp.Problem(objective, constraints)
+        # prob.solve()
 
-        if prob.status in ["infeasible", "unbounded"]:
-            raise ValueError("The problem is infeasible or unbounded.")
+        # if prob.status in ["infeasible", "unbounded"]:
+        #     raise ValueError("The problem is infeasible or unbounded.")
 
-        P_inv = np.linalg.inv(P.value)
+        P = (sp.Matrix(Z).inv())
 
-        H = np.array2string(np.array(H.value))
-        P = np.array2string(np.array(P.value))
+        H = np.array2string(np.array(sp.Matrix(H)))
+        P = np.array2string(np.array(sp.Matrix(P)))
 
         return {
             "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": P}},
@@ -222,17 +225,65 @@ class Stability:
 
         return list(Theta_x.values())
 
-    @staticmethod
-    def _discrete_constraints(X0, X1, Z, H) -> array:
-        block_matrix = cp.bmat([[Z, X1 @ H], [H.T @ X1.T, Z]])
+    def _discrete_constraints(self) -> array:
+        # block_matrix = cp.bmat([[Z, X1 @ H], [H.T @ X1.T, Z]])
+        #
+        # return [Z >> 0, Z == X0 @ H, block_matrix >> 0]
+        X0 = self.X0
+        X1 = self.X1
 
-        return [Z >> 0, Z == X0 @ H, block_matrix >> 0]
+        n = self.X0.shape[0]
+        T = self.X0.shape[1]
 
-    @staticmethod
-    def _continuous_constraints(X0, X1, Z, H) -> array:
-        eqn = X1 @ H + H.T @ X1.T
+        problem = SOSProblem()
 
-        return [Z >> 0, Z == X0 @ H, eqn << 0]
+        X0 = Constant('X0', X0)
+        X1 = Constant('X1', X1)
+
+        H = RealVariable('H', (T, n))
+        Z = SymmetricVariable('Z', (n, n))
+
+        problem.add_constraint(Z == X0 * H)
+        # Z must be positive definite
+        problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
+
+        schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        # schur = ((Z & X1 * H) // (H.T * X1.T & Z))
+        problem.add_constraint(schur >> 0)
+
+        problem.solve(solver='mosek')
+
+        return H, Z
+
+    def _continuous_constraints(self) -> array:
+        # eqn = X1 @ H + H.T @ X1.T
+        #
+        # return [Z >> 0, Z == X0 @ H, eqn << 0]
+        X0 = self.X0
+        X1 = self.X1
+
+        n = self.X0.shape[0]
+        T = self.X0.shape[1]
+
+        problem = SOSProblem()
+
+        # -- Solve for H and Z
+
+        x = self.x
+        X0 = Constant('X0', self.X0)
+        X1 = Constant('X1', self.X1)
+
+        H = RealVariable('H', (T, n))
+        Z = SymmetricVariable('Z', (n, n))
+
+        problem.add_constraint(H.T * X1.T + X1 * H << 0)
+
+        problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
+        problem.add_constraint(Z == X0 * H)
+
+        problem.solve(solver='mosek')
+
+        return H, Z
 
     # --- Properties ---
 

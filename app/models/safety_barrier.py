@@ -166,6 +166,8 @@ class SafetyBarrier(Barrier):
         N = self.N
         n = self.dimensionality
 
+        # TODO: lagrangian 3rd cond w/ schur
+
         Theta = RealVariable('Theta', (N, n))
         Theta_x = sum(Theta[i] * x[i] for i in range(N))
 
@@ -265,8 +267,6 @@ class SafetyBarrier(Barrier):
     def _continuous_linear(self):
         problem = SOSProblem()
 
-        U = None
-
         # -- Solve for H and Z
 
         x = self.x
@@ -287,7 +287,6 @@ class SafetyBarrier(Barrier):
         Z = Matrix(Z)
 
         P = Z.inv()
-        P_inv = Z
 
         # -- Solve for Q
         Q = H @ P
@@ -298,7 +297,7 @@ class SafetyBarrier(Barrier):
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
+        barrier = (Matrix(x).T @ P @ Matrix(x))[0]
 
         # -- SOS constraints
 
@@ -307,21 +306,30 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
 
-        schur = self.X1 @ Q + Q.T @ self.X1.T
-        Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(x))
+        # schur = self.X1 @ Q + Q.T @ self.X1.T
+        # Lg_matrix = Matrix(np.full(schur.shape, Lg))
+        # self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(x))
 
         # -- Solve
         self.problem.solve(solver='mosek')
 
+        barrier = np.array2string(np.array(barrier), separator=', ')
+
+        controller = self.U0 @ H @ P @ Matrix(x)
+        controller = np.array2string(np.array(controller), separator=', ')
+
+        P = np.array2string(np.array(P), separator=', ')
+        H = np.array2string(np.array(H), separator=', ')
+        Q = np.array2string(np.array(Q), separator=', ')
+
         return {
             'barrier': {
-                'expression': 'x<sup>T</sup>Px',
+                'expression': barrier,
                 'values': {'P': P},
             },
             'controller': {
-                'expression': 'U<sub>0</sub>Qx',
-                'values': {'Q': Q},
+                'expression': controller,
+                'values': {'H': H},
             },
             'gamma': gamma_var.value,
             'lambda': lambda_var.value
