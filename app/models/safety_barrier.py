@@ -3,8 +3,9 @@ import numpy as np
 import picos as pc
 import sympy as sp
 from SumOfSquares import SOSProblem, matrix_variable, poly_variable
+from cvxpy.expressions.cvxtypes import problem
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Matrix, simplify, symbols, sympify
+from sympy import Matrix, symbols, sympify
 
 from app.models.barrier import Barrier
 
@@ -159,14 +160,14 @@ class SafetyBarrier(Barrier):
         # Create the 1st problem.
         problem = Problem()
 
-        # Solve for Theta(x), where M(x) = Theta(x) @ x
         # (We're given the monomials M(x) by the user, i.e. self.monomials)
         x = list(self.x)
         M_x = self.M_x
         N = self.N
         n = self.dimensionality
 
-        # TODO: lagrangian 3rd cond w/ schur
+        # TODO: Solve for Theta(x), where M(x) = Theta(x) @ x (use a nested for)
+        # TODO: assert M(x) = Theta(x)x
 
         Theta = RealVariable('Theta', (N, n))
         Theta_x = sum(Theta[i] * x[i] for i in range(N))
@@ -183,8 +184,6 @@ class SafetyBarrier(Barrier):
         Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(len(self.monomials['terms']), self.dimensionality), hom=False, sym=False)
 
         problem.require(np.array(self.monomials['terms']) == np.array(np.array(Theta_x) @ np.array(x)))
-
-        # TODO: assert M(x) = Theta(x)x
 
         # Theta(x) = N0 @ Q(x)
         # i.e. Q(x) = N0^-1 @ Theta(x)
@@ -212,10 +211,11 @@ class SafetyBarrier(Barrier):
         # ])
         problem.require(schur >> 0)
 
+        # TODO: lagrangian 3rd cond w/ schur
+
         problem.require(Theta_x @ Z == N0 @ Hx)
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
-        problem.require()
 
         problem.solve(solver='mosek')
 
@@ -230,7 +230,7 @@ class SafetyBarrier(Barrier):
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
+        barrier = (Matrix(x).T @ P @ Matrix(x))[0]
 
         # -- SOS constraints
 
@@ -349,63 +349,52 @@ class SafetyBarrier(Barrier):
         N = self.N
         n = self.dimensionality
         T = self.num_samples
-        mon_syms = self.x
+        x = self.x
 
-        # Create symbolic expressions for each monomial and tau
-        M_x = [sympify(m) for m in self.monomials]
-        tau = symbols('tau')  # TODO: allow user to specify tau?
+        problem = SOSProblem()
+
+        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
+
+        # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
+
+        # Create symbolic expressions for each monomial
+        M_x = [sympify(m) for m in self.monomials['terms']]
 
         N0 = self.__compute_N0()
 
-        # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
-        # Note: Z = P^-1
-        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-
-        Z = cp.Variable((N, N), symmetric=True)
+        H_x = matrix_variable('H_x', list(x), self.degree, dim=(T, N), hom=False, sym=False)
+        Z = SymmetricVariable('Z', (N, N))
+        # # Change Z from a PICOS expression to a SymPy matrix
+        # z_symbols = sp.symbols(f'z:{N}:{N}')
+        # Z = sp.Matrix(N, N, z_symbols)
 
         # Compute dMdx
         dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
-        # Sub in the values of X0 for x1 and x2
-        dMdx = np.array([[
-            d.subs({x: self.X0.T[i][j] for j, x in enumerate(mon_syms)}) for d in row
-        ] for i, row in enumerate(dMdx)])
-
-        H_x = cp.Variable((T, N))
 
         # Add the constraints
-        constraint1 = N0 @ H_x == Z
-        schur = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
-        constraint2 = schur << 0
-
-        # Solve for the matrices Z and H_x
-        objective = cp.Minimize(cp.trace(Z))
-        constraints = [constraint1, constraint2, Z >> 0]
-        problem = cp.Problem(objective, constraints)
-
-        problem.require(Theta_x @ Z == N0 @ H_x)
+        constraint1 = problem.add_constraint(N0 @ H_x == Z)
+        lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
+        constraint2 = problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(N))), list(x))
 
         problem.solve()
 
-        Z = Z.value
-        H_x = H_x.value
-        schur = schur.value
+        Z = Matrix(Z)
+        H_x = Matrix(H_x)
+        lie_derivative = Matrix(lie_derivative)
 
         # --- (2) Then, solve SOS conditions for gamma and lambda ---
 
-        P = np.linalg.inv(Z)
-        self.problem.add_constraint(Q_x == Hx @ P)
+        P = Z.inv()
+
+        # TODO: assert Q_x == H_x @ P (to 10^-6)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
-
-        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
         barrier = np.array(M_x).T @ P @ M_x
 
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
-        Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(self.x))
 
         try:
             self.problem.solve(solver='mosek')
@@ -423,6 +412,9 @@ class SafetyBarrier(Barrier):
 
         # Q(x) = H(x) @ P
         #controller = U0 @ Hx @ P @ self.M_x
+
+        # TODO: add SOS decomp (to all)
+        # TODO: save out barrier and controller (to all)
 
         return {
             'barrier': {
