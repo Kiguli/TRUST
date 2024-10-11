@@ -1,11 +1,10 @@
-import cvxpy as cp
+from typing import Union
+
 import numpy as np
-import picos as pc
 import sympy as sp
 from SumOfSquares import SOSProblem, matrix_variable, poly_variable
-from cvxpy.expressions.cvxtypes import problem
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
-from sympy import Matrix, symbols, sympify
+from sympy import Matrix, sympify
 
 from app.models.barrier import Barrier
 
@@ -51,98 +50,59 @@ class SafetyBarrier(Barrier):
             raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
 
     def _discrete_linear(self):
-        T = self.num_samples
-        n = self.dimensionality
-        x = self.x
-
-        # -- Part 1: Solve for H and Z
-
-        problem = SOSProblem()
 
         X0 = Constant('X0', self.X0)
         X1 = Constant('X1', self.X1)
 
-        H = RealVariable('H', (T, n))
-        Z = SymmetricVariable('Z', (n, n))
+        H = RealVariable('H', (self.num_samples, self.dimensionality))
+        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
-        problem.add_constraint(Z == X0 * H)
+        HZ_problem = SOSProblem()
+
+        HZ_problem.add_constraint(Z == X0 * H)
         # Z must be positive definite
-        problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
+        HZ_problem.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
 
         schur = ((Z & H.T * X1.T) // (X1 * H & Z))
-        # schur = ((Z & X1 * H) // (H.T * X1.T & Z))
-        problem.add_constraint(schur >> 0)
+        HZ_problem.add_constraint(schur >> 0)
 
-        problem.solve(solver='mosek')
+        HZ_problem.solve(solver='mosek')
 
-        # -- Part 2: SOS ---
-
-        # TODO: Consider np.array
         H = Matrix(H)
         Z = Matrix(Z)
         P = Z.inv()
 
+        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
-        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
-
-        # barrier = simplify((Matrix(x).T @ P @ Matrix(x))[0])
-        barrier = (Matrix(x).T * P * Matrix(x))[0]
-        barrier_constraint = self.problem.add_sos_constraint(barrier, x)
+        barrier = (Matrix(self.x).T * P * Matrix(self.x))[0]
+        barrier_constraint = self.problem.add_sos_constraint(barrier, self.x)
 
         # -- SOS constraints
 
-        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
 
         condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x))
+            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x))
 
         # schur = Matrix(schur)
         # Lg_matrix = Matrix(np.full(schur.shape, Lg))
         # condition3 = self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
 
-        try:
-            self.problem.solve()
-        except SolutionFailure as e:
-            return {
-                'error': 'Failed to solve the problem.',
-                'description': str(e)
-            }
-        except Exception as e:
-            return {
-                'error': 'An unknown error occurred.',
-                'description': str(e)
-            }
+        self.__solve()
 
-        # --- Validate the results ---
+        validation = self.__validate_solution(barrier_constraint, condition1, condition2)
+        if validation is not True:
+            return validation
 
-        barrier_decomp = barrier_constraint.get_sos_decomp()
-        first_decomp = condition1.get_sos_decomp()
-        second_decomps = [cond.get_sos_decomp() for cond in condition2]
-        # third_decomp = condition3.get_sos_decomp()
+        barrier = np.array2string(np.array(barrier), separator=', ')
 
-        isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
-
-        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps:
-            return {
-                'error': 'Constraints are not sum-of-squares.'
-            }
-
-        if barrier_decomp.free_symbols == 0:
-            return {
-                'error': 'Barrier is scalar.'
-            }
-
-        # TODO: output the simplified barrier: sp.simplify(barrier)? – issue with simplify() not working
-        barrier = np.array2string(np.array(simplify(barrier)), separator=', ')
-
-        controller = self.U0 @ H @ P @ Matrix(x)
+        controller = self.U0 @ H @ P @ Matrix(self.x)
         controller = np.array2string(np.array(controller), separator=', ')
 
         P = np.array2string(np.array(P), separator=', ')
         H = np.array2string(np.array(H), separator=', ')
-
 
         return {
             'barrier': {
@@ -158,7 +118,6 @@ class SafetyBarrier(Barrier):
 
     def _discrete_nps(self):
         # Create the 1st problem.
-        problem = Problem()
 
         # (We're given the monomials M(x) by the user, i.e. self.monomials)
         x = list(self.x)
@@ -174,7 +133,8 @@ class SafetyBarrier(Barrier):
 
         eqn25 = np.array(Theta_x) @ np.array(x) - np.array(M_x).astype(object)
 
-        problem.require(eqn25)
+        HZ_problem = Problem()
+        HZ_problem.require(eqn25)
 
         # M(x) = Theta(x) @ x
         # i.e. Theta(x) = M(x) @ x^-1 (but we can use the solver to find Theta(x) directly)
@@ -183,7 +143,7 @@ class SafetyBarrier(Barrier):
         # we can then use the solver to find Theta(x).
         Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(len(self.monomials['terms']), self.dimensionality), hom=False, sym=False)
 
-        problem.require(np.array(self.monomials['terms']) == np.array(np.array(Theta_x) @ np.array(x)))
+        HZ_problem.require(np.array(self.monomials['terms']) == np.array(np.array(Theta_x) @ np.array(x)))
 
         # Theta(x) = N0 @ Q(x)
         # i.e. Q(x) = N0^-1 @ Theta(x)
@@ -209,15 +169,15 @@ class SafetyBarrier(Barrier):
         #     [Z, Hx.T @ self.X1.T],
         #     [self.X1 @ Hx, Z]
         # ])
-        problem.require(schur >> 0)
+        HZ_problem.require(schur >> 0)
 
         # TODO: lagrangian 3rd cond w/ schur
 
-        problem.require(Theta_x @ Z == N0 @ Hx)
+        HZ_problem.require(Theta_x @ Z == N0 @ Hx)
 
-        problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
+        HZ_problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
 
-        problem.solve(solver='mosek')
+        HZ_problem.solve(solver='mosek')
 
         # --- Part 2: SOS ---
 
@@ -342,55 +302,41 @@ class SafetyBarrier(Barrier):
 
         # TODO: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
-        # Monomials M(x) = ['x1', 'x2', 'x1*x2', 'x2-x1']
-        # N0 = [M(x(0)), M(x(tau)), M(x(2*tau)), ..., M(x((T-1)*tau))]
-        # N0 is a (N x T) matrix, where N is the number of monomial terms and T is the number of samples.
-
-        N = self.N
-        n = self.dimensionality
-        T = self.num_samples
-        x = self.x
-
-        problem = SOSProblem()
-
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
-
-        # --- (1) First, solve P^-1 = N0 @ H(x) and -[dMdx @ X1 @ H(x) + H(x).T @ X1.T @ dMdx.T] >= 0 ---
-
-        # Create symbolic expressions for each monomial
-        M_x = [sympify(m) for m in self.monomials['terms']]
-
         N0 = self.__compute_N0()
 
-        H_x = matrix_variable('H_x', list(x), self.degree, dim=(T, N), hom=False, sym=False)
-        Z = SymmetricVariable('Z', (N, N))
+        H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
+        Z = SymmetricVariable('Z', (self.N, self.N))
         # # Change Z from a PICOS expression to a SymPy matrix
         # z_symbols = sp.symbols(f'z:{N}:{N}')
         # Z = sp.Matrix(N, N, z_symbols)
 
-        # Compute dMdx
-        dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
+        dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
 
-        # Add the constraints
-        constraint1 = problem.add_constraint(N0 @ H_x == Z)
+        HZ_problem = Problem()
+
+        # TODO: create an add_matrix_constraint method
+        constraint1 = HZ_problem.add_constraint(N0 @ H_x == Z)
+
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
-        constraint2 = problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(N))), list(x))
+        constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
 
-        problem.solve()
+        HZ_problem.solve()
 
+        # Convert the symbolic vars to their solved values
         Z = Matrix(Z)
         H_x = Matrix(H_x)
         lie_derivative = Matrix(lie_derivative)
 
-        # --- (2) Then, solve SOS conditions for gamma and lambda ---
-
         P = Z.inv()
+
+        # --- (2) Then, solve SOS conditions for gamma and lambda ---
 
         # TODO: assert Q_x == H_x @ P (to 10^-6)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
-        barrier = np.array(M_x).T @ P @ M_x
+        barrier = np.array(self.M_x).T @ P @ self.M_x
 
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
         for Lg_unsafe in Lg_unsafe_set:
@@ -430,6 +376,31 @@ class SafetyBarrier(Barrier):
             'gamma': gamma_var.value,
             'lambda': lambda_var.value
         }
+
+    @staticmethod
+    def __validate_solution(barrier_constraint, condition1, condition2, condition3=null) -> Union[bool, dict]:
+        """
+        Validate the solution of the SOS problem.
+        """
+
+        barrier_decomp = barrier_constraint.get_sos_decomp()
+        first_decomp = condition1.get_sos_decomp()
+        second_decomps = [cond.get_sos_decomp() for cond in condition2]
+        # third_decomp = condition3.get_sos_decomp()
+
+        isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
+
+        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps:
+            return {
+                'error': 'Constraints are not sum-of-squares.'
+            }
+
+        if barrier_decomp.free_symbols == 0:
+            return {
+                'error': 'Barrier is scalar.'
+            }
+
+        return True
 
     def __level_set_constraints(self):
         gamma, lambda_ = sp.symbols('gamma lambda')
@@ -472,10 +443,8 @@ class SafetyBarrier(Barrier):
         Compute the N0 matrix by evaluating the monomials at each time step.
         """
 
-        T = self.num_samples
-
         # Initialise the N0 matrix
-        N0 = np.zeros((self.N, T))
+        N0 = np.zeros((self.N, self.num_samples))
 
         for t in range(self.num_samples):
             # Get the x values at time t
@@ -486,3 +455,19 @@ class SafetyBarrier(Barrier):
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         return N0
+
+    def __solve(self):
+        try:
+            self.problem.solve()
+        except SolutionFailure as e:
+            return {
+                'error': 'Failed to solve the problem.',
+                'description': str(e)
+            }
+        except Exception as e:
+            return {
+                'error': 'An unknown error occurred.',
+                'description': str(e)
+            }
+
+        return True
