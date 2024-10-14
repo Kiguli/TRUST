@@ -96,13 +96,13 @@ class SafetyBarrier(Barrier):
         if validation is not True:
             return validation
 
-        barrier = np.array2string(np.array(barrier), separator=', ')
+        barrier = self.__matrix_to_string(barrier)
 
         controller = self.U0 @ H @ P @ Matrix(self.x)
-        controller = np.array2string(np.array(controller), separator=', ')
+        controller = self.__matrix_to_string(controller)
 
-        P = np.array2string(np.array(P), separator=', ')
-        H = np.array2string(np.array(H), separator=', ')
+        P = self.__matrix_to_string(P)
+        H = self.__matrix_to_string(H)
 
         return {
             'barrier': {
@@ -206,7 +206,7 @@ class SafetyBarrier(Barrier):
         Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
         self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
 
-        self.problem.solve()
+        self.__solve()
 
         P = np.array2string(np.array(P), separator=', ')
         H = np.array2string(np.array(Hx), separator=', ')
@@ -307,13 +307,13 @@ class SafetyBarrier(Barrier):
 
         H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
         Z = SymmetricVariable('Z', (self.N, self.N))
-        # # Change Z from a PICOS expression to a SymPy matrix
-        # z_symbols = sp.symbols(f'z:{N}:{N}')
-        # Z = sp.Matrix(N, N, z_symbols)
+
+        # Convert H_x from SymPy matrix to PICOS expression
+        # H_x_picos = self.problem.sp_mat_to_picos(H_x)
 
         dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
 
-        HZ_problem = Problem()
+        HZ_problem = SOSProblem()
 
         # TODO: create an add_matrix_constraint method
         constraint1 = HZ_problem.add_constraint(N0 @ H_x == Z)
@@ -471,3 +471,10 @@ class SafetyBarrier(Barrier):
             }
 
         return True
+
+    @staticmethod
+    def __matrix_to_string(matrix):
+        """
+        Convert a matrix to its comma-separated string notation.
+        """
+        return np.array2string(np.array(matrix), separator=', ')
