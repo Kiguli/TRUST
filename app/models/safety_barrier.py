@@ -315,11 +315,10 @@ class SafetyBarrier(Barrier):
 
         HZ_problem = SOSProblem()
 
-        # TODO: create an add_matrix_constraint method
-        constraint1 = HZ_problem.add_constraint(N0 @ H_x == Z)
 
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
         constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
+        constraint1 = HZ_problem.add_constraint(N0 @ H_x == Z)
 
         HZ_problem.solve()
 
@@ -378,7 +377,7 @@ class SafetyBarrier(Barrier):
         }
 
     @staticmethod
-    def __validate_solution(barrier_constraint, condition1, condition2, condition3=null) -> Union[bool, dict]:
+    def __validate_solution(barrier_constraint, condition1, condition2) -> Union[bool, dict]:
         """
         Validate the solution of the SOS problem.
         """
