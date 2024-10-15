@@ -216,21 +216,23 @@ watchDebounced(monomials, () => {
                 <p v-if="form.errors.monomials" class="text-xs mt-2 text-red-600">{{ form.errors.monomials }}</p>
             </div>
 
-            <VectorInput
-                v-model="form.stateSpace"
-                :dimensions="dimension"
-                description="Enter the lower and upper bounds."
-                title="State Space" />
-            <VectorInput
-                v-model="form.initialState"
-                :dimensions="dimension"
-                description="Enter the lower and upper bounds."
-                title="Initial Set" />
-            <VectorInputSet
-                v-model="form.unsafeStates"
-                :dimensions="dimension"
-                description="Enter the lower and upper bounds."
-                title="Unsafe Sets" />
+            <div v-if="form.mode !== 'Stability'" class="space-y-2">
+                <VectorInput
+                    v-model="form.stateSpace"
+                    :dimensions="dimension"
+                    description="Enter the lower and upper bounds."
+                    title="State Space" />
+                <VectorInput
+                    v-model="form.initialState"
+                    :dimensions="dimension"
+                    description="Enter the lower and upper bounds."
+                    title="Initial Set" />
+                <VectorInputSet
+                    v-model="form.unsafeStates"
+                    :dimensions="dimension"
+                    description="Enter the lower and upper bounds."
+                    title="Unsafe Sets" />
+            </div>
         </Section>
 
         <!-- Output -->
