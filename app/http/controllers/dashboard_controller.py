@@ -1,3 +1,4 @@
+import tracemalloc
 from time import time
 from typing import Union
 
@@ -29,6 +30,7 @@ def calculate_result(update_cache=False):
     # data['model'] = 'Linear'
 
     start_time = time()
+    tracemalloc.start()
 
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
@@ -38,9 +40,12 @@ def calculate_result(update_cache=False):
         barrier_function = SafetyBarrier(data).calculate()
 
     time_taken = time() - start_time
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
 
     result: dict = locals()[function_name]
     result['time_taken'] = f"{time_taken:.5f}s"
+    result['memory_used'] = f"{peak / 10**6:.1f}MB"
 
     return result
 
