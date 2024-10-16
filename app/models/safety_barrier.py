@@ -93,7 +93,7 @@ class SafetyBarrier(Barrier):
         self.__solve()
 
         validation = self.__validate_solution(barrier_constraint, condition1, condition2)
-        if validation is not True:
+        if 'error' in validation:
             return validation
 
         barrier = self.__matrix_to_string(barrier)
@@ -161,7 +161,8 @@ class SafetyBarrier(Barrier):
 
         Q_x = matrix_variable('Q_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
+        Z = matrix_variable('Z', list(x), 0, dim=(n, n), hom=False, sym=False)
+        # Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
         schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (np.array(self.X1 * Hx) & np.array(Z))
@@ -306,7 +307,7 @@ class SafetyBarrier(Barrier):
         N0 = self.__compute_N0()
 
         H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
-        Z = SymmetricVariable('Z', (self.N, self.N))
+        Z = matrix_variable('Z', list(self.x), 0, dim=(self.dimensionality, self.dimensionality), hom=False, sym=False)
 
         # Convert H_x from SymPy matrix to PICOS expression
         # H_x_picos = self.problem.sp_mat_to_picos(H_x)
@@ -315,10 +316,12 @@ class SafetyBarrier(Barrier):
 
         HZ_problem = SOSProblem()
 
+        # TODO: implement add_matrix_constraint function
+
+        # constraint1 = HZ_problem.add_matrix_constraint(N0 @ H_x == Z)
 
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
         constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
-        constraint1 = HZ_problem.add_constraint(N0 @ H_x == Z)
 
         HZ_problem.solve()
 
@@ -381,6 +384,10 @@ class SafetyBarrier(Barrier):
         """
         Validate the solution of the SOS problem.
         """
+
+        return {
+            'error': 'Failed to validate the solution.'
+        }
 
         barrier_decomp = barrier_constraint.get_sos_decomp()
         first_decomp = condition1.get_sos_decomp()

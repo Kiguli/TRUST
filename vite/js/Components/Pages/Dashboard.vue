@@ -241,41 +241,47 @@ watchDebounced(monomials, () => {
             <H2>Output</H2>
 
             <div v-if="result">
-                <div>
-                    <p class="text-sm text-gray-400">
-                        Calculated in
-                        <pre class="inline-block">{{ result.time_taken }}</pre>
-                    </p>
+                <div v-if="result.error" class="bg-red-800 w-fit px-2 py-1 font-mono text-sm">
+                    <span class="font-bold">Error:</span> {{ result.error }}
                 </div>
 
-                <div class="my-6">
-                    <H3>Barrier</H3>
-                    <Pre title="B(x) = x<sup>T</sup>Px">
-                        <span v-html="result.barrier_function.barrier.expression"></span>
-                    </Pre>
-                    <Pre title="P">
-                        {{ result.barrier_function.barrier.values.P }}
-                    </Pre>
-                </div>
+                <div v-else>
+                    <div>
+                        <p class="text-sm text-gray-400">
+                            Calculated in
+                            <pre class="inline-block">{{ result.time_taken }}</pre>
+                        </p>
+                    </div>
 
-                <div class="my-6">
-                    <H3>Controller</H3>
-                    <Pre title="u = U<sub>0</sub>HPx">
-                        <span v-html="result.barrier_function.controller.expression"></span>
-                    </Pre>
-                    <Pre title="H">
-                        {{ result.barrier_function.controller.values.H }}
-                    </Pre>
-                </div>
+                    <div class="my-6">
+                        <H3>Barrier</H3>
+                        <Pre title="B(x) = x<sup>T</sup>Px">
+                            <span v-html="result.barrier_function.barrier.expression"></span>
+                        </Pre>
+                        <Pre title="P">
+                            {{ result.barrier_function.barrier.values.P }}
+                        </Pre>
+                    </div>
 
-                <div class="my-6">
-                    <H3>Level Sets</H3>
-                    <Pre title="&gamma;">
-                        {{ result.barrier_function.gamma }}
-                    </Pre>
-                    <Pre title="&lambda;">
-                        {{ result.barrier_function.lambda }}
-                    </Pre>
+                    <div class="my-6">
+                        <H3>Controller</H3>
+                        <Pre title="u = U<sub>0</sub>HPx">
+                            <span v-html="result.barrier_function.controller.expression"></span>
+                        </Pre>
+                        <Pre title="H">
+                            {{ result.barrier_function.controller.values.H }}
+                        </Pre>
+                    </div>
+
+                    <div class="my-6">
+                        <H3>Level Sets</H3>
+                        <Pre title="&gamma;">
+                            {{ result.barrier_function.gamma }}
+                        </Pre>
+                        <Pre title="&lambda;">
+                            {{ result.barrier_function.lambda }}
+                        </Pre>
+                    </div>
                 </div>
             </div>
 

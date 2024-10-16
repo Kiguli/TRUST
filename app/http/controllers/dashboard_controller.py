@@ -39,10 +39,8 @@ def calculate_result(update_cache=False):
 
     time_taken = time() - start_time
 
-    result = {
-        function_name: locals()[function_name],
-        'time_taken': f"{time_taken:.5f}s",
-    }
+    result: dict = locals()[function_name]
+    result['time_taken'] = f"{time_taken:.5f}s"
 
     return result
 
