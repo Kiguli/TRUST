@@ -93,7 +93,7 @@ class SafetyBarrier(Barrier):
         self.__solve()
 
         validation = self.__validate_solution(barrier_constraint, condition1, condition2)
-        if 'error' in validation:
+        if validation != True and 'error' in validation:
             return validation
 
         barrier = self.__matrix_to_string(barrier)
@@ -385,13 +385,15 @@ class SafetyBarrier(Barrier):
         Validate the solution of the SOS problem.
         """
 
-        return {
-            'error': 'Failed to validate the solution.'
-        }
-
-        barrier_decomp = barrier_constraint.get_sos_decomp()
-        first_decomp = condition1.get_sos_decomp()
-        second_decomps = [cond.get_sos_decomp() for cond in condition2]
+        try:
+            barrier_decomp = barrier_constraint.get_sos_decomp()
+            first_decomp = condition1.get_sos_decomp()
+            second_decomps = [cond.get_sos_decomp() for cond in condition2]
+        except Exception as e:
+            return {
+                'error': 'No SOS decomposition found.',
+                'description': str(e)
+            }
         # third_decomp = condition3.get_sos_decomp()
 
         isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])

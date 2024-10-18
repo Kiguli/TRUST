@@ -256,37 +256,37 @@ watchDebounced(monomials, () => {
 
                 <div v-if="result.error" class="mt-1 bg-red-800 w-full px-2 py-1 font-mono text-sm">
                     <span class="font-bold">Error:</span>
-                    {{ result.error }}
+                    {{ result.error }} {{ result.description ?? '' }}
                 </div>
 
                 <div v-else>
                     <div class="my-6">
                         <H3>Barrier</H3>
                         <Pre title="B(x) = x<sup>T</sup>Px">
-                            <span v-html="result.barrier_function.barrier.expression"></span>
+                            <span v-html="result.barrier.expression"></span>
                         </Pre>
                         <Pre title="P">
-                            {{ result.barrier_function.barrier.values.P }}
+                            {{ result.barrier.values.P }}
                         </Pre>
                     </div>
 
                     <div class="my-6">
                         <H3>Controller</H3>
                         <Pre title="u = U<sub>0</sub>HPx">
-                            <span v-html="result.barrier_function.controller.expression"></span>
+                            <span v-html="result.controller.expression"></span>
                         </Pre>
                         <Pre title="H">
-                            {{ result.barrier_function.controller.values.H }}
+                            {{ result.controller.values.H }}
                         </Pre>
                     </div>
 
                     <div class="my-6">
                         <H3>Level Sets</H3>
                         <Pre title="&gamma;">
-                            {{ result.barrier_function.gamma }}
+                            {{ result.gamma }}
                         </Pre>
                         <Pre title="&lambda;">
-                            {{ result.barrier_function.lambda }}
+                            {{ result.lambda }}
                         </Pre>
                     </div>
                 </div>
