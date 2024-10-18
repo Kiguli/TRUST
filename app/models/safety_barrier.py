@@ -311,7 +311,6 @@ class SafetyBarrier(Barrier):
 
         HZ_problem = SOSProblem()
 
-        # TODO: implement add_matrix_constraint function - replicate existing add_matrix_sos_constraint
         constraint1 = HZ_problem.add_matrix_constraint(N0 @ H_x - Z, list(self.x))
 
         dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
@@ -320,9 +319,11 @@ class SafetyBarrier(Barrier):
 
         HZ_problem.solve()
 
-        # Convert the symbolic vars to their solved values
-        Z = Matrix(Z)
-        H_x = Matrix(H_x)
+        # Convert the symbolic vars to their solved values by subbing the values of the respective variables
+        # We can simply map over each element in the matrix with the function HZ_problem.get_valued_variable(term).
+        H_x = map(HZ_problem.get_valued_variable, H_x.values())
+        #H_x = Matrix(HZ_problem.get_valued_variable(H_x))
+        # Z =
         lie_derivative = Matrix(lie_derivative)
 
         P = Z.inv()
@@ -333,7 +334,7 @@ class SafetyBarrier(Barrier):
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
-        barrier = np.array(self.M_x).T @ P @ self.M_x
+        barrier = (Matrix(self.M_x).T @ P @ Matrix(self.M_x))[0]
 
         self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
         for Lg_unsafe in Lg_unsafe_set:
