@@ -296,14 +296,19 @@ watchDebounced(monomials, () => {
                 <div class="flex justify-center pt-px">
                     <span class="relative flex h-3 w-3">
                         <span
-                            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                            class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" :class="[form.processing ? 'bg-amber-400' : 'bg-blue-400']"></span>
                         <span
-                            class="relative inline-flex h-3 w-3 rounded-full bg-blue-500"></span>
+                            class="relative inline-flex h-3 w-3 rounded-full" :class="[form.processing ? 'bg-amber-500' : 'bg-blue-500']"></span>
                     </span>
                 </div>
 
                 <p class="text-sm text-gray-400">
-                    Connected. Waiting for input...
+                    <span v-if="form.processing">
+                        In progress. Please wait...
+                    </span>
+                    <span v-else>
+                        Connected. Waiting for input...
+                    </span>
                 </p>
             </div>
         </Section>
