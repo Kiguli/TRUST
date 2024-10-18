@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import sympy as sp
@@ -307,19 +307,14 @@ class SafetyBarrier(Barrier):
         N0 = self.__compute_N0()
 
         H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
-        Z = matrix_variable('Z', list(self.x), 0, dim=(self.dimensionality, self.dimensionality), hom=False, sym=False)
-
-        # Convert H_x from SymPy matrix to PICOS expression
-        # H_x_picos = self.problem.sp_mat_to_picos(H_x)
-
-        dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
+        Z = matrix_variable('Z', list(self.x), 0, dim=(self.N, self.N), hom=False, sym=False)
 
         HZ_problem = SOSProblem()
 
-        # TODO: implement add_matrix_constraint function
+        # TODO: implement add_matrix_constraint function - replicate existing add_matrix_sos_constraint
+        constraint1 = HZ_problem.add_matrix_constraint(N0 @ H_x - Z, list(self.x))
 
-        # constraint1 = HZ_problem.add_matrix_constraint(N0 @ H_x == Z)
-
+        dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
         constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
 
