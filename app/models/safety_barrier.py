@@ -2,8 +2,9 @@ from typing import Union, List
 
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSProblem, matrix_variable, poly_variable
+from SumOfSquares import SOSConstraint, SOSProblem, matrix_variable, poly_variable
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
+from picos.constraints import Constraint
 from sympy import Matrix, sympify
 
 from app.models.barrier import Barrier
@@ -165,6 +166,7 @@ class SafetyBarrier(Barrier):
         # Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
+
         schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (np.array(self.X1 * Hx) & np.array(Z))
         # schur = Matrix([
         #     [Z, Hx.T @ self.X1.T],
@@ -307,28 +309,42 @@ class SafetyBarrier(Barrier):
         N0 = self.__compute_N0()
 
         H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
-        Z = matrix_variable('Z', list(self.x), 0, dim=(self.N, self.N), hom=False, sym=False)
+        Z = matrix_variable('Z', list(self.x), 0, dim=(self.N, self.N), hom=False, sym=True)
 
         HZ_problem = SOSProblem()
 
-        constraint1 = HZ_problem.add_matrix_constraint(N0 @ H_x - Z, list(self.x))
+        constraint1: List[Constraint] = HZ_problem.add_matrix_constraint(N0 @ H_x - Z, list(self.x))
 
         dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
+        # TODO: if N = 1, add_sos_constraint is fine
         constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
 
         HZ_problem.solve()
 
-        # Convert the symbolic vars to their solved values by subbing the values of the respective variables
-        # We can simply map over each element in the matrix with the function HZ_problem.get_valued_variable(term).
-        H_x = map(HZ_problem.get_valued_variable, H_x.values())
-        #H_x = Matrix(HZ_problem.get_valued_variable(H_x))
-        # Z =
-        lie_derivative = Matrix(lie_derivative)
+        # For each of the elements in the matrix H_x, sub in the respective value
+        # e.g. [<1×1 Real Variable: H_x[0][0]_0>, <1×1 Real Variable: H_x[1][0]_0>, <1×1 Real Variable: H_x[2][0]_0>, ...]
+        # Just call item.value for item in H_x_value_dict, which is a subset of value_dict where the
+        #H_x_dict = {item.name: item.value for item in value_dict if str(item.name).startswith('H_x')}
+        #Z_dict = {item.name: item.value for item in value_dict if str(item.name).startswith('Z')}
+
+        # TODO: refactor for efficiency
+        H_x_dict = {}
+        Z_dict = {}
+        for item in HZ_problem.variables.values():
+            if str(item.name).startswith('H_x'):
+                H_x_dict[item.name] = item.value
+            elif str(item.name).startswith('Z'):
+                Z_dict[item.name] = item.value
+
+        H_x = H_x.subs({key: value for key, value in H_x_dict.items()})
+        Z = Z.subs({key: value for key, value in Z_dict.items()})
+
+        # assert values are correct
 
         P = Z.inv()
 
-        # --- (2) Then, solve SOS conditions for gamma and lambda ---
+        # --- (2) Then, solve remaining SOS conditions for gamma and lambda ---
 
         # TODO: assert Q_x == H_x @ P (to 10^-6)
 
