@@ -2,7 +2,7 @@ from typing import Union, List
 
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSConstraint, SOSProblem, matrix_variable, poly_variable
+from SumOfSquares import Basis, SOSConstraint, SOSProblem, matrix_variable, poly_variable
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
 from sympy import Matrix, sympify
@@ -15,8 +15,10 @@ class SafetyBarrier(Barrier):
 
     def __init__(self, data: dict):
         # TODO: migrate to builder pattern
-        if data['mode'] != 'Safety':
-            raise ValueError(f"Invalid mode '{data['mode']}' for Safety Barrier calculations.")
+        if data["mode"] != "Safety":
+            raise ValueError(
+                f"Invalid mode '{data['mode']}' for Safety Barrier calculations."
+            )
 
         super().__init__(data)
 
@@ -25,38 +27,44 @@ class SafetyBarrier(Barrier):
     def calculate(self):
         results = None
 
-        if self.timing == 'Discrete-Time':
+        if self.timing == "Discrete-Time":
             results = self._discrete_system()
-        elif self.timing == 'Continuous-Time':
+        elif self.timing == "Continuous-Time":
             results = self._continuous_system()
         else:
-            raise ValueError(f"Invalid timing '{self.timing}' for Safety Barrier calculations.")
+            raise ValueError(
+                f"Invalid timing '{self.timing}' for Safety Barrier calculations."
+            )
 
         return results
 
     def _discrete_system(self):
-        if self.model == 'Linear':
+        if self.model == "Linear":
             return self._discrete_linear()
-        elif self.model == 'Non-Linear Polynomial':
+        elif self.model == "Non-Linear Polynomial":
             return self._discrete_nps()
         else:
-            raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
+            raise ValueError(
+                f"Invalid model '{self.model}' for Safety Barrier calculations."
+            )
 
     def _continuous_system(self):
-        if self.model == 'Linear':
+        if self.model == "Linear":
             return self._continuous_linear()
-        elif self.model == 'Non-Linear Polynomial':
+        elif self.model == "Non-Linear Polynomial":
             return self._continuous_nps()
         else:
-            raise ValueError(f"Invalid model '{self.model}' for Safety Barrier calculations.")
+            raise ValueError(
+                f"Invalid model '{self.model}' for Safety Barrier calculations."
+            )
 
     def _discrete_linear(self):
 
-        X0 = Constant('X0', self.X0)
-        X1 = Constant('X1', self.X1)
+        X0 = Constant("X0", self.X0)
+        X1 = Constant("X1", self.X1)
 
-        H = RealVariable('H', (self.num_samples, self.dimensionality))
-        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
+        H = RealVariable("H", (self.num_samples, self.dimensionality))
+        Z = SymmetricVariable("Z", (self.dimensionality, self.dimensionality))
 
         HZ_problem = SOSProblem()
 
@@ -64,10 +72,10 @@ class SafetyBarrier(Barrier):
         # Z must be positive definite
         HZ_problem.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
 
-        schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        schur = (Z & H.T * X1.T) // (X1 * H & Z)
         HZ_problem.add_constraint(schur >> 0)
 
-        HZ_problem.solve(solver='mosek')
+        HZ_problem.solve(solver="mosek")
 
         H = Matrix(H)
         Z = Matrix(Z)
@@ -85,7 +93,9 @@ class SafetyBarrier(Barrier):
 
         condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x))
+            condition2.append(
+                self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
+            )
 
         # schur = Matrix(schur)
         # Lg_matrix = Matrix(np.full(schur.shape, Lg))
@@ -93,8 +103,10 @@ class SafetyBarrier(Barrier):
 
         self.__solve()
 
-        validation = self.__validate_solution(barrier_constraint, condition1, condition2)
-        if validation != True and 'error' in validation:
+        validation = self.__validate_solution(
+            barrier_constraint, condition1, condition2
+        )
+        if validation != True and "error" in validation:
             return validation
 
         barrier = self.__matrix_to_string(barrier)
@@ -106,15 +118,13 @@ class SafetyBarrier(Barrier):
         H = self.__matrix_to_string(H)
 
         return {
-            'barrier': {
-                'expression': barrier, 'values': {'P': P},
+            "barrier": {
+                "expression": barrier,
+                "values": {"P": P},
             },
-            'controller': {
-                'expression': controller,
-                'values': {'H': H}
-            },
-            'gamma': str(gamma_var.value),
-            'lambda': str(lambda_var.value)
+            "controller": {"expression": controller, "values": {"H": H}},
+            "gamma": str(gamma_var.value),
+            "lambda": str(lambda_var.value),
         }
 
     def _discrete_nps(self):
@@ -129,7 +139,7 @@ class SafetyBarrier(Barrier):
         # TODO: Solve for Theta(x), where M(x) = Theta(x) @ x (use a nested for)
         # TODO: assert M(x) = Theta(x)x
 
-        Theta = RealVariable('Theta', (N, n))
+        Theta = RealVariable("Theta", (N, n))
         Theta_x = sum(Theta[i] * x[i] for i in range(N))
 
         eqn25 = np.array(Theta_x) @ np.array(x) - np.array(M_x).astype(object)
@@ -142,17 +152,27 @@ class SafetyBarrier(Barrier):
 
         # Since we're given M(x) by the user, i.e. self.monomials,
         # we can then use the solver to find Theta(x).
-        Theta_x = matrix_variable('Theta_x', list(x), self.degree, dim=(len(self.monomials['terms']), self.dimensionality), hom=False, sym=False)
+        Theta_x = matrix_variable(
+            "Theta_x",
+            list(x),
+            self.degree,
+            dim=(len(self.monomials["terms"]), self.dimensionality),
+            hom=False,
+            sym=False,
+        )
 
-        HZ_problem.require(np.array(self.monomials['terms']) == np.array(np.array(Theta_x) @ np.array(x)))
+        HZ_problem.require(
+            np.array(self.monomials["terms"])
+            == np.array(np.array(Theta_x) @ np.array(x))
+        )
 
         # Theta(x) = N0 @ Q(x)
         # i.e. Q(x) = N0^-1 @ Theta(x)
 
         N0 = self.__compute_N0()
 
-        X0 = Constant('X0', self.X0)
-        X1 = Constant('X1', self.X1)
+        X0 = Constant("X0", self.X0)
+        X1 = Constant("X1", self.X1)
 
         # Q(x) is a (T x n) matrix polynomial such that Theta(x) = N0 @ Q(x)
         # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
@@ -160,14 +180,30 @@ class SafetyBarrier(Barrier):
 
         # -- Part 1: Solve for Theta(x) H and Z
 
-        Q_x = matrix_variable('Q_x', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        Hx = matrix_variable('Hx', list(x), self.degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        Z = matrix_variable('Z', list(x), 0, dim=(n, n), hom=False, sym=False)
+        Q_x = matrix_variable(
+            "Q_x",
+            list(x),
+            self.degree,
+            dim=(self.X0.shape[1], self.dimensionality),
+            hom=False,
+            sym=False,
+        )
+        Hx = matrix_variable(
+            "Hx",
+            list(x),
+            self.degree,
+            dim=(self.X0.shape[1], self.dimensionality),
+            hom=False,
+            sym=False,
+        )
+        Z = matrix_variable("Z", list(x), 0, dim=(n, n), hom=False, sym=False)
         # Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
 
-        schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (np.array(self.X1 * Hx) & np.array(Z))
+        schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (
+            np.array(self.X1 * Hx) & np.array(Z)
+        )
         # schur = Matrix([
         #     [Z, Hx.T @ self.X1.T],
         #     [self.X1 @ Hx, Z]
@@ -180,7 +216,7 @@ class SafetyBarrier(Barrier):
 
         HZ_problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
 
-        HZ_problem.solve(solver='mosek')
+        HZ_problem.solve(solver="mosek")
 
         # --- Part 2: SOS ---
 
@@ -202,28 +238,25 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
 
-        schur_matrix = Matrix([
-            [Z, Hx.T @ self.X1.T],
-            [self.X1 @ Hx, Z]
-        ])
+        schur_matrix = Matrix([[Z, Hx.T @ self.X1.T], [self.X1 @ Hx, Z]])
         Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
         self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
 
         self.__solve()
 
-        P = np.array2string(np.array(P), separator=', ')
-        H = np.array2string(np.array(Hx), separator=', ')
+        P = np.array2string(np.array(P), separator=", ")
+        H = np.array2string(np.array(Hx), separator=", ")
 
         return {
-            'barrier': {
-                'expression': 'x<sup>T</sup>Px',
-                'values': {'P': P},
+            "barrier": {
+                "expression": "x<sup>T</sup>Px",
+                "values": {"P": P},
             },
-            'controller': {
-                'expression': 'U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x',
-                'values': {
-                    'H': H,
-                }
+            "controller": {
+                "expression": "U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x",
+                "values": {
+                    "H": H,
+                },
             },
         }
 
@@ -233,18 +266,18 @@ class SafetyBarrier(Barrier):
         # -- Solve for H and Z
 
         x = self.x
-        X0 = Constant('X0', self.X0)
-        X1 = Constant('X1', self.X1)
+        X0 = Constant("X0", self.X0)
+        X1 = Constant("X1", self.X1)
 
-        H = RealVariable('H', (self.X0.shape[1], self.dimensionality))
-        Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
+        H = RealVariable("H", (self.X0.shape[1], self.dimensionality))
+        Z = SymmetricVariable("Z", (self.dimensionality, self.dimensionality))
 
         problem.add_constraint(H.T * X1.T + X1 * H << 0)
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
         problem.add_constraint(Z == X0 * H)
 
-        problem.solve(solver='mosek')
+        problem.solve(solver="mosek")
 
         H = Matrix(H)
         Z = Matrix(Z)
@@ -274,28 +307,28 @@ class SafetyBarrier(Barrier):
         # self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(x))
 
         # -- Solve
-        self.problem.solve(solver='mosek')
+        self.problem.solve(solver="mosek")
 
-        barrier = np.array2string(np.array(barrier), separator=', ')
+        barrier = np.array2string(np.array(barrier), separator=", ")
 
         controller = self.U0 @ H @ P @ Matrix(x)
-        controller = np.array2string(np.array(controller), separator=', ')
+        controller = np.array2string(np.array(controller), separator=", ")
 
-        P = np.array2string(np.array(P), separator=', ')
-        H = np.array2string(np.array(H), separator=', ')
-        Q = np.array2string(np.array(Q), separator=', ')
+        P = np.array2string(np.array(P), separator=", ")
+        H = np.array2string(np.array(H), separator=", ")
+        Q = np.array2string(np.array(Q), separator=", ")
 
         return {
-            'barrier': {
-                'expression': barrier,
-                'values': {'P': P},
+            "barrier": {
+                "expression": barrier,
+                "values": {"P": P},
             },
-            'controller': {
-                'expression': controller,
-                'values': {'H': H},
+            "controller": {
+                "expression": controller,
+                "values": {"H": H},
             },
-            'gamma': gamma_var.value,
-            'lambda': lambda_var.value
+            "gamma": gamma_var.value,
+            "lambda": lambda_var.value,
         }
 
     def _continuous_nps(self):
@@ -308,39 +341,35 @@ class SafetyBarrier(Barrier):
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         N0 = self.__compute_N0()
 
-        H_x = matrix_variable('H_x', list(self.x), self.degree, dim=(self.num_samples, self.N), hom=False, sym=False)
-        Z = matrix_variable('Z', list(self.x), 0, dim=(self.N, self.N), hom=False, sym=True)
+        H_x = matrix_variable(
+            "H_x",
+            list(self.x),
+            self.degree,
+            dim=(self.num_samples, self.N),
+            hom=False,
+            sym=False,
+        )
+        Z = matrix_variable(
+            "Z", list(self.x), 0, dim=(self.N, self.N), hom=False, sym=True
+        )
 
         HZ_problem = SOSProblem()
 
-        constraint1: List[Constraint] = HZ_problem.add_matrix_constraint(N0 @ H_x - Z, list(self.x))
+        self.add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
 
         dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
-        # TODO: if N = 1, add_sos_constraint is fine
-        constraint2 = HZ_problem.add_matrix_sos_constraint(lie_derivative - sp.Mul(Lg, Matrix(I(self.N))), list(self.x))
+
+        if self.N == 1:
+            lie_derivative = lie_derivative[0]
+            HZ_problem.add_sos_constraint(-lie_derivative - Lg, list(self.x))
+        else:
+            Lg = sp.Mul(Lg, Matrix(I(self.N)))
+            HZ_problem.add_matrix_sos_constraint(-lie_derivative - Lg, list(self.x))
 
         HZ_problem.solve()
 
-        # For each of the elements in the matrix H_x, sub in the respective value
-        # e.g. [<1×1 Real Variable: H_x[0][0]_0>, <1×1 Real Variable: H_x[1][0]_0>, <1×1 Real Variable: H_x[2][0]_0>, ...]
-        # Just call item.value for item in H_x_value_dict, which is a subset of value_dict where the
-        #H_x_dict = {item.name: item.value for item in value_dict if str(item.name).startswith('H_x')}
-        #Z_dict = {item.name: item.value for item in value_dict if str(item.name).startswith('Z')}
-
-        # TODO: refactor for efficiency
-        H_x_dict = {}
-        Z_dict = {}
-        for item in HZ_problem.variables.values():
-            if str(item.name).startswith('H_x'):
-                H_x_dict[item.name] = item.value
-            elif str(item.name).startswith('Z'):
-                Z_dict[item.name] = item.value
-
-        H_x = H_x.subs({key: value for key, value in H_x_dict.items()})
-        Z = Z.subs({key: value for key, value in Z_dict.items()})
-
-        # assert values are correct
+        H_x, Z = self.__substitute_for_values(HZ_problem.variables.values(), H_x, Z)
 
         P = Z.inv()
 
@@ -357,42 +386,33 @@ class SafetyBarrier(Barrier):
             self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
 
         try:
-            self.problem.solve(solver='mosek')
+            self.problem.solve(solver="mosek")
         except SolutionFailure as e:
             # TODO: include info on what wasn't feasible
-            return {
-                'error': 'Failed to solve the problem.',
-                'description': str(e)
-            }
+            return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
-            return {
-                'error': 'An unknown error occurred.',
-                'description': str(e)
-            }
+            return {"error": "An unknown error occurred.", "description": str(e)}
 
         # Q(x) = H(x) @ P
-        #controller = U0 @ Hx @ P @ self.M_x
+        # controller = U0 @ Hx @ P @ self.M_x
 
         # TODO: add SOS decomp (to all)
         # TODO: save out barrier and controller (to all)
 
         return {
-            'barrier': {
-                'expression': 'M(x)<sup>T</sup>PM(x)',
-                'values': {'P': P}
+            "barrier": {"expression": "M(x)<sup>T</sup>PM(x)", "values": {"P": P}},
+            "controller": {
+                "expression": "U<sub>0</sub>H(x)PM(x)",
+                "values": {"H(x)": H_x},
             },
-            'controller': {
-                'expression': 'U<sub>0</sub>H(x)PM(x)',
-                'values': {
-                    'H(x)': H_x
-                }
-            },
-            'gamma': gamma_var.value,
-            'lambda': lambda_var.value
+            "gamma": gamma_var.value,
+            "lambda": lambda_var.value,
         }
 
     @staticmethod
-    def __validate_solution(barrier_constraint, condition1, condition2) -> Union[bool, dict]:
+    def __validate_solution(
+        barrier_constraint, condition1, condition2
+    ) -> Union[bool, dict]:
         """
         Validate the solution of the SOS problem.
         """
@@ -402,28 +422,25 @@ class SafetyBarrier(Barrier):
             first_decomp = condition1.get_sos_decomp()
             second_decomps = [cond.get_sos_decomp() for cond in condition2]
         except Exception as e:
-            return {
-                'error': 'No SOS decomposition found.',
-                'description': str(e)
-            }
+            return {"error": "No SOS decomposition found.", "description": str(e)}
         # third_decomp = condition3.get_sos_decomp()
 
         isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
 
-        if len(barrier_decomp) <=0 or len(first_decomp) <= 0 or not isAllPositiveSecondDecomps:
-            return {
-                'error': 'Constraints are not sum-of-squares.'
-            }
+        if (
+            len(barrier_decomp) <= 0
+            or len(first_decomp) <= 0
+            or not isAllPositiveSecondDecomps
+        ):
+            return {"error": "Constraints are not sum-of-squares."}
 
         if barrier_decomp.free_symbols == 0:
-            return {
-                'error': 'Barrier is scalar.'
-            }
+            return {"error": "Barrier is scalar."}
 
         return True
 
     def __level_set_constraints(self):
-        gamma, lambda_ = sp.symbols('gamma lambda')
+        gamma, lambda_ = sp.symbols("gamma lambda")
         gamma_var = self.problem.sym_to_var(gamma)
         lambda_var = self.problem.sym_to_var(lambda_)
 
@@ -438,7 +455,7 @@ class SafetyBarrier(Barrier):
 
         degree = self.degree
 
-        L_init = [poly_variable('Li' + str(i + 1), x, degree) for i in range(len(x))]
+        L_init = [poly_variable("Li" + str(i + 1), x, degree) for i in range(len(x))]
 
         # L_init = matrix_variable('l_init', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
         g_init = self.generate_polynomial(self.initial_state)
@@ -447,12 +464,12 @@ class SafetyBarrier(Barrier):
         Lg_unsafe_set = []
         for i in range(len(self.unsafe_states)):
             # L_unsafe = matrix_variable(f'l_unsafe_{i}', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-            L_unsafe = [poly_variable(f'Lu{i}{j}', x, degree) for j in range(len(x))]
+            L_unsafe = [poly_variable(f"Lu{i}{j}", x, degree) for j in range(len(x))]
             g_unsafe = self.generate_polynomial(self.unsafe_states[i])
             Lg_unsafe_set.append(sum([L * g for L, g in zip(L_unsafe, g_unsafe)]))
 
         # L = matrix_variable('l', list(x), degree, dim=(self.X0.shape[1], self.dimensionality), hom=False, sym=False)
-        L = [poly_variable('L' + str(i + 1), x, degree) for i in range(len(x))]
+        L = [poly_variable("L" + str(i + 1), x, degree) for i in range(len(x))]
         g = self.generate_polynomial(self.state_space)
         Lg = sum([L * g for L, g in zip(L, g)])
 
@@ -471,7 +488,7 @@ class SafetyBarrier(Barrier):
             x_t = self.X0[:, t]
 
             for i in range(self.N):
-                expr = sympify(self.monomials['terms'][i])
+                expr = sympify(self.monomials["terms"][i])
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         return N0
@@ -480,21 +497,69 @@ class SafetyBarrier(Barrier):
         try:
             self.problem.solve()
         except SolutionFailure as e:
-            return {
-                'error': 'Failed to solve the problem.',
-                'description': str(e)
-            }
+            return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
-            return {
-                'error': 'An unknown error occurred.',
-                'description': str(e)
-            }
+            return {"error": "An unknown error occurred.", "description": str(e)}
 
         return True
+
+    @staticmethod
+    def add_matrix_constraint(
+        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+    ) -> List[Constraint]:
+        """
+        Add a matrix constraint to the problem.
+        """
+
+        variables = sorted(variables, key=str)  # To lex order
+
+        constraints = []
+
+        n, m = mat.shape
+        # TODO: parallelize this loop
+        for i in range(n):
+            for j in range(m):
+                expr = mat[i, j]
+
+                poly = sp.poly(expr, variables)
+                mono_to_coeffs = dict(
+                    zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
+                )
+                basis = Basis.from_poly_lex(poly, sparse=True)
+
+                Q = RealVariable(f"Q_{i}_{j}", (len(basis), len(basis)))
+                for mono, pairs in basis.sos_sym_entries.items():
+                    coeff = mono_to_coeffs.get(mono, 0)
+                    coeff_constraint = problem.add_constraint(
+                        sum(Q[k, l] for k, l in pairs) == coeff
+                    )
+                    constraints.append(coeff_constraint)
+
+                problem.add_constraint(Q == 0)
+
+        return constraints
+
+    @staticmethod
+    def __substitute_for_values(variables, H_x, Z):
+        # TODO: refactor for efficiency
+        H_x_dict = {}
+        Z_dict = {}
+        for item in variables:
+            if str(item.name).startswith("H_x"):
+                H_x_dict[item.name] = item.value
+            elif str(item.name).startswith("Z"):
+                Z_dict[item.name] = item.value
+
+        H_x = H_x.subs({key: value for key, value in H_x_dict.items()})
+        Z = Z.subs({key: value for key, value in Z_dict.items()})
+
+        # assert values are correct
+
+        return H_x, Z
 
     @staticmethod
     def __matrix_to_string(matrix):
         """
         Convert a matrix to its comma-separated string notation.
         """
-        return np.array2string(np.array(matrix), separator=', ')
+        return np.array2string(np.array(matrix), separator=", ")
