@@ -262,8 +262,8 @@ watchDebounced(monomials, () => {
                 <div v-else>
                     <div class="my-6">
                         <H3>Barrier</H3>
-                        <Pre title="B(x) = x<sup>T</sup>Px">
-                            <span v-html="result.barrier.expression"></span>
+                        <Pre :title="'B(x) = ' + Object.keys(result.barrier.expression)[0]">
+                            <span v-html="Object.values(result.barrier.expression)[0]"></span>
                         </Pre>
                         <Pre title="P">
                             {{ result.barrier.values.P }}
@@ -272,11 +272,11 @@ watchDebounced(monomials, () => {
 
                     <div class="my-6">
                         <H3>Controller</H3>
-                        <Pre title="u = U<sub>0</sub>HPx">
-                            <span v-html="result.controller.expression"></span>
+                        <Pre :title="'u = ' + Object.keys(result.controller.expression)[0]">
+                            <span v-html="Object.values(result.controller.expression)[0]"></span>
                         </Pre>
-                        <Pre title="H">
-                            {{ result.controller.values.H }}
+                        <Pre :title="Object.keys(result.controller.values)[0]">
+                            {{ Object.values(result.controller.values)[0] }}
                         </Pre>
                     </div>
 

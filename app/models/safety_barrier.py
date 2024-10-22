@@ -1,3 +1,6 @@
+import io
+import time
+from contextlib import redirect_stdout
 from typing import Union, List
 
 import numpy as np
@@ -125,17 +128,24 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": barrier,
+                "expression": {'x<sup>T</sup>Px': barrier},
                 "values": {"P": P},
             },
-            "controller": {"expression": controller, "values": {"H": H}},
+            "controller": {
+                "expression": {"U<sub>0</sub>HPx": controller},
+                "values": {"H": H},
+            },
             "gamma": str(gamma_var.value),
             "lambda": str(lambda_var.value),
         }
 
     def _discrete_nps(self):
-        Theta_x = matrix_variable('Theta_x', self.x, self.degree, dim=(self.N, self.dimensionality))
-        Q_x = matrix_variable('Q_x', self.x, self.degree, dim=(self.num_samples, self.dimensionality))
+        Theta_x = matrix_variable(
+            "Theta_x", self.x, self.degree, dim=(self.N, self.dimensionality)
+        )
+        Q_x = matrix_variable(
+            "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
+        )
         N0 = self.__compute_N0()
 
         # -- Part 1
@@ -146,16 +156,20 @@ class SafetyBarrier(Barrier):
         self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x)
 
         # 18. M(x) = Theta(x) @ x
-        self.__add_matrix_constraint(design_theta, self.M_x - Theta_x @ Matrix(self.x), self.x)
+        self.__add_matrix_constraint(
+            design_theta, self.M_x - Theta_x @ Matrix(self.x), self.x
+        )
 
-        design_theta.solve(solver='mosek')
+        design_theta.solve(solver="mosek")
 
         # TODO: sub real values
 
         # -- Part 2
 
-        H_x = matrix_variable('H_x', self.x, self.degree, dim=(self.num_samples, self.N))
-        Z = matrix_variable('Z', self.x, 0, dim=(self.N, self.N), sym=True)
+        H_x = matrix_variable(
+            "H_x", self.x, self.degree, dim=(self.num_samples, self.N)
+        )
+        Z = matrix_variable("Z", self.x, 0, dim=(self.N, self.N), sym=True)
 
         design_HZ = SOSProblem()
 
@@ -164,13 +178,10 @@ class SafetyBarrier(Barrier):
         design_HZ.add_constraint(Z - 1.0e-6 * I(self.N) >> 0)
 
         # 21d. Schur's complement
-        schur = Matrix([
-            [Z, self.X1 @ H_x],
-            [H_x.T @ self.X1.T, Z]
-        ])
+        schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
         self.__add_matrix_inequality_constraint(design_HZ, schur, self.x)
 
-        design_HZ.solve(solver='mosek')
+        design_HZ.solve(solver="mosek")
 
         H_x, Z = self.__substitute_for_values(design_HZ.variables.values(), H_x, Z)
         P = Z.inv()
@@ -181,17 +192,18 @@ class SafetyBarrier(Barrier):
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
         # 9a. SOS gamma
-        self.problem.add_sos_constraint(-Matrix(self.x).T @ P @ Matrix(self.x) - Lg_init + gamma, self.x)
+        self.problem.add_sos_constraint(
+            -Matrix(self.x).T @ P @ Matrix(self.x) - Lg_init + gamma, self.x
+        )
 
         # 9b. SOS lambda
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(Matrix(self.x).T @ P @ Matrix(self.x) - Lg_unsafe - lambda_, self.x)
+            self.problem.add_sos_constraint(
+                Matrix(self.x).T @ P @ Matrix(self.x) - Lg_unsafe - lambda_, self.x
+            )
 
         # Note: Redefine schur with the now-valued matrices
-        schur = Matrix([
-            [Z, self.X1 @ H_x],
-            [H_x.T @ self.X1.T, Z]
-        ])
+        schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
 
         # 9c. SOS state space
         self.problem.add_matrix_sos_constraint(schur - Lg, self.x)
@@ -211,12 +223,12 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": barrier,
+                "expression": {'x<sup>T</sup>Px': barrier},
                 "values": {"P": P},
             },
             "controller": {
-                "expression": controller,
-                "values": {"H": H_x},
+                "expression": {'U<sub>0</sub>H(x)Px': controller},
+                "values": {"H(x)": H_x},
             },
             "gamma": str(gamma_var.value),
             "lambda": str(lambda_var.value),
@@ -282,11 +294,11 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": barrier,
+                "expression": {'x<sup>T</sup>Px': barrier},
                 "values": {"P": P},
             },
             "controller": {
-                "expression": controller,
+                "expression": {'U<sub>0</sub>HPx': controller},
                 "values": {"H": H},
             },
             "gamma": gamma_var.value,
@@ -337,7 +349,7 @@ class SafetyBarrier(Barrier):
 
         # --- (2) Then, solve remaining SOS conditions for gamma and lambda ---
 
-        # TODO: assert Q_x == H_x @ P (to 10^-6)
+        # assert np.allclose(N0 @ H_x @ P, np.eye(self.N), atol=1e-6)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
@@ -361,14 +373,27 @@ class SafetyBarrier(Barrier):
         # TODO: add SOS decomp (to all)
         # TODO: save out barrier and controller (to all)
 
+        barrier = self.__matrix_to_string(barrier)
+
+        controller = self.U0 @ H_x @ P @ Matrix(self.M_x)
+        controller = self.__matrix_to_string(controller)
+
+        # sp.pretty_print(P, use_unicode=True, mat_symbol_style="bold")
+
+        P = self.__matrix_to_string(P)
+        H_x = self.__matrix_to_string(H_x)
+
         return {
-            "barrier": {"expression": "M(x)<sup>T</sup>PM(x)", "values": {"P": P}},
+            "barrier": {
+                "expression": {'M(x)<sup>T</sup>PM(x)': barrier},
+                "values": {"P": P},
+            },
             "controller": {
-                "expression": "U<sub>0</sub>H(x)PM(x)",
+                "expression": {"U<sub>0</sub>H(x)PM(x)": controller},
                 "values": {"H(x)": H_x},
             },
-            "gamma": gamma_var.value,
-            "lambda": lambda_var.value,
+            "gamma": str(gamma_var.value),
+            "lambda": str(lambda_var.value),
         }
 
     @staticmethod
@@ -477,8 +502,10 @@ class SafetyBarrier(Barrier):
 
         constraints = []
 
-        n, m = mat.shape
         # TODO: parallelize this loop
+        start_time = time.time()
+
+        n, m = mat.shape
         for i in range(n):
             for j in range(m):
                 expr = mat[i, j]
@@ -498,6 +525,8 @@ class SafetyBarrier(Barrier):
                     constraints.append(coeff_constraint)
 
                 problem.add_constraint(Q == 0)
+
+        print(f"Time taken: {time.time() - start_time}")
 
         return constraints
 
