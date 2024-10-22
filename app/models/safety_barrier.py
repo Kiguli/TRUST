@@ -2,7 +2,13 @@ from typing import Union, List
 
 import numpy as np
 import sympy as sp
-from SumOfSquares import Basis, SOSConstraint, SOSProblem, matrix_variable, poly_variable
+from SumOfSquares import (
+    Basis,
+    SOSConstraint,
+    SOSProblem,
+    matrix_variable,
+    poly_variable,
+)
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
 from sympy import Matrix, sympify
@@ -14,7 +20,7 @@ class SafetyBarrier(Barrier):
     """Safety Barrier Certificate"""
 
     def __init__(self, data: dict):
-        # TODO: migrate to builder pattern
+        # TODO: migrate to builder pattern?
         if data["mode"] != "Safety":
             raise ValueError(
                 f"Invalid mode '{data['mode']}' for Safety Barrier calculations."
@@ -128,46 +134,16 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
-        # Create the 1st problem.
-
-        # (We're given the monomials M(x) by the user, i.e. self.monomials)
         x = list(self.x)
         M_x = self.M_x
         N = self.N
         n = self.dimensionality
 
-        # TODO: Solve for Theta(x), where M(x) = Theta(x) @ x (use a nested for)
-        # TODO: assert M(x) = Theta(x)x
+        HZ_problem = SOSProblem()
 
-        Theta = RealVariable("Theta", (N, n))
-        Theta_x = sum(Theta[i] * x[i] for i in range(N))
+        Theta_x = matrix_variable("Theta_x", x, self.degree, dim=(N, n))
 
-        eqn25 = np.array(Theta_x) @ np.array(x) - np.array(M_x).astype(object)
-
-        HZ_problem = Problem()
-        HZ_problem.require(eqn25)
-
-        # M(x) = Theta(x) @ x
-        # i.e. Theta(x) = M(x) @ x^-1 (but we can use the solver to find Theta(x) directly)
-
-        # Since we're given M(x) by the user, i.e. self.monomials,
-        # we can then use the solver to find Theta(x).
-        Theta_x = matrix_variable(
-            "Theta_x",
-            list(x),
-            self.degree,
-            dim=(len(self.monomials["terms"]), self.dimensionality),
-            hom=False,
-            sym=False,
-        )
-
-        HZ_problem.require(
-            np.array(self.monomials["terms"])
-            == np.array(np.array(Theta_x) @ np.array(x))
-        )
-
-        # Theta(x) = N0 @ Q(x)
-        # i.e. Q(x) = N0^-1 @ Theta(x)
+        self.__add_matrix_constraint(HZ_problem, M_x - Theta_x @ Matrix(x), x)
 
         N0 = self.__compute_N0()
 
@@ -184,46 +160,48 @@ class SafetyBarrier(Barrier):
             "Q_x",
             list(x),
             self.degree,
-            dim=(self.X0.shape[1], self.dimensionality),
+            dim=(self.num_samples, n),
             hom=False,
             sym=False,
         )
-        Hx = matrix_variable(
-            "Hx",
+        H_x = matrix_variable(
+            "H_x",
             list(x),
             self.degree,
-            dim=(self.X0.shape[1], self.dimensionality),
+            dim=(self.num_samples, n),
             hom=False,
             sym=False,
         )
         Z = matrix_variable("Z", list(x), 0, dim=(n, n), hom=False, sym=False)
-        # Z = SymmetricVariable('Z', (self.dimensionality, self.dimensionality))
+        # Z = SymmetricVariable('Z', (n, self.dimensionality))
 
         # Add the simultaneous constraints, schur and theta
 
-        schur = (np.array(Z) & np.array(Hx.T) * np.array(self.X1.T)) // (
-            np.array(self.X1 * Hx) & np.array(Z)
+        schur = (np.array(Z) & np.array(H_x.T) * np.array(self.X1.T)) // (
+            np.array(self.X1 * H_x) & np.array(Z)
         )
         # schur = Matrix([
-        #     [Z, Hx.T @ self.X1.T],
-        #     [self.X1 @ Hx, Z]
+        #     [Z, H_x.T @ self.X1.T],
+        #     [self.X1 @ H_x, Z]
         # ])
         HZ_problem.require(schur >> 0)
 
         # TODO: lagrangian 3rd cond w/ schur
 
-        HZ_problem.require(Theta_x @ Z == N0 @ Hx)
+        HZ_problem.require(Theta_x @ Z == N0 @ H_x)
 
         HZ_problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
 
         HZ_problem.solve(solver="mosek")
+
+        # TODO: assert M(x) = Theta(x)x
 
         # --- Part 2: SOS ---
 
         Z = Matrix(Z)
         P = Z.inv()
 
-        self.problem.add_constraint(Q_x == Hx @ P)
+        self.problem.add_constraint(Q_x == H_x @ P)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
@@ -238,14 +216,14 @@ class SafetyBarrier(Barrier):
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
 
-        schur_matrix = Matrix([[Z, Hx.T @ self.X1.T], [self.X1 @ Hx, Z]])
+        schur_matrix = Matrix([[Z, H_x.T @ self.X1.T], [self.X1 @ H_x, Z]])
         Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
         self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
 
         self.__solve()
 
         P = np.array2string(np.array(P), separator=", ")
-        H = np.array2string(np.array(Hx), separator=", ")
+        H = np.array2string(np.array(H_x), separator=", ")
 
         return {
             "barrier": {
@@ -355,7 +333,7 @@ class SafetyBarrier(Barrier):
 
         HZ_problem = SOSProblem()
 
-        self.add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
+        self.__add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
 
         dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
@@ -504,7 +482,7 @@ class SafetyBarrier(Barrier):
         return True
 
     @staticmethod
-    def add_matrix_constraint(
+    def __add_matrix_constraint(
         problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
     ) -> List[Constraint]:
         """
