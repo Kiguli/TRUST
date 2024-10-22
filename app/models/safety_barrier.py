@@ -134,109 +134,198 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
-        x = list(self.x)
-        M_x = self.M_x
-        N = self.N
-        n = self.dimensionality
-
-        HZ_problem = SOSProblem()
-
-        Theta_x = matrix_variable("Theta_x", x, self.degree, dim=(N, n))
-
-        self.__add_matrix_constraint(HZ_problem, M_x - Theta_x @ Matrix(x), x)
-
+        Theta_x = matrix_variable('Theta_x', self.x, self.degree, dim=(self.N, self.dimensionality))
+        Q_x = matrix_variable('Q_x', self.x, self.degree, dim=(self.num_samples, self.dimensionality))
         N0 = self.__compute_N0()
 
-        X0 = Constant("X0", self.X0)
-        X1 = Constant("X1", self.X1)
+        # -- Part 1
 
-        # Q(x) is a (T x n) matrix polynomial such that Theta(x) = N0 @ Q(x)
-        # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
-        # N0 is an (N x T) full row rank matrix, N0 = [M(x(0)), M(x(1)), ..., M(x(T-1))]
+        design_theta = SOSProblem()
 
-        # -- Part 1: Solve for Theta(x) H and Z
+        # 17. Theta(x) = N0 @ Q(x)
+        self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x)
 
-        Q_x = matrix_variable(
-            "Q_x",
-            list(x),
-            self.degree,
-            dim=(self.num_samples, n),
-            hom=False,
-            sym=False,
-        )
-        H_x = matrix_variable(
-            "H_x",
-            list(x),
-            self.degree,
-            dim=(self.num_samples, n),
-            hom=False,
-            sym=False,
-        )
-        Z = matrix_variable("Z", list(x), 0, dim=(n, n), hom=False, sym=False)
-        # Z = SymmetricVariable('Z', (n, self.dimensionality))
+        # 18. M(x) = Theta(x) @ x
+        self.__add_matrix_constraint(design_theta, self.M_x - Theta_x @ Matrix(self.x), self.x)
 
-        # Add the simultaneous constraints, schur and theta
+        design_theta.solve(solver='mosek')
 
-        schur = (np.array(Z) & np.array(H_x.T) * np.array(self.X1.T)) // (
-            np.array(self.X1 * H_x) & np.array(Z)
-        )
-        # schur = Matrix([
-        #     [Z, H_x.T @ self.X1.T],
-        #     [self.X1 @ H_x, Z]
-        # ])
-        HZ_problem.require(schur >> 0)
+        # TODO: sub real values
 
-        # TODO: lagrangian 3rd cond w/ schur
+        # -- Part 2
 
-        HZ_problem.require(Theta_x @ Z == N0 @ H_x)
+        H_x = matrix_variable('H_x', self.x, self.degree, dim=(self.num_samples, self.N))
+        Z = matrix_variable('Z', self.x, 0, dim=(self.N, self.N), sym=True)
 
-        HZ_problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
+        design_HZ = SOSProblem()
 
-        HZ_problem.solve(solver="mosek")
+        # 21a. N0 @ H(x) = Theta(x) @ Z and Z is positive definite
+        self.__add_matrix_constraint(design_HZ, N0 @ H_x - Theta_x @ Z, self.x)
+        design_HZ.add_constraint(Z - 1.0e-6 * I(self.N) >> 0)
 
-        # TODO: assert M(x) = Theta(x)x
+        # 21d. Schur's complement
+        schur = Matrix([
+            [Z, self.X1 @ H_x],
+            [H_x.T @ self.X1.T, Z]
+        ])
+        self.__add_matrix_inequality_constraint(design_HZ, schur, self.x)
 
-        # --- Part 2: SOS ---
+        design_HZ.solve(solver='mosek')
 
-        Z = Matrix(Z)
+        H_x, Z = self.__substitute_for_values(design_HZ.variables.values(), H_x, Z)
         P = Z.inv()
 
-        self.problem.add_constraint(Q_x == H_x @ P)
+        # -- Part 3
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
-
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        barrier = (Matrix(x).T @ P @ Matrix(x))[0]
+        # 9a. SOS gamma
+        self.problem.add_sos_constraint(-Matrix(self.x).T @ P @ Matrix(self.x) - Lg_init + gamma, self.x)
 
-        # -- SOS constraints
-
-        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
-
+        # 9b. SOS lambda
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
+            self.problem.add_sos_constraint(Matrix(self.x).T @ P @ Matrix(self.x) - Lg_unsafe - lambda_, self.x)
 
-        schur_matrix = Matrix([[Z, H_x.T @ self.X1.T], [self.X1 @ H_x, Z]])
-        Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
-        self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
+        # Note: Redefine schur with the now-valued matrices
+        schur = Matrix([
+            [Z, self.X1 @ H_x],
+            [H_x.T @ self.X1.T, Z]
+        ])
+
+        # 9c. SOS state space
+        self.problem.add_matrix_sos_constraint(schur - Lg, self.x)
 
         self.__solve()
 
-        P = np.array2string(np.array(P), separator=", ")
-        H = np.array2string(np.array(H_x), separator=", ")
+        # TODO: validate
+
+        barrier = (Matrix(self.x).T * P * Matrix(self.x))[0]
+        barrier = self.__matrix_to_string(barrier)
+
+        controller = self.U0 @ H_x @ P @ Matrix(self.x)
+        controller = self.__matrix_to_string(controller)
+
+        P = self.__matrix_to_string(P)
+        H_x = self.__matrix_to_string(H_x)
 
         return {
             "barrier": {
-                "expression": "x<sup>T</sup>Px",
+                "expression": barrier,
                 "values": {"P": P},
             },
             "controller": {
-                "expression": "U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x",
-                "values": {
-                    "H": H,
-                },
+                "expression": controller,
+                "values": {"H": H_x},
             },
+            "gamma": str(gamma_var.value),
+            "lambda": str(lambda_var.value),
         }
+
+        # TODO: remove this old code
+        # x = list(self.x)
+        # M_x = self.M_x
+        # N = self.N
+        # n = self.dimensionality
+        #
+        # HZ_problem = SOSProblem()
+        #
+        # Theta_x = matrix_variable("Theta_x", x, self.degree, dim=(N, n))
+        #
+        # self.__add_matrix_constraint(HZ_problem, M_x - Theta_x @ Matrix(x), x)
+        #
+        # N0 = self.__compute_N0()
+        #
+        # X0 = Constant("X0", self.X0)
+        # X1 = Constant("X1", self.X1)
+        #
+        # # Q(x) is a (T x n) matrix polynomial such that Theta(x) = N0 @ Q(x)
+        # # Theta(x) is an (N x n) matrix polynomial, M(x) = Theta(x) @ x
+        # # N0 is an (N x T) full row rank matrix, N0 = [M(x(0)), M(x(1)), ..., M(x(T-1))]
+        #
+        # # -- Part 1: Solve for Theta(x) H and Z
+        #
+        # Q_x = matrix_variable(
+        #     "Q_x",
+        #     list(x),
+        #     self.degree,
+        #     dim=(self.num_samples, n),
+        #     hom=False,
+        #     sym=False,
+        # )
+        # H_x = matrix_variable(
+        #     "H_x",
+        #     list(x),
+        #     self.degree,
+        #     dim=(self.num_samples, n),
+        #     hom=False,
+        #     sym=False,
+        # )
+        # Z = matrix_variable("Z", list(x), 0, dim=(n, n), hom=False, sym=False)
+        # # Z = SymmetricVariable('Z', (n, self.dimensionality))
+        #
+        # # Add the simultaneous constraints, schur and theta
+        #
+        # schur = (np.array(Z) & np.array(H_x.T) * np.array(self.X1.T)) // (
+        #     np.array(self.X1 * H_x) & np.array(Z)
+        # )
+        # # schur = Matrix([
+        # #     [Z, H_x.T @ self.X1.T],
+        # #     [self.X1 @ H_x, Z]
+        # # ])
+        # HZ_problem.require(schur >> 0)
+        #
+        # # TODO: lagrangian 3rd cond w/ schur
+        #
+        # HZ_problem.require(Theta_x @ Z == N0 @ H_x)
+        #
+        # HZ_problem.add_constraint(Z - 1.0e-6 * I(Matrix(list(x)).shape[1]) >> 0)
+        #
+        # HZ_problem.solve(solver="mosek")
+        #
+        # # TODO: assert M(x) = Theta(x)x
+        #
+        # # --- Part 2: SOS ---
+        #
+        # Z = Matrix(Z)
+        # P = Z.inv()
+        #
+        # self.problem.add_constraint(Q_x == H_x @ P)
+        #
+        # gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
+        #
+        # Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
+        #
+        # barrier = (Matrix(x).T @ P @ Matrix(x))[0]
+        #
+        # # -- SOS constraints
+        #
+        # self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+        #
+        # for Lg_unsafe in Lg_unsafe_set:
+        #     self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
+        #
+        # schur_matrix = Matrix([[Z, H_x.T @ self.X1.T], [self.X1 @ H_x, Z]])
+        # Lg_matrix = Matrix(np.full(schur_matrix.shape, Lg))
+        # self.problem.add_matrix_sos_constraint(schur_matrix - Lg_matrix, list(x))
+        #
+        # self.__solve()
+        #
+        # P = np.array2string(np.array(P), separator=", ")
+        # H = np.array2string(np.array(H_x), separator=", ")
+        #
+        # return {
+        #     "barrier": {
+        #         "expression": "x<sup>T</sup>Px",
+        #         "values": {"P": P},
+        #     },
+        #     "controller": {
+        #         "expression": "U<sub>0</sub>H(x)[N<sub>0</sub>H(x)]<sup>-1</sup>x",
+        #         "values": {
+        #             "H": H,
+        #         },
+        #     },
+        # }
 
     def _continuous_linear(self):
         problem = SOSProblem()
@@ -518,7 +607,45 @@ class SafetyBarrier(Barrier):
         return constraints
 
     @staticmethod
-    def __substitute_for_values(variables, H_x, Z):
+    def __add_matrix_inequality_constraint(
+        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+    ) -> List[Constraint]:
+        """
+        Add a matrix constraint to the problem.
+
+        TODO: refactor to combine with __add_matrix_constraint
+        """
+
+        variables = sorted(variables, key=str)  # To lex order
+
+        constraints = []
+
+        n, m = mat.shape
+        # TODO: parallelize this loop
+        for i in range(n):
+            for j in range(m):
+                expr = mat[i, j]
+
+                poly = sp.poly(expr, variables)
+                mono_to_coeffs = dict(
+                    zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
+                )
+                basis = Basis.from_poly_lex(poly, sparse=True)
+
+                Q = RealVariable(f"Q_{i}_{j}", (len(basis), len(basis)))
+                for mono, pairs in basis.sos_sym_entries.items():
+                    coeff = mono_to_coeffs.get(mono, 0)
+                    coeff_constraint = problem.add_constraint(
+                        sum(Q[k, l] for k, l in pairs) == coeff
+                    )
+                    constraints.append(coeff_constraint)
+
+                problem.add_constraint(Q >= 0)
+
+        return constraints
+
+    @staticmethod
+    def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
         # TODO: refactor for efficiency
         H_x_dict = {}
         Z_dict = {}
