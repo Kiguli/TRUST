@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, onMounted, ref, watchEffect } from "vue";
 import { Head, router, useForm } from "@inertiajs/vue3";
 import { useInterval, watchDebounced } from "@vueuse/core";
 
@@ -10,13 +10,13 @@ import Section from "@/Atoms/Section.vue";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
 import DatasetInput from "@/Organisms/DatasetInput.vue";
 import ProblemOptions from "@/Organisms/ProblemOptions.vue";
-import StickyFooter from "@/Organisms/StickyFooter.vue";
 import VectorInput from "@/Organisms/VectorInput.vue";
-
-import route from "~/utilities/route.js";
 import Input from "@/Atoms/Input.vue";
 import Label from "@/Atoms/Label.vue";
 import VectorInputSet from "@/Organisms/VectorInputSet.vue";
+import route from "~/utilities/route.js";
+
+import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
 
 const props = defineProps({
     models: Array,
@@ -26,7 +26,11 @@ const props = defineProps({
     result: null,
 });
 
-const form = useForm({
+const result = ref(props.result);
+
+// TODO: manually save state with remember and restore
+// https://inertiajs.com/remembering-state#manually-saving-state
+const data = {
     model: null,
     timing: null,
     mode: null,
@@ -37,7 +41,9 @@ const form = useForm({
     stateSpace: [],
     initialState: [],
     unsafeStates: [[]],
-});
+};
+
+const form = useForm("TRUST", data);
 
 const samples = ref(0);
 const dimension = ref(1);
@@ -124,6 +130,17 @@ watchDebounced(monomials, () => {
         },
     );
 }, 500);
+
+const submitBtn = ref();
+
+onMounted(() => {
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            submitBtn.value?.click();
+        }
+    });
+});
+
 </script>
 
 <template>
@@ -240,7 +257,7 @@ watchDebounced(monomials, () => {
             class="border-t bg-gray-200/60 sm:col-span-full lg:col-span-1 lg:border-t-0">
             <H2>Output</H2>
 
-            <div v-if="result">
+            <div v-if="result && !form.processing">
                 <div class="bg-gray-700 w-full px-2 py-1 font-mono text-sm space-y-1">
                     <p class="text-sm text-gray-400">
                         <span class="font-bold">INFO:</span>
@@ -256,14 +273,14 @@ watchDebounced(monomials, () => {
 
                 <div v-if="result.error" class="mt-1 bg-red-800 w-full px-2 py-1 font-mono text-sm">
                     <span class="font-bold">Error:</span>
-                    {{ result.error }} {{ result.description ?? '' }}
+                    {{ result.error }} {{ result.description ?? "" }}
                 </div>
 
                 <div v-else>
                     <div class="my-6">
                         <H3>Barrier</H3>
-                        <Pre :title="'B(x) = ' + Object.keys(result.barrier.expression)[0]">
-                            <span v-html="Object.values(result.barrier.expression)[0]"></span>
+                        <Pre :title="'B(x) = ' + Object.keys(result.barrier?.expression)[0]">
+                            <span v-html="Object.values(result.barrier?.expression)[0]"></span>
                         </Pre>
                         <Pre title="P">
                             {{ result.barrier.values.P }}
@@ -296,9 +313,11 @@ watchDebounced(monomials, () => {
                 <div class="flex justify-center pt-px">
                     <span class="relative flex h-3 w-3">
                         <span
-                            class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" :class="[form.processing ? 'bg-amber-400' : 'bg-blue-400']"></span>
+                            :class="[form.processing ? 'bg-amber-400' : 'bg-blue-400']"
+                            class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
                         <span
-                            class="relative inline-flex h-3 w-3 rounded-full" :class="[form.processing ? 'bg-amber-500' : 'bg-blue-500']"></span>
+                            :class="[form.processing ? 'bg-amber-500' : 'bg-blue-500']"
+                            class="relative inline-flex h-3 w-3 rounded-full"></span>
                     </span>
                 </div>
 
@@ -313,7 +332,39 @@ watchDebounced(monomials, () => {
             </div>
         </Section>
 
-        <StickyFooter :form="form" :text="calculateTxt" />
+        <div
+            class="sticky bottom-0 col-span-full flex min-h-20 w-full justify-between gap-x-4 border-t bg-white px-4 py-2.5 sm:px-8 dark:border-none dark:bg-gray-900 dark:shadow-inner">
+            <div class="flex flex-col justify-center">
+                <h3
+                    class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
+                    <a
+                        class="flex w-min cursor-pointer items-center gap-x-0.5"
+                        href="https://github.com/kiguli/sintrajbc"
+                        target="_blank">
+                        <span class="inline-block flex-none">SinTra-SB</span>
+                        <LinkIcon class="h-4 w-4 flex-none text-gray-500" />
+                    </a>
+                </h3>
+                <p class="line-clamp-2 text-xs text-gray-400">
+                    Single Trajectory Data-Driven Control Synthesis for Stability
+                    and Barrier Certificates
+                </p>
+            </div>
+            <div class="flex items-center gap-x-2">
+                <button
+                    ref="submitBtn"
+                    :disabled="form.processing"
+                    class="order-1 flex h-min items-baseline gap-x-1 rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none ring-2 ring-inset ring-transparent hover:bg-blue-700/75 focus:ring-gray-100 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
+                    type="submit"
+                    v-html="calculateTxt" />
+                <button
+                    class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5"
+                    type="reset">
+                    Reset
+                </button>
+            </div>
+        </div>
+
     </form>
 </template>
 
