@@ -12,25 +12,19 @@ from app.models.stability import Stability
 
 bp = Blueprint('dashboard', __name__)
 
-def calculate_result(update_cache=False):
+def calculate_result() -> dict:
     """
     Calculate the result of the user's input.
 
-    :param  update_cache whether to update the cache or not
     :return: the result of the calculation
     """
 
     # TODO: validate data
     data = request.get_json()
 
-    # TODO: DEBUG - use test data
-    # data = tests.fake_data()
-    # data['mode'] = 'Safety'
-    # data['timing'] = 'Discrete-Time'
-    # data['model'] = 'Linear'
+    tracemalloc.start()
 
     start_time = time()
-    tracemalloc.start()
 
     if data['mode'] == 'Stability':
         function_name = 'stability_function'
@@ -40,6 +34,7 @@ def calculate_result(update_cache=False):
         barrier_function = SafetyBarrier(data).calculate()
 
     time_taken = time() - start_time
+
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
@@ -58,7 +53,7 @@ def validate_monomials() -> bool | list:
     Each term should also only represent a valid dimension, e.g. x1 to xn, where n is the dimension
     of the dataset.
 
-    :return: if the monomials are valid or not
+    :return: Whether the monomials are valid
     """
 
     monomials = request.get_json()['monomials']
