@@ -106,10 +106,6 @@ class SafetyBarrier(Barrier):
                 self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
             )
 
-        # schur = Matrix(schur)
-        # Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        # condition3 = self.problem.add_matrix_sos_constraint(schur - Lg_matrix, list(x))
-
         self.__solve()
 
         validation = self.__validate_solution(
@@ -128,7 +124,7 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": {'x<sup>T</sup>Px': barrier},
+                "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
             "controller": {
@@ -140,6 +136,9 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
+        gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
+        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
+
         Theta_x = matrix_variable(
             "Theta_x", self.x, self.degree, dim=(self.N, self.dimensionality)
         )
@@ -179,7 +178,7 @@ class SafetyBarrier(Barrier):
 
         # 21d. Schur's complement
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
-        self.__add_matrix_inequality_constraint(design_HZ, schur, self.x)
+        design_HZ.add_matrix_sos_constraint(schur - Lg, self.x)
 
         design_HZ.solve(solver="mosek")
 
@@ -187,9 +186,6 @@ class SafetyBarrier(Barrier):
         P = Z.inv()
 
         # -- Part 3
-
-        gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
-        Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
         # 9a. SOS gamma
         self.problem.add_sos_constraint(
@@ -223,11 +219,11 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": {'x<sup>T</sup>Px': barrier},
+                "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
             "controller": {
-                "expression": {'U<sub>0</sub>H(x)Px': controller},
+                "expression": {"U<sub>0</sub>H(x)Px": controller},
                 "values": {"H(x)": H_x},
             },
             "gamma": str(gamma_var.value),
@@ -294,11 +290,11 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": {'x<sup>T</sup>Px': barrier},
+                "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
             "controller": {
-                "expression": {'U<sub>0</sub>HPx': controller},
+                "expression": {"U<sub>0</sub>HPx": controller},
                 "values": {"H": H},
             },
             "gamma": gamma_var.value,
@@ -385,7 +381,7 @@ class SafetyBarrier(Barrier):
 
         return {
             "barrier": {
-                "expression": {'M(x)<sup>T</sup>PM(x)': barrier},
+                "expression": {"M(x)<sup>T</sup>PM(x)": barrier},
                 "values": {"P": P},
             },
             "controller": {
