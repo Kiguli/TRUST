@@ -62,6 +62,7 @@ class Stability:
         # P = cp.Variable((n, n), symmetric=True)
         # H = cp.Variable((T, n))
 
+        H, Z = None, None
         if self.timing == "Discrete-Time":
             H, Z = self._discrete_constraints()
         elif self.timing == "Continuous-Time":
@@ -77,10 +78,8 @@ class Stability:
         # if prob.status in ["infeasible", "unbounded"]:
         #     raise ValueError("The problem is infeasible or unbounded.")
 
-        P = (sp.Matrix(Z).inv())
-
         H = np.array2string(np.array(sp.Matrix(H)))
-        P = np.array2string(np.array(sp.Matrix(P)))
+        P = np.array2string(np.array(sp.Matrix(Z).inv())) if n > 1 else str(1 / Z.value)
 
         return {
             "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": P}},
