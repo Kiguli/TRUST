@@ -81,7 +81,7 @@ class SafetyBarrier(Barrier):
         # Z must be positive definite
         HZ_problem.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
 
-        schur = (Z & H.T * X1.T) // (X1 * H & Z)
+        schur = (Z & X1 * H) // (H.T * X1.T & Z)
         HZ_problem.add_constraint(schur >> 0)
 
         HZ_problem.solve(solver="mosek")
