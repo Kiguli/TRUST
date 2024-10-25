@@ -41,6 +41,7 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
                 <Tab
                     v-for="mode in modes"
                     :key="mode"
+                    :disabled="mode.title === 'Upload'"
                     v-slot="{ selected }"
                     as="template">
                     <button
@@ -49,7 +50,7 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
                                 ? 'bg-white text-gray-600 shadow dark:bg-violet-900/75 dark:text-white'
                                 : 'text-gray-500 hover:bg-white/[0.20] dark:hover:bg-gray-800',
                         ]"
-                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 focus:outline-none focus:ring-2">
+                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-25">
                         {{ mode.title }}
                     </button>
                 </Tab>
@@ -57,7 +58,9 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
 
             <TabPanels class="mt-2">
                 <TabPanel v-for="mode in modes" :key="mode">
-                    <UploadDataPanel v-if="mode.title === 'Upload'" :form="form" />
+                    <UploadDataPanel
+                        v-if="mode.title === 'Upload'"
+                        :form="form" />
                     <ManualDataPanel v-else v-model="data" />
                 </TabPanel>
             </TabPanels>
