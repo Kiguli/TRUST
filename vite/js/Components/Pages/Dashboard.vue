@@ -17,6 +17,7 @@ import VectorInputSet from "@/Organisms/VectorInputSet.vue";
 import route from "~/utilities/route.js";
 
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
+import Acrynom from "@/Atoms/Acrynom.vue";
 
 const props = defineProps({
     models: Array,
@@ -25,8 +26,6 @@ const props = defineProps({
     monomials: Array | Boolean,
     result: null,
 });
-
-const result = ref(props.result);
 
 // TODO: manually save state with remember and restore
 // https://inertiajs.com/remembering-state#manually-saving-state
@@ -57,11 +56,22 @@ const submit = () => {
         only: ["result"],
         onStart: () => {
             deltaTime.value = useInterval(1000);
+
         },
         onSuccess: () => {
             deltaTime.value = null;
         },
     });
+};
+
+const resetForm = () => {
+    if (form.isDirty && !confirm("Are you sure you want to reset the form?")) return;
+
+    form.cancel();
+
+    props.result.value = null;
+
+    form.defaults = router.restore("TRUST");
 };
 
 const calculateTxt = computed(() => {
@@ -278,12 +288,15 @@ onMounted(() => {
 
                 <div v-else>
                     <div class="my-6">
-                        <H3>Barrier</H3>
-                        <Pre :title="'B(x) = ' + Object.keys(result.barrier?.expression)[0]">
-                            <span v-html="Object.values(result.barrier?.expression)[0]"></span>
+                        <H3>
+                            {{ form.mode !== 'Stability' ? 'Barrier' : 'Lyapunov' }}
+                        </H3>
+                        <Pre :title="(form.mode !== 'Stability' ? 'B(x) = ' : 'V(x) = ') + Object.keys(result.function?.expression)[0]">
+                            <span v-html="Object.values(result.function?.expression)[0]"></span>
                         </Pre>
                         <Pre title="P">
-                            {{ result.barrier.values.P }}
+
+                            {{ result.function.values.P }}
                         </Pre>
                     </div>
 
@@ -297,7 +310,7 @@ onMounted(() => {
                         </Pre>
                     </div>
 
-                    <div class="my-6">
+                    <div v-if="form.mode !== 'Stability'" class="my-6">
                         <H3>Level Sets</H3>
                         <Pre title="&gamma;">
                             {{ result.gamma }}
@@ -341,13 +354,13 @@ onMounted(() => {
                         class="flex w-min cursor-pointer items-center gap-x-0.5"
                         href="https://github.com/kiguli/sintrajbc"
                         target="_blank">
-                        <span class="inline-block flex-none">SinTra-SB</span>
+                        <span class="inline-block flex-none">TRUST</span>
                         <LinkIcon class="h-4 w-4 flex-none text-gray-500" />
                     </a>
                 </h3>
                 <p class="line-clamp-2 text-xs text-gray-400">
-                    Single Trajectory Data-Driven Control Synthesis for Stability
-                    and Barrier Certificates
+                    Stabili<Acrynom>T</Acrynom>y and Safety Cont<Acrynom>R</Acrynom>oller Synthesis for Black-Box
+                    Systems <Acrynom>U</Acrynom>sing a <Acrynom>S</Acrynom>ingle <Acrynom>T</Acrynom>rajectory
                 </p>
             </div>
             <div class="flex items-center gap-x-2">
@@ -359,7 +372,8 @@ onMounted(() => {
                     v-html="calculateTxt" />
                 <button
                     class="order-0 flex h-min rounded-md px-4 py-2 text-base text-gray-400 hover:ring-2 hover:ring-inset hover:ring-gray-400/75 active:text-gray-200 active:ring-gray-300 sm:px-5 sm:py-2.5"
-                    type="reset">
+                    type="reset"
+                    @click="resetForm">
                     Reset
                 </button>
             </div>
