@@ -78,13 +78,24 @@ class Stability:
         # if prob.status in ["infeasible", "unbounded"]:
         #     raise ValueError("The problem is infeasible or unbounded.")
 
-        H = np.array2string(np.array(sp.Matrix(H)))
-        P = np.array2string(np.array(sp.Matrix(Z).inv())) if n > 1 else str(1 / Z.value)
+        P = Matrix(Z).inv() if n > 1 else 1 / Z.value
+
+        lyapunov = Matrix(self.x).T @ P @ Matrix(self.x)
+        lyapunov = np.array2string(np.array(lyapunov), separator=", ")
+
+        controller = self.U0 @ H @ P @ Matrix(self.x)
+        controller = np.array2string(np.array(controller), separator=", ")
+
+        H = np.array2string(np.array(Matrix(H)))
+        P = np.array2string(np.array(P))
 
         return {
-            "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": P}},
+            "function": {
+                "expression": {"x<sup>T</sup>Px": lyapunov},
+                "values": {"P": P},
+            },
             "controller": {
-                "expression": "U_{0,T} @ H @ P^{-1} @ x",
+                "expression": {"U<sub>0</sub>HPx": controller},
                 "values": {"H": H},
             },
         }
@@ -129,7 +140,7 @@ class Stability:
         H_x = H_x.value
 
         return {
-            "lyapunov": {"expression": "M(x)^T @ P @ M(x)", "values": {"P": P}},
+            "function": {"expression": "M(x)^T @ P @ M(x)", "values": {"P": P}},
             "controller": {
                 "expression": "U0 @ H(x) @ P @ M(x)",
                 "values": {"H(x)": H_x},
@@ -152,10 +163,12 @@ class Stability:
         # TODO: refactor to use the solver to calculate Theta_x given M_x and x.
         Theta_x = self._calculate_Theta_x(M_x)
         # Sub in the x1, x2, ..., xN values from the state space, X.
-        Theta_x = np.array([
-            [t.subs({x: X[f"{x}"][i] for i, x in enumerate(self.x)}) for t in row]
-            for row in Theta_x
-        ])
+        Theta_x = np.array(
+            [
+                [t.subs({x: X[f"{x}"][i] for i, x in enumerate(self.x)}) for t in row]
+                for row in Theta_x
+            ]
+        )
 
         N0 = self._calculate_N0(M_x)
 
@@ -176,7 +189,7 @@ class Stability:
         prob.solve()
 
         return {
-            "lyapunov": {"expression": "x^T @ P @ x", "values": {"P": "P"}},
+            "function": {"expression": "x^T @ P @ x", "values": {"P": "P"}},
             "controller": {
                 "expression": "U0 @ H @ P^{-1} @ x",
                 "values": {"H": "H"},
@@ -210,7 +223,12 @@ class Stability:
         N0 = []
 
         for k in range(self.num_samples):
-            N0.append([m.subs({x: self.X0.T[k][i] for i, x in enumerate(self.x)}) for m in M_x])
+            N0.append(
+                [
+                    m.subs({x: self.X0.T[k][i] for i, x in enumerate(self.x)})
+                    for m in M_x
+                ]
+            )
 
         return np.array(N0).T
 
@@ -236,23 +254,23 @@ class Stability:
 
         problem = SOSProblem()
 
-        X0 = Constant('X0', X0)
-        X1 = Constant('X1', X1)
+        X0 = Constant("X0", X0)
+        X1 = Constant("X1", X1)
 
-        H = RealVariable('H', (T, n))
-        Z = SymmetricVariable('Z', (n, n))
+        H = RealVariable("H", (T, n))
+        Z = SymmetricVariable("Z", (n, n))
 
         problem.add_constraint(Z == X0 * H)
         # Z must be positive definite
         problem.add_constraint(Z - 1.0e-6 * I(n) >> 0)
 
-        schur = ((Z & H.T * X1.T) // (X1 * H & Z))
+        schur = (Z & H.T * X1.T) // (X1 * H & Z)
         # schur = ((Z & X1 * H) // (H.T * X1.T & Z))
         problem.add_constraint(schur >> 0)
 
-        problem.solve(solver='mosek')
+        problem.solve(solver="mosek")
 
-        return H, Z
+        return Matrix(H), Matrix(Z)
 
     def _continuous_constraints(self) -> array:
         # eqn = X1 @ H + H.T @ X1.T
@@ -269,20 +287,20 @@ class Stability:
         # -- Solve for H and Z
 
         x = self.x
-        X0 = Constant('X0', self.X0)
-        X1 = Constant('X1', self.X1)
+        X0 = Constant("X0", self.X0)
+        X1 = Constant("X1", self.X1)
 
-        H = RealVariable('H', (T, n))
-        Z = SymmetricVariable('Z', (n, n))
+        H = RealVariable("H", (T, n))
+        Z = SymmetricVariable("Z", (n, n))
 
         problem.add_constraint(H.T * X1.T + X1 * H << 0)
 
         problem.add_constraint(Z - 1.0e-6 * I(Matrix(x).shape[1]) >> 0)
         problem.add_constraint(Z == X0 * H)
 
-        problem.solve(solver='mosek')
+        problem.solve(solver="mosek")
 
-        return H, Z
+        return Matrix(H), Matrix(Z)
 
     # --- Properties ---
 
@@ -291,7 +309,7 @@ class Stability:
         """
         Return the dimensionality in the state space, n
         """
-        return len(self.state_space)
+        return len(self.X0)
 
     @property
     def N(self) -> int:
@@ -359,4 +377,3 @@ class Stability:
                 data[i][j] = float(data[i][j])
 
         return np.array(data)
-

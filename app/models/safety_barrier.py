@@ -123,7 +123,7 @@ class SafetyBarrier(Barrier):
         H = self.__matrix_to_string(H)
 
         return {
-            "barrier": {
+            "function": {
                 "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
@@ -218,7 +218,7 @@ class SafetyBarrier(Barrier):
         H_x = self.__matrix_to_string(H_x)
 
         return {
-            "barrier": {
+            "function": {
                 "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
@@ -289,7 +289,7 @@ class SafetyBarrier(Barrier):
         Q = np.array2string(np.array(Q), separator=", ")
 
         return {
-            "barrier": {
+            "function": {
                 "expression": {"x<sup>T</sup>Px": barrier},
                 "values": {"P": P},
             },
@@ -380,7 +380,7 @@ class SafetyBarrier(Barrier):
         H_x = self.__matrix_to_string(H_x)
 
         return {
-            "barrier": {
+            "function": {
                 "expression": {"M(x)<sup>T</sup>PM(x)": barrier},
                 "values": {"P": P},
             },
