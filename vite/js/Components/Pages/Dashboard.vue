@@ -209,6 +209,7 @@ onMounted(() => {
                     <Input
                         id="dimensions"
                         :value="dimension"
+                        :content="dimension"
                         disabled
                         type="text" />
                 </div>
