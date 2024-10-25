@@ -499,8 +499,6 @@ class SafetyBarrier(Barrier):
         constraints = []
 
         # TODO: parallelize this loop
-        start_time = time.time()
-
         n, m = mat.shape
         for i in range(n):
             for j in range(m):
@@ -521,46 +519,6 @@ class SafetyBarrier(Barrier):
                     constraints.append(coeff_constraint)
 
                 problem.add_constraint(Q == 0)
-
-        print(f"Time taken: {time.time() - start_time}")
-
-        return constraints
-
-    @staticmethod
-    def __add_matrix_inequality_constraint(
-        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
-    ) -> List[Constraint]:
-        """
-        Add a matrix constraint to the problem.
-
-        TODO: refactor to combine with __add_matrix_constraint
-        """
-
-        variables = sorted(variables, key=str)  # To lex order
-
-        constraints = []
-
-        n, m = mat.shape
-        # TODO: parallelize this loop
-        for i in range(n):
-            for j in range(m):
-                expr = mat[i, j]
-
-                poly = sp.poly(expr, variables)
-                mono_to_coeffs = dict(
-                    zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
-                )
-                basis = Basis.from_poly_lex(poly, sparse=True)
-
-                Q = RealVariable(f"Q_{i}_{j}", (len(basis), len(basis)))
-                for mono, pairs in basis.sos_sym_entries.items():
-                    coeff = mono_to_coeffs.get(mono, 0)
-                    coeff_constraint = problem.add_constraint(
-                        sum(Q[k, l] for k, l in pairs) == coeff
-                    )
-                    constraints.append(coeff_constraint)
-
-                problem.add_constraint(Q >= 0)
 
         return constraints
 
