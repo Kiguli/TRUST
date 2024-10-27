@@ -91,7 +91,6 @@ const monomials = ref();
 
 watchEffect(() => {
     dimension.value = Math.max(form.X0?.length ?? 1, 1);
-    console.log(dimension.value);
     samples.value = form.X0?.[0]?.length ?? 0;
 });
 
