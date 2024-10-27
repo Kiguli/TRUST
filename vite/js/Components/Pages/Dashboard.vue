@@ -208,8 +208,8 @@ onMounted(() => {
                     <Input
                         id="dimensions"
                         :content="dimension"
-                        :value="dimension"
                         :placeholder="dimension"
+                        :value="dimension"
                         disabled
                         type="text" />
                 </div>
@@ -269,7 +269,8 @@ onMounted(() => {
             <H2>Output</H2>
 
             <div v-if="result && !form.processing">
-                <div class="bg-gray-700/50 w-full px-2 py-1 font-mono text-sm space-y-1 text-gray-100 dark:text-gray-200 overflow-clip rounded dark:shadow-md dark:shadow-gray-950/20">
+                <div
+                    class="bg-gray-700/50 w-full px-2 py-1 font-mono text-sm space-y-1 text-gray-100 dark:text-gray-200 overflow-clip rounded dark:shadow-md dark:shadow-gray-950/20">
                     <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Calculated in
@@ -282,7 +283,8 @@ onMounted(() => {
                     </p>
                 </div>
 
-                <div v-if="result.error" class="mt-1.5 w-full font-mono text-sm text-gray-100 dark:text-gray-200 rounded overflow-clip dark:shadow-md dark:shadow-red-950/20">
+                <div v-if="result.error"
+                     class="mt-1.5 w-full font-mono text-sm text-gray-100 dark:text-gray-200 rounded overflow-clip dark:shadow-md dark:shadow-red-950/20">
                     <p class="bg-red-800 px-2 py-1">
                         <span class="font-bold">Error:</span>
                         {{ result.error }}
@@ -365,20 +367,10 @@ onMounted(() => {
                         <LinkIcon class="h-4 w-4 flex-none text-gray-500" />
                     </a>
                 </h3>
-                <p class="line-clamp-2 text-xs text-gray-400">
-                    Stabili
-                    <Acrynom>T</Acrynom>
-                    y and Safety Cont
-                    <Acrynom>R</Acrynom>
-                    oller Synthesis for Black-Box
-                    Systems
-                    <Acrynom>U</Acrynom>
-                    sing a
-                    <Acrynom>S</Acrynom>
-                    ingle
-                    <Acrynom>T</Acrynom>
-                    rajectory
-                </p>
+                <span class="line-clamp-2 text-xs text-gray-400">
+                    Stabili<Acrynom>T</Acrynom>y and Safety Cont<Acrynom>R</Acrynom>oller Synthesis for Black-Box
+                    Systems <Acrynom>U</Acrynom>sing a <Acrynom>S</Acrynom>ingle <Acrynom>T</Acrynom>rajectory
+                </span>
             </div>
             <div class="flex items-center gap-x-2">
                 <button
