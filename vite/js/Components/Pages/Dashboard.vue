@@ -91,6 +91,7 @@ const monomials = ref();
 
 watchEffect(() => {
     dimension.value = Math.max(form.X0?.length ?? 1, 1);
+    console.log(dimension.value);
     samples.value = form.X0?.[0]?.length ?? 0;
 });
 
@@ -129,7 +130,6 @@ watchDebounced(monomials, () => {
             preserveScroll: true,
             only: ["monomials"],
             onSuccess: () => {
-                console.log(props.monomials);
                 if (props.monomials) {
                     form.monomials = props.monomials;
                 } else {
@@ -208,8 +208,9 @@ onMounted(() => {
                     </Label>
                     <Input
                         id="dimensions"
-                        :value="dimension"
                         :content="dimension"
+                        :value="dimension"
+                        :placeholder="dimension"
                         disabled
                         type="text" />
                 </div>
@@ -269,30 +270,36 @@ onMounted(() => {
             <H2>Output</H2>
 
             <div v-if="result && !form.processing">
-                <div class="bg-gray-700 w-full px-2 py-1 font-mono text-sm space-y-1">
-                    <p class="text-sm text-gray-400">
+                <div class="bg-gray-700/50 w-full px-2 py-1 font-mono text-sm space-y-1 text-gray-100 dark:text-gray-200 overflow-clip rounded dark:shadow-md dark:shadow-gray-950/20">
+                    <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Calculated in
                         <pre class="inline-block">{{ result.time_taken }}</pre>
                     </p>
-                    <p class="text-sm text-gray-400">
+                    <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Peak memory usage
                         <pre class="inline-block">{{ result.memory_used }}</pre>
                     </p>
                 </div>
 
-                <div v-if="result.error" class="mt-1 bg-red-800 w-full px-2 py-1 font-mono text-sm">
-                    <span class="font-bold">Error:</span>
-                    {{ result.error }} {{ result.description ?? "" }}
+                <div v-if="result.error" class="mt-1.5 w-full font-mono text-sm text-gray-100 dark:text-gray-200 rounded overflow-clip dark:shadow-md dark:shadow-red-950/20">
+                    <p class="bg-red-800 px-2 py-1">
+                        <span class="font-bold">Error:</span>
+                        {{ result.error }}
+                    </p>
+                    <p class="bg-red-800/50 px-2 py-1 line-clamp-6 overflow-scroll">
+                        {{ result.description ?? "" }}
+                    </p>
                 </div>
 
                 <div v-else>
                     <div class="my-6">
                         <H3>
-                            {{ form.mode !== 'Stability' ? 'Barrier' : 'Lyapunov' }}
+                            {{ form.mode !== "Stability" ? "Barrier" : "Lyapunov" }}
                         </H3>
-                        <Pre :title="(form.mode !== 'Stability' ? 'B(x) = ' : 'V(x) = ') + Object.keys(result.function?.expression)[0]">
+                        <Pre
+                            :title="(form.mode !== 'Stability' ? 'B(x) = ' : 'V(x) = ') + Object.keys(result.function?.expression)[0]">
                             <span v-html="Object.values(result.function?.expression)[0]"></span>
                         </Pre>
                         <Pre title="P">
@@ -360,8 +367,18 @@ onMounted(() => {
                     </a>
                 </h3>
                 <p class="line-clamp-2 text-xs text-gray-400">
-                    Stabili<Acrynom>T</Acrynom>y and Safety Cont<Acrynom>R</Acrynom>oller Synthesis for Black-Box
-                    Systems <Acrynom>U</Acrynom>sing a <Acrynom>S</Acrynom>ingle <Acrynom>T</Acrynom>rajectory
+                    Stabili
+                    <Acrynom>T</Acrynom>
+                    y and Safety Cont
+                    <Acrynom>R</Acrynom>
+                    oller Synthesis for Black-Box
+                    Systems
+                    <Acrynom>U</Acrynom>
+                    sing a
+                    <Acrynom>S</Acrynom>
+                    ingle
+                    <Acrynom>T</Acrynom>
+                    rajectory
                 </p>
             </div>
             <div class="flex items-center gap-x-2">
