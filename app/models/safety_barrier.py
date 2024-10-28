@@ -35,6 +35,13 @@ class SafetyBarrier(Barrier):
         self.problem = SOSProblem()
 
     def calculate(self):
+        # Check data is full row rank: rank(U0|X0) = n + m
+        rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
+        n = self.X0.shape[0]
+        m = self.U0.shape[0]
+        if rank != n + m:
+            return {"error": "The data must be full rank."}
+
         results = None
 
         if self.timing == "Discrete-Time":

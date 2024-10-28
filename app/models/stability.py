@@ -45,6 +45,12 @@ class Stability:
     def calculate(self) -> dict:
         results = {}
 
+        rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
+        n = self.X0.shape[0]
+        m = self.U0.shape[0]
+        if rank != n + m:
+            return {"error": "The data must be full rank."}
+
         if self.model == "Linear":
             results = self._solve_linear()
         elif self.model == "Non-Linear Polynomial":
@@ -276,9 +282,6 @@ class Stability:
         # eqn = X1 @ H + H.T @ X1.T
         #
         # return [Z >> 0, Z == X0 @ H, eqn << 0]
-        X0 = self.X0
-        X1 = self.X1
-
         n = self.X0.shape[0]
         T = self.X0.shape[1]
 
