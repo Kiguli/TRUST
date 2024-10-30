@@ -40,3 +40,12 @@ And finally, in a new terminal (remember to reactivate your venv with the source
 ```bash
 FLASK_APP=main.py FLASK_ENV=development FLASK_DEBUG=1 flask run
 ```
+
+## Troubleshooting
+
+### Missing permissions
+`Error: You don't have permission to view this page.`
+
+In development mode, sometimes the Vite front-end socket needs to be reconnected.
+In Chromium-based browsers, like Chrome, Arc, etc., head to arc://net-internals/#sockets and click "Flush socket pools".
+
