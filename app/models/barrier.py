@@ -1,5 +1,6 @@
 import numpy as np
 import sympy as sp
+from numpy.core.numeric import ufunc
 from sympy import Matrix, sympify
 
 
@@ -23,6 +24,16 @@ class Barrier:
 
     def generate_polynomial(self, space: list) -> list:
         """Generate the polynomial for the given space"""
+
+        lower_bounds = []
+        upper_bounds = []
+
+        for dimension in space:
+            if dimension[0] is None or dimension[1] is None:
+                raise ValueError(f"{space} is not a valid state space. Please provide valid lower and upper bounds.")
+
+            lower_bounds.append(float(dimension[0]))
+            upper_bounds.append(float(dimension[1]))
 
         lower_bounds = [float(dimension[0]) for dimension in space]
         upper_bounds = [float(dimension[1]) for dimension in space]

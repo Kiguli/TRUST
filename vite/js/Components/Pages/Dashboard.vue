@@ -289,7 +289,7 @@ onMounted(() => {
                         <span class="font-bold">Error:</span>
                         {{ result.error }}
                     </p>
-                    <p class="bg-red-800/50 px-2 py-1 line-clamp-6 overflow-scroll">
+                    <p v-if="result.description" class="bg-red-800/50 px-2 py-1 line-clamp-6 overflow-scroll">
                         {{ result.description ?? "" }}
                     </p>
                 </div>

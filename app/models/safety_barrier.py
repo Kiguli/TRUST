@@ -35,13 +35,6 @@ class SafetyBarrier(Barrier):
         self.problem = SOSProblem()
 
     def calculate(self):
-        # Check data is full row rank: rank(U0|X0) = n + m
-        rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
-        n = self.X0.shape[0]
-        m = self.U0.shape[0]
-        if rank != n + m:
-            return {"error": "The data must be full rank."}
-
         results = None
 
         if self.timing == "Discrete-Time":
@@ -76,6 +69,12 @@ class SafetyBarrier(Barrier):
             )
 
     def _discrete_linear(self):
+
+        # Rank condition:
+        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+
+        rank = np.linalg.matrix_rank(self.X0)
+        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
 
         X0 = Constant("X0", self.X0)
         X1 = Constant("X1", self.X1)
@@ -144,6 +143,15 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
+        # Rank condition:
+        # N0 is an (𝑛 × 𝑇 ) full row-rank matrix.
+        N0 = self.__compute_N0()
+
+        rank = np.linalg.matrix_rank(N0)
+        if (rank <= self.num_samples):
+            return {"error": "The data must be full rank."}
+
+
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
@@ -153,7 +161,6 @@ class SafetyBarrier(Barrier):
         Q_x = matrix_variable(
             "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
         )
-        N0 = self.__compute_N0()
 
         # -- Part 1
 
@@ -239,6 +246,12 @@ class SafetyBarrier(Barrier):
         }
 
     def _continuous_linear(self):
+        # Rank condition:
+        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+
+        rank = np.linalg.matrix_rank(self.X0)
+        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
+
         problem = SOSProblem()
 
         # -- Solve for H and Z
@@ -484,6 +497,13 @@ class SafetyBarrier(Barrier):
             for i in range(self.N):
                 expr = sympify(self.monomials["terms"][i])
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
+
+        # Rank conditions
+
+        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+
+        rank = np.linalg.matrix_rank(N0)
+        assert rank == self.N, "The N0 data is not full row-rank."
 
         return N0
 

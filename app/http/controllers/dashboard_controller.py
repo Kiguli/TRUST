@@ -39,6 +39,7 @@ def calculate_result() -> dict:
             "description": str(e),
         }
     except Exception as e:
+        # raise e
         results = {
             "error": "An unknown error occurred.",
             "description": str(e),

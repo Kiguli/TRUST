@@ -45,11 +45,14 @@ class Stability:
     def calculate(self) -> dict:
         results = {}
 
-        rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
-        n = self.X0.shape[0]
-        m = self.U0.shape[0]
-        if rank != n + m:
-            return {"error": "The data must be full rank."}
+        # TODO: revise rank condition to match SafetyBarrier
+        # rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
+        # n = self.X0.shape[0]
+        # if rank != n:
+        #     return {"error": "The data must be full rank."}
+
+        # Calculate N0, and pass it to the rank function
+        # For linear, just check X0
 
         if self.model == "Linear":
             results = self._solve_linear()
