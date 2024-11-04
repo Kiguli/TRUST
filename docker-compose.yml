@@ -1,0 +1,24 @@
+services:
+
+  flask:
+    build:
+      context: './docker/flask'
+      dockerfile: Dockerfile
+      args:
+        WWWGROUP: '${WWWGROUP}'
+    image: 'python:3.12.3'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - '${FLASK_PORT:-8080}:8080'
+      - '${VITE_PORT:-3000}:3000'
+    environment:
+      WWW_USER: '${WWW_USER:-www-data}'
+    volumes:
+      - '.:/var/www/html'
+    networks:
+      - trustapp
+
+networks:
+  trustapp:
+    driver: bridge

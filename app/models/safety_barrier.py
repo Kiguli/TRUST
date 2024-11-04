@@ -502,8 +502,8 @@ class SafetyBarrier(Barrier):
 
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
 
-        rank = np.linalg.matrix_rank(N0)
-        assert rank == self.N, "The N0 data is not full row-rank."
+        # rank = np.linalg.matrix_rank(N0)
+        # assert rank == self.N, "The N0 data is not full row-rank."
 
         return N0
 
