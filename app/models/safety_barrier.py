@@ -147,48 +147,61 @@ class SafetyBarrier(Barrier):
         # N0 is an (𝑛 × 𝑇 ) full row-rank matrix.
         N0 = self.__compute_N0()
 
+        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+
         rank = np.linalg.matrix_rank(N0)
-        if (rank <= self.num_samples):
-            return {"error": "The data must be full rank."}
+        assert rank == self.N, "The data must be full row rank."
 
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
         Theta_x = matrix_variable(
-            "Theta_x", self.x, self.degree, dim=(self.N, self.dimensionality)
+            "Theta_x",
+            list(self.x),
+            self.degree,
+            dim=(self.N, self.dimensionality),
+            hom=False,
+            sym=False,
         )
-        Q_x = matrix_variable(
-            "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
-        )
+        # Q_x = matrix_variable(
+        #     "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
+        # )
 
         # -- Part 1
 
         design_theta = SOSProblem()
 
-        # 17. Theta(x) = N0 @ Q(x)
-        self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x)
+        # Theta(x) = N0 @ Q(x)
+        # self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x) # auto-satisfied, we can check
 
-        # 18. M(x) = Theta(x) @ x
-        self.__add_matrix_constraint(
-            design_theta, self.M_x - Theta_x @ Matrix(self.x), self.x
+        # M(x) = Theta(x) @ x
+        theta_constraints = self.__add_matrix_constraint(
+            design_theta,
+            Matrix(self.M_x) - Theta_x @ Matrix(self.x),
+            self.x
         )
 
         design_theta.solve(solver="mosek")
 
-        # TODO: sub real values
+        Theta_x_dict = {}
+        for item in design_theta.variables.values():
+            if str(item.name).startswith("Theta_x"):
+                Theta_x_dict[item.name] = item.value
+
+        Theta_x = Theta_x.subs({key: value for key, value in Theta_x_dict.items()})
 
         # -- Part 2
 
         H_x = matrix_variable(
-            "H_x", self.x, self.degree, dim=(self.num_samples, self.N)
+            "H_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
         )
-        Z = matrix_variable("Z", self.x, 0, dim=(self.N, self.N), sym=True)
+        Z = matrix_variable("Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True)
 
         design_HZ = SOSProblem()
 
         # 21a. N0 @ H(x) = Theta(x) @ Z and Z is positive definite
-        self.__add_matrix_constraint(design_HZ, N0 @ H_x - Theta_x @ Z, self.x)
+        self.__add_matrix_constraint(design_HZ, (N0 @ H_x) - (Theta_x @ Z), self.x)
         design_HZ.add_constraint(Z - 1.0e-6 * I(self.N) >> 0)
 
         # 21d. Schur's complement
@@ -348,7 +361,14 @@ class SafetyBarrier(Barrier):
 
         self.__add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
 
-        dMdx = np.array([[m.diff(x) for x in self.x] for m in self.M_x])
+        # dMdx = np.array([[Matrix([m]).jacobian(x) for x in self.x] for m in self.M_x])
+        # dMdx = []
+        # for m in self.M_x:
+        #     for x in self.x:
+        #         dMdx.append(m.diff(x))
+
+        dMdx = Matrix(self.M_x).jacobian(self.x)
+
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
 
         if self.N == 1:
@@ -502,8 +522,8 @@ class SafetyBarrier(Barrier):
 
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
 
-        # rank = np.linalg.matrix_rank(N0)
-        # assert rank == self.N, "The N0 data is not full row-rank."
+        rank = np.linalg.matrix_rank(N0)
+        assert rank == self.N, "The N0 data is not full row-rank."
 
         return N0
 
@@ -554,6 +574,42 @@ class SafetyBarrier(Barrier):
         return constraints
 
     # @staticmethod
+    # def __add_positive_matrix_constraint(
+    #         problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+    # ) -> List[Constraint]:
+    #     """
+    #     Add a matrix constraint to the problem.
+    #     """
+    #
+    #     variables = sorted(variables, key=str)  # To lex order
+    #
+    #     constraints = []
+    #
+    #     # TODO: parallelize this loop
+    #     n, m = mat.shape
+    #     for i in range(n):
+    #         for j in range(m):
+    #             expr = mat[i, j]
+    #
+    #             poly = sp.poly(expr, variables)
+    #             mono_to_coeffs = dict(
+    #                 zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
+    #             )
+    #             basis = Basis.from_poly_lex(poly, sparse=True)
+    #
+    #             R = SymmetricVariable(f"R_{i}_{j}", len(basis))
+    #             for mono, pairs in basis.sos_sym_entries.items():
+    #                 coeff = mono_to_coeffs.get(mono, 0)
+    #                 coeff_constraint = problem.add_constraint(
+    #                     sum(R[k, l] for k, l in pairs) == coeff
+    #                 )
+    #                 constraints.append(coeff_constraint)
+    #
+    #             problem.add_constraint(R >> 0)
+    #
+    #     return constraints
+
+    # @staticmethod
     # def __add_matrix_sos_constraint(
     #         problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
     # ) -> List[SOSConstraint]:
@@ -601,7 +657,7 @@ class SafetyBarrier(Barrier):
 
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
-        # TODO: refactor for efficiency
+        # TODO: refactor for efficiency?
         H_x_dict = {}
         Z_dict = {}
         for item in variables:
