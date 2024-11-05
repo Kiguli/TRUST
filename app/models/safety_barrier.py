@@ -144,7 +144,7 @@ class SafetyBarrier(Barrier):
 
     def _discrete_nps(self):
         # Rank condition:
-        # N0 is an (𝑛 × 𝑇 ) full row-rank matrix.
+        # N0 is an (n, T) full row-rank matrix.
         N0 = self.__compute_N0()
 
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
@@ -190,11 +190,7 @@ class SafetyBarrier(Barrier):
 
         # Theta_x = Theta_x.subs({key: value for key, value in Theta_x_dict.items()})
 
-        Theta_x = Matrix([
-            [1, 0],
-            [0, 1],
-            [self.x[1], 0]
-        ])
+        Theta_x = self.Theta_x
 
         # -- Part 2
 
