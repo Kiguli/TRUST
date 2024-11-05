@@ -18,6 +18,7 @@ import route from "~/utilities/route.js";
 
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
 import Acrynom from "@/Atoms/Acrynom.vue";
+import MatrixInput from "@/Organisms/MatrixInput.vue";
 import P from "@/Atoms/P.vue";
 
 const props = defineProps({
@@ -38,6 +39,7 @@ const data = {
     X1: null,
     U0: null,
     monomials: "",
+    theta_x: [],
     stateSpace: [],
     initialState: [],
     unsafeStates: [[]],
@@ -243,6 +245,34 @@ onMounted(() => {
                         type="text" />
                 </div>
                 <p v-if="form.errors.monomials" class="text-xs mt-2 text-red-600">{{ form.errors.monomials }}</p>
+            </div>
+
+            <!-- Allow user to enter matrix Theta(x) -->
+            <div v-if="form.timing === 'Discrete-Time' && form.model === 'Non-Linear Polynomial'">
+                <MatrixInput
+                    v-model="form.theta_x"
+                    :dimension="dimension"
+                    :monomials="form.monomials"
+                >
+                    <template #title>
+                        <H2>Matrix Theta(x)</H2>
+                    </template>
+
+                    <template #description>
+                        <P>
+                            Enter the matrix Theta(x) in terms of the monomials.
+                        </P>
+                        <P class="text-xs text-gray-400 dark:text-gray-500">
+                            The matrix should be
+                            <pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N x n</pre>
+                            where
+                            <pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N</pre>
+                            is the number of monomial terms and
+                            <pre class="px-1 py-0.5 rounded dark:bg-gray-500/10 bg-gray-400/10 inline">n</pre>
+                            is the number of dimensions.
+                        </P>
+                    </template>
+                </MatrixInput>
             </div>
 
             <div v-if="form.mode !== 'Stability'" class="space-y-2">
