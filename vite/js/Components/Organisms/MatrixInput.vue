@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps({
     dimension: {
@@ -7,7 +7,7 @@ const props = defineProps({
         required: true,
     },
     monomials: {
-        type: Array,
+        type: Object,
         required: true,
     },
 });
@@ -15,19 +15,32 @@ const props = defineProps({
 const N = computed(() => props.monomials.length);
 
 const model = defineModel();
+
+const parseMatrix = (input) => {
+    const matrix = input
+        .trim()
+        .split("\n")
+        .map((row) => {
+            return row
+                .split(",")
+                .map((item) => item.trim())
+                .filter((value) => value !== undefined);
+        });
+
+    model.value = matrix;
+};
 </script>
 
 <template>
     <slot name="title"></slot>
     <slot name="description"></slot>
 
-    <!-- Create a text-area where the user can enter their (N, n) matrix of Theta(x) terms. -->
     <div class="mt-3">
         <textarea
-            v-model="model.value"
             :rows="N"
-            class="block min-h-24 w-full min-w-0 resize-y rounded-md border dark:border-transparent px-2 py-1.5 text-sm leading-6 placeholder:text-gray-400 dark:placeholder:text-gray-500 dark:bg-gray-950 outline-none focus:ring-2 ring-inset ring-purple-300"
-            placeholder="Enter your matrix of &theta;(x) terms here..."></textarea>
+            class="block min-h-24 w-full min-w-0 resize-y rounded-md border px-2 py-1.5 text-sm leading-6 outline-none ring-inset ring-purple-300 placeholder:text-gray-400 focus:ring-2 dark:border-transparent dark:bg-gray-950 dark:placeholder:text-gray-500"
+            placeholder="Enter your matrix of &theta;(x) terms here..."
+            @input="parseMatrix($event.target.value)"></textarea>
     </div>
 </template>
 
