@@ -216,7 +216,7 @@ onMounted(() => {
             </div>
 
             <div
-                v-if="form.model !== 'Linear'"
+                v-if="form.model === 'Non-Linear Polynomial'"
                 class="py-1">
                 <H2>Monomials</H2>
                 <p class="text-sm text-gray-400">
