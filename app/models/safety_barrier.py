@@ -153,43 +153,48 @@ class SafetyBarrier(Barrier):
         assert rank == self.N, "The data must be full row rank."
 
 
-        gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        Theta_x = matrix_variable(
-            "Theta_x",
-            list(self.x),
-            self.degree,
-            dim=(self.N, self.dimensionality),
-            hom=False,
-            sym=False,
-        )
+        # Theta_x = matrix_variable(
+        #     "Theta_x",
+        #     list(self.x),
+        #     self.degree,
+        #     dim=(self.N, self.dimensionality),
+        #     hom=False,
+        #     sym=False,
+        # )
         # Q_x = matrix_variable(
         #     "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
         # )
 
         # -- Part 1
 
-        design_theta = SOSProblem()
+        # design_theta = SOSProblem()
+        #
+        # # Theta(x) = N0 @ Q(x)
+        # # self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x) # auto-satisfied, we can check
+        #
+        # # M(x) = Theta(x) @ x
+        # theta_constraints = self.__add_matrix_constraint(
+        #     design_theta,
+        #     Matrix(self.M_x) - Theta_x @ Matrix(self.x),
+        #     self.x
+        # )
+        #
+        # design_theta.solve(solver="mosek")
 
-        # Theta(x) = N0 @ Q(x)
-        # self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x) # auto-satisfied, we can check
+        # Theta_x_dict = {}
+        # for item in design_theta.variables.values():
+        #     if str(item.name).startswith("Theta_x"):
+        #         Theta_x_dict[item.name] = item.value
 
-        # M(x) = Theta(x) @ x
-        theta_constraints = self.__add_matrix_constraint(
-            design_theta,
-            Matrix(self.M_x) - Theta_x @ Matrix(self.x),
-            self.x
-        )
+        # Theta_x = Theta_x.subs({key: value for key, value in Theta_x_dict.items()})
 
-        design_theta.solve(solver="mosek")
-
-        Theta_x_dict = {}
-        for item in design_theta.variables.values():
-            if str(item.name).startswith("Theta_x"):
-                Theta_x_dict[item.name] = item.value
-
-        Theta_x = Theta_x.subs({key: value for key, value in Theta_x_dict.items()})
+        Theta_x = Matrix([
+            [1, 0],
+            [0, 1],
+            [self.x[1], 0]
+        ])
 
         # -- Part 2
 
@@ -202,11 +207,19 @@ class SafetyBarrier(Barrier):
 
         # 21a. N0 @ H(x) = Theta(x) @ Z and Z is positive definite
         self.__add_matrix_constraint(design_HZ, (N0 @ H_x) - (Theta_x @ Z), self.x)
-        design_HZ.add_constraint(Z - 1.0e-6 * I(self.N) >> 0)
+        self.__add_positive_matrix_constraint(design_HZ, Z - 1.0e-6 * np.eye(self.dimensionality), self.x)
+        # design_HZ.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
+        # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
 
         # 21d. Schur's complement
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
-        design_HZ.add_matrix_sos_constraint(schur - Lg, self.x)
+
+        if self.N == 1:
+            schur = schur[0]
+            design_HZ.add_matrix_sos_constraint(schur - Lg, list(self.x))
+        else:
+            Lg = sp.Mul(Lg, Matrix(I(2 * self.dimensionality)))
+            design_HZ.add_matrix_sos_constraint(schur - Lg, list(self.x))
 
         design_HZ.solve(solver="mosek")
 
@@ -215,24 +228,34 @@ class SafetyBarrier(Barrier):
 
         # -- Part 3
 
+        gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
+
+        barrier = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
+
         # 9a. SOS gamma
         self.problem.add_sos_constraint(
-            -Matrix(self.x).T @ P @ Matrix(self.x) - Lg_init + gamma, self.x
+            -barrier - Lg_init + gamma, self.x
         )
 
         # 9b. SOS lambda
         for Lg_unsafe in Lg_unsafe_set:
             self.problem.add_sos_constraint(
-                Matrix(self.x).T @ P @ Matrix(self.x) - Lg_unsafe - lambda_, self.x
+                barrier - Lg_unsafe - lambda_, self.x
             )
 
         # Note: Redefine schur with the now-valued matrices
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
 
         # 9c. SOS state space
-        self.problem.add_matrix_sos_constraint(schur - Lg, self.x)
+        self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
 
-        self.__solve()
+        try:
+            self.__solve()
+        except SolutionFailure as e:
+            # TODO: include info on what wasn't feasible
+            return {"error": "Failed to solve the problem.", "description": str(e)}
+        except Exception as e:
+            return {"error": "An unknown error occurred.", "description": str(e)}
 
         # TODO: validate
 
@@ -360,6 +383,8 @@ class SafetyBarrier(Barrier):
         HZ_problem = SOSProblem()
 
         self.__add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
+        self.__add_positive_matrix_constraint(HZ_problem, Z - 1.0e-6 * np.eye(self.N), list(self.x))
+        # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
 
         # dMdx = np.array([[Matrix([m]).jacobian(x) for x in self.x] for m in self.M_x])
         # dMdx = []
@@ -381,7 +406,7 @@ class SafetyBarrier(Barrier):
             # self.__add_matrix_sos_constraint(HZ_problem, -lie_derivative - Lg, list(self.x))
 
 
-        HZ_problem.solve()
+        HZ_problem.solve(solver="mosek")
 
         H_x, Z = self.__substitute_for_values(HZ_problem.variables.values(), H_x, Z)
 
@@ -528,6 +553,12 @@ class SafetyBarrier(Barrier):
         return N0
 
     def __solve(self):
+        # validation = self.__validate_solution(
+        #     barrier_constraint, condition1, condition2
+        # )
+        # if validation != True and "error" in validation:
+        #     return validation
+
         try:
             self.problem.solve()
         except SolutionFailure as e:
@@ -570,6 +601,42 @@ class SafetyBarrier(Barrier):
                     constraints.append(coeff_constraint)
 
                 problem.add_constraint(Q == 0)
+
+        return constraints
+
+    @staticmethod
+    def __add_positive_matrix_constraint(
+        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+    ) -> List[Constraint]:
+        """
+        Add a matrix constraint to the problem.
+        """
+
+        variables = sorted(variables, key=str)  # To lex order
+
+        constraints = []
+
+        # TODO: parallelize this loop
+        n, m = mat.shape
+        for i in range(n):
+            for j in range(m):
+                expr = mat[i, j]
+
+                poly = sp.poly(expr, variables)
+                mono_to_coeffs = dict(
+                    zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
+                )
+                basis = Basis.from_poly_lex(poly, sparse=True)
+
+                R = RealVariable(f"R_{i}_{j}", (len(basis), len(basis)))
+                for mono, pairs in basis.sos_sym_entries.items():
+                    coeff = mono_to_coeffs.get(mono, 0)
+                    coeff_constraint = problem.add_constraint(
+                        sum(R[k, l] for k, l in pairs) == coeff
+                    )
+                    constraints.append(coeff_constraint)
+
+                problem.add_constraint(R >> 0)
 
         return constraints
 

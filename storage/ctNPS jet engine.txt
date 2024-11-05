@@ -1,3 +1,5 @@
+! INVALID (incorrect monomials used)
+
 INFO: Calculated in 23.57s
 
 INFO: Peak memory usage 14.90MB

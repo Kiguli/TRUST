@@ -1,5 +1,5 @@
-INFO: Calculated in
-INFO: Peak memory usage
+INFO: Calculated in 0.40437s
+INFO: Peak memory usage 1.0MB
 
 B(x) = x1.*(361.212977587391.*x1 - 354.987485753916.*x2) + x2.*(-354.987485753916.*x1 + 353.027181586107.*x2)
 
