@@ -18,6 +18,7 @@ import route from "~/utilities/route.js";
 
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
 import Acrynom from "@/Atoms/Acrynom.vue";
+import P from "@/Atoms/P.vue";
 
 const props = defineProps({
     models: Array,
@@ -165,10 +166,10 @@ onMounted(() => {
                 <p class="text-sm dark:text-gray-100">
                     Please upload your MOSEK license file for this session.
                 </p>
-                <p class="text-sm text-gray-400">
+                <P>
                     If you do not have a license, academics can get a free trial
                     from the MOSEK website, or a paid version is available.
-                </p>
+                </P>
 
                 <UploadDataPanel
                     :form="form"
@@ -198,9 +199,9 @@ onMounted(() => {
             <div
                 class="py-1">
                 <H2>Dimensions</H2>
-                <p class="text-sm text-gray-400">
+                <P>
                     The auto-calculated dimensions from your dataset.
-                </p>
+                </P>
                 <div class="mt-2 flex rounded-md shadow-sm">
                     <Label class="opacity-30" for="dimensions">
                         Dimensions
@@ -219,14 +220,14 @@ onMounted(() => {
                 v-if="form.model === 'Non-Linear Polynomial'"
                 class="py-1">
                 <H2>Monomials</H2>
-                <p class="text-sm text-gray-400">
+                <P>
                     Enter the monomials in terms of
                     <pre class="inline">x1</pre>
                     <span v-if="dimension > 1">
                         to
                         <pre class="inline">x{{ dimension }}</pre>.
                     </span>
-                </p>
+                </P>
                 <div class="mt-2 flex rounded-md shadow-sm">
                     <Label for="monomials">
                         Monomials
@@ -343,14 +344,14 @@ onMounted(() => {
                     </span>
                 </div>
 
-                <p class="text-sm text-gray-400">
+                <P>
                     <span v-if="form.processing">
                         In progress. Please wait...
                     </span>
                     <span v-else>
                         Connected. Waiting for input...
                     </span>
-                </p>
+                </P>
             </div>
         </Section>
 
@@ -364,7 +365,7 @@ onMounted(() => {
                         href="https://github.com/kiguli/sintrajbc"
                         target="_blank">
                         <span class="inline-block flex-none">TRUST</span>
-                        <LinkIcon class="h-4 w-4 flex-none text-gray-500" />
+                        <LinkIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" />
                     </a>
                 </h3>
                 <span class="line-clamp-2 text-xs text-gray-400">
