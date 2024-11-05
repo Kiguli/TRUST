@@ -5,6 +5,7 @@ import { useInterval, watchDebounced } from "@vueuse/core";
 
 import H2 from "@/Atoms/H2.vue";
 import H3 from "@/Atoms/H3.vue";
+import CopyPre from "@/Atoms/CopyPre.vue";
 import Pre from "@/Atoms/Pre.vue";
 import Section from "@/Atoms/Section.vue";
 import UploadDataPanel from "@/Molecules/UploadDataPanel.vue";
@@ -224,10 +225,10 @@ onMounted(() => {
                 <H2>Monomials</H2>
                 <P>
                     Enter the monomials in terms of
-                    <pre class="inline">x1</pre>
+                    <Pre>x1</Pre>
                     <span v-if="dimension > 1">
                         to
-                        <pre class="inline">x{{ dimension }}</pre>.
+                        <Pre>x{{ dimension }}</Pre>.
                     </span>
                 </P>
                 <div class="mt-2 flex rounded-md shadow-sm">
@@ -255,20 +256,20 @@ onMounted(() => {
                     :monomials="form.monomials"
                 >
                     <template #title>
-                        <H2>Matrix Theta(x)</H2>
+                        <H2>Matrix &theta;(x)</H2>
                     </template>
 
                     <template #description>
                         <P>
-                            Enter the matrix Theta(x) in terms of the monomials.
+                            Enter the matrix &theta;(x) in terms of the monomials.
                         </P>
                         <P class="text-xs text-gray-400 dark:text-gray-500">
                             The matrix should be
-                            <pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N x n</pre>
+                            <Pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N x n</Pre>
                             where
-                            <pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N</pre>
+                            <Pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N</Pre>
                             is the number of monomial terms and
-                            <pre class="px-1 py-0.5 rounded dark:bg-gray-500/10 bg-gray-400/10 inline">n</pre>
+                            <Pre class="px-1 py-0.5 rounded dark:bg-gray-500/10 bg-gray-400/10 inline">n</Pre>
                             is the number of dimensions.
                         </P>
                     </template>
@@ -305,12 +306,12 @@ onMounted(() => {
                     <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Calculated in
-                        <pre class="inline-block">{{ result.time_taken }}</pre>
+                        <Pre class="inline-block">{{ result.time_taken }}</Pre>
                     </p>
                     <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Peak memory usage
-                        <pre class="inline-block">{{ result.memory_used }}</pre>
+                        <Pre class="inline-block">{{ result.memory_used }}</Pre>
                     </p>
                 </div>
 
@@ -330,34 +331,34 @@ onMounted(() => {
                         <H3>
                             {{ form.mode !== "Stability" ? "Barrier" : "Lyapunov" }}
                         </H3>
-                        <Pre
+                        <CopyPre
                             :title="(form.mode !== 'Stability' ? 'B(x) = ' : 'V(x) = ') + Object.keys(result.function?.expression)[0]">
                             <span v-html="Object.values(result.function?.expression)[0]"></span>
-                        </Pre>
-                        <Pre title="P">
+                        </CopyPre>
+                        <CopyPre title="P">
 
                             {{ result.function.values.P }}
-                        </Pre>
+                        </CopyPre>
                     </div>
 
                     <div class="my-6">
                         <H3>Controller</H3>
-                        <Pre :title="'u = ' + Object.keys(result.controller.expression)[0]">
+                        <CopyPre :title="'u = ' + Object.keys(result.controller.expression)[0]">
                             <span v-html="Object.values(result.controller.expression)[0]"></span>
-                        </Pre>
-                        <Pre :title="Object.keys(result.controller.values)[0]">
+                        </CopyPre>
+                        <CopyPre :title="Object.keys(result.controller.values)[0]">
                             {{ Object.values(result.controller.values)[0] }}
-                        </Pre>
+                        </CopyPre>
                     </div>
 
                     <div v-if="form.mode !== 'Stability'" class="my-6">
                         <H3>Level Sets</H3>
-                        <Pre title="&gamma;">
+                        <CopyPre title="&gamma;">
                             {{ result.gamma }}
-                        </Pre>
-                        <Pre title="&lambda;">
+                        </CopyPre>
+                        <CopyPre title="&lambda;">
                             {{ result.lambda }}
-                        </Pre>
+                        </CopyPre>
                     </div>
                 </div>
             </div>
