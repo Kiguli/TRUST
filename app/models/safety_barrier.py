@@ -155,41 +155,6 @@ class SafetyBarrier(Barrier):
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        # Theta_x = matrix_variable(
-        #     "Theta_x",
-        #     list(self.x),
-        #     self.degree,
-        #     dim=(self.N, self.dimensionality),
-        #     hom=False,
-        #     sym=False,
-        # )
-        # Q_x = matrix_variable(
-        #     "Q_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
-        # )
-
-        # -- Part 1
-
-        # design_theta = SOSProblem()
-        #
-        # # Theta(x) = N0 @ Q(x)
-        # # self.__add_matrix_constraint(design_theta, Theta_x - N0 @ Q_x, self.x) # auto-satisfied, we can check
-        #
-        # # M(x) = Theta(x) @ x
-        # theta_constraints = self.__add_matrix_constraint(
-        #     design_theta,
-        #     Matrix(self.M_x) - Theta_x @ Matrix(self.x),
-        #     self.x
-        # )
-        #
-        # design_theta.solve(solver="mosek")
-
-        # Theta_x_dict = {}
-        # for item in design_theta.variables.values():
-        #     if str(item.name).startswith("Theta_x"):
-        #         Theta_x_dict[item.name] = item.value
-
-        # Theta_x = Theta_x.subs({key: value for key, value in Theta_x_dict.items()})
-
         Theta_x = self.Theta_x
 
         # -- Part 2
