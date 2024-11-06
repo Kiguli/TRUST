@@ -285,20 +285,19 @@ class SafetyBarrier(Barrier):
 
         # -- SOS constraints
 
-        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
+        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, x)
 
+        condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
-
-        # schur = self.X1 @ Q + Q.T @ self.X1.T
-        # Lg_matrix = Matrix(np.full(schur.shape, Lg))
-        # self.problem.add_matrix_sos_constraint(-schur - Lg_matrix, list(x))
+            condition2.append(
+                self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
+            )
 
         # -- Solve
         self.problem.solve(solver="mosek")
 
         validation = self.__validate_solution(
-            barrier_constraint, condition1, condition2
+            condition1, condition2
         )
         if validation != True and "error" in validation:
             return validation
@@ -330,7 +329,7 @@ class SafetyBarrier(Barrier):
         Solve for a continuous non-linear polynomial system.
         """
 
-        # TODO: approximate X1 as the derivatives of the state at each sampling time, if not provided.
+        # TODO: Future work: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         N0 = self.__compute_N0()
