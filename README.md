@@ -1,5 +1,5 @@
-# SinTrajBC
-Single trajectory control with barrier certificates
+# TRUST
+StabiliTy and Safety ContRoller Synthesis for Black-Box Systems Using a Single Trajectory
 
 ## Installation
 
