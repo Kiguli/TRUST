@@ -101,7 +101,6 @@ class SafetyBarrier(Barrier):
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
         barrier = (Matrix(self.x).T * P * Matrix(self.x))[0]
-        barrier_constraint = self.problem.add_sos_constraint(barrier, self.x)
 
         # -- SOS constraints
 
@@ -116,7 +115,7 @@ class SafetyBarrier(Barrier):
         self.__solve()
 
         validation = self.__validate_solution(
-            barrier_constraint, condition1, condition2
+            condition1, condition2
         )
         if validation != True and "error" in validation:
             return validation
@@ -169,8 +168,6 @@ class SafetyBarrier(Barrier):
         # 21a. N0 @ H(x) = Theta(x) @ Z and Z is positive definite
         self.__add_matrix_constraint(design_HZ, (N0 @ H_x) - (Theta_x @ Z), self.x)
         self.__add_positive_matrix_constraint(design_HZ, Z - 1.0e-6 * np.eye(self.dimensionality), self.x)
-        # design_HZ.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
-        # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
 
         # 21d. Schur's complement
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
@@ -194,32 +191,33 @@ class SafetyBarrier(Barrier):
         barrier = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
 
         # 9a. SOS gamma
-        self.problem.add_sos_constraint(
+        condition1 = self.problem.add_sos_constraint(
             -barrier - Lg_init + gamma, self.x
         )
 
         # 9b. SOS lambda
+        condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(
-                barrier - Lg_unsafe - lambda_, self.x
+            condition2.append(
+                self.problem.add_sos_constraint(
+                    barrier - Lg_unsafe - lambda_, self.x)
             )
 
         # Note: Redefine schur with the now-valued matrices
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
 
         # 9c. SOS state space
-        self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
+        condition3 = self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
 
         try:
             self.__solve()
         except SolutionFailure as e:
-            # TODO: include info on what wasn't feasible
             return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
             return {"error": "An unknown error occurred.", "description": str(e)}
 
         validation = self.__validate_solution(
-            barrier_constraint, condition1, condition2
+            condition1, condition2, condition3
         )
         if validation != True and "error" in validation:
             return validation
@@ -434,31 +432,28 @@ class SafetyBarrier(Barrier):
 
     @staticmethod
     def __validate_solution(
-        barrier_constraint, condition1, condition2
+        condition1, condition2, condition3 = None
     ) -> Union[bool, dict]:
         """
         Validate the solution of the SOS problem.
         """
 
         try:
-            barrier_decomp = barrier_constraint.get_sos_decomp()
             first_decomp = condition1.get_sos_decomp()
             second_decomps = [cond.get_sos_decomp() for cond in condition2]
+            if condition3 is not None:
+                third_decomp = condition3.get_sos_decomp()
         except Exception as e:
             return {"error": "No SOS decomposition found.", "description": str(e)}
-        # third_decomp = condition3.get_sos_decomp()
 
         isAllPositiveSecondDecomps = all([len(decomp) > 0 for decomp in second_decomps])
 
         if (
-            len(barrier_decomp) <= 0
-            or len(first_decomp) <= 0
+            len(first_decomp) <= 0
             or not isAllPositiveSecondDecomps
+            or (condition3 is not None and len(third_decomp) <= 0)
         ):
             return {"error": "Constraints are not sum-of-squares."}
-
-        if barrier_decomp.free_symbols == 0:
-            return {"error": "Barrier is scalar."}
 
         return True
 
