@@ -90,6 +90,11 @@ class Stability:
         # P = cp.Variable((n, n), symmetric=True)
         # H = cp.Variable((T, n))
 
+        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+
+        rank = np.linalg.matrix_rank(self.X0)
+        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
+
         H, Z = None, None
         if self.timing == "Discrete-Time":
             H, Z = self._discrete_constraints()
@@ -142,32 +147,13 @@ class Stability:
         (1) N0 @ H_x = P_inv
         (2) dMdx @ X1 @ H_x + H_x.T @ X1.T @ dMdX.T << 0
         """
-        # T = self.num_samples
-        # N = self.N
-        #
-        # # P is a symmetric positive definite (N x N) matrix, therefore so is P_inv
-        # P_inv = cp.Variable((N, N), symmetric=True)
-        # # H_x is (T x N) matrix
-        # H_x = cp.Variable((T, N))
-        #
-        # M_x = self._calculate_M_x()
-        # N0 = self._calculate_N0(M_x)
-        # dMdx = self.calculate_dMdx(M_x)
-        #
-        # schur = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
-        #
-        # # Add the constraints
-        # constraints = [P_inv - 1.0e-6 >> 0, N0 @ H_x == P_inv, schur << 0]
-        #
-        # # Solve for P_inv and H_x
-        # objective = cp.Minimize(cp.trace(P_inv))
-        # prob = cp.Problem(objective, constraints)
-        # prob.solve()
-        #
-        # P = np.linalg.inv(P_inv.value)
-        # H_x = H_x.value
 
         N0 = self.__compute_N0()
+
+        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+
+        rank = np.linalg.matrix_rank(N0)
+        assert rank == self.N, "The data must be full row rank."
 
         H_x = matrix_variable(
             "H_x",
@@ -201,7 +187,7 @@ class Stability:
 
         # L and g
         L = [poly_variable("L" + str(i + 1), self.x, self.degree) for i in range(len(self.x))]
-        g = self.generate_polynomial()
+        g = self.generate_polynomial([[-1.0e-308, 1.0e-308] for _ in range(self.dimensionality)])
         Lg = sum([L * g for L, g in zip(L, g)])
 
         if self.N == 1:
@@ -239,53 +225,6 @@ class Stability:
         }
 
     def __discrete_polynomial(self) -> dict:
-        # N = self.N
-        # n = self.dimensionality
-        # T = self.num_samples
-        # X = self.state_space
-        #
-        # # Theta(x) = N0 @ Q(x)
-        # # Q(x) = H(x) @ P
-        # # So, Theta(x) = N0 @ H(x) @ P
-        # # M(x) = N0 @ H(x) @ P @ x
-        #
-        # M_x = self._calculate_M_x()
-        #
-        # # TODO: refactor to use the solver to calculate Theta_x given M_x and x.
-        # Theta_x = self._calculate_Theta_x(M_x)
-        # # Sub in the x1, x2, ..., xN values from the state space, X.
-        # Theta_x = np.array(
-        #     [
-        #         [t.subs({x: X[f"{x}"][i] for i, x in enumerate(self.x)}) for t in row]
-        #         for row in Theta_x
-        #     ]
-        # )
-        #
-        # N0 = self._calculate_N0(M_x)
-        #
-        # # P is a symmetric positive definite (n x n) matrix, therefore so is P_inv
-        # P_inv = cp.Variable((n, n), symmetric=True)
-        # H_x = cp.Variable((T, n))
-        #
-        # # Solve for P_inv and H(x) using the following two equations (with Mosek):
-        # # (1) N0 @ H(x) = Theta(x) @ P_inv
-        # # (2) [[P_inv, H(x).T @ X1.T], [X1 @ H(x), P_inv]] >> 0
-        #
-        # schur = cp.bmat([[P_inv, H_x.T @ self.X1.T], [self.X1 @ H_x, P_inv]])
-        #
-        # constraints = [P_inv >> 0, N0 @ H_x == Theta_x @ P_inv, schur >> 0]
-        #
-        # objective = cp.Minimize(cp.trace(P_inv))
-        # prob = cp.Problem(objective, constraints)
-        # prob.solve()
-        #
-        # return {
-        #     "function": {"expression": "x^T @ P @ x", "values": {"P": "P"}},
-        #     "controller": {
-        #         "expression": "U0 @ H @ P^{-1} @ x",
-        #         "values": {"H": "H"},
-        #     },
-        # }
 
 
         # Rank condition:
@@ -299,10 +238,16 @@ class Stability:
 
 
         L = [poly_variable("L" + str(i + 1), self.x, self.degree) for i in range(len(self.x))]
-        g = self.generate_polynomial()
+        g = self.generate_polynomial([[-1.0e-6, 1.0e-6] for _ in range(self.dimensionality)])
         Lg = sum([L * g for L, g in zip(L, g)])
 
-        Theta_x = self.Theta_x
+        # TODO: pull theta from data
+        # Theta_x = self.Theta_x
+
+        Theta_x = Matrix(np.array([
+            [0, 1],
+            [self.x[0], 0]
+        ]))
 
         # -- Part 2
 
@@ -324,44 +269,40 @@ class Stability:
 
         if self.N == 1:
             schur = schur[0]
-            design_HZ.add_matrix_sos_constraint(schur - Lg, list(self.x))
+            schur_constraint = design_HZ.add_matrix_sos_constraint(schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x))
         else:
             Lg = sp.Mul(Lg, Matrix(I(2 * self.dimensionality)))
-            design_HZ.add_matrix_sos_constraint(schur - Lg, list(self.x))
-
-        design_HZ.solve(solver="mosek")
-
-        H_x, Z = self.__substitute_for_values(design_HZ.variables.values(), H_x, Z)
-        P = Z.inv()
-
-        # -- Part 3
-
-        barrier = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
-
-        # Note: Redefine schur with the now-valued matrices
-        schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
+            schur_constraint = design_HZ.add_matrix_sos_constraint(schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x))
 
         # 9c. SOS state space
-        self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
+
+        # Note: Redefine schur with the now-valued matrices
 
         try:
-            self.__solve()
+            design_HZ.solve(solver="mosek")
         except SolutionFailure as e:
             # TODO: include info on what wasn't feasible
             return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
             return {"error": "An unknown error occurred.", "description": str(e)}
 
+        H_x, Z = self.__substitute_for_values(design_HZ.variables.values(), H_x, Z)
+        P = Z.inv()
+
+        # -- Part 3
+
+        lyapunov = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
+        lyapunov = self.__matrix_to_string(lyapunov)
+
         validation = self.__validate_solution(
-            barrier_constraint, condition1, condition2
+            schur_constraint
         )
         if validation != True and "error" in validation:
             return validation
 
-        barrier = (Matrix(self.x).T * P * Matrix(self.x))[0]
-        barrier = self.__matrix_to_string(barrier)
-
-        controller = self.U0 @ H_x @ P @ Matrix(self.x)
+        # U0 @ H(x) (left_pseudoinverse(Theta(x)) @ N0 @ H(x))
+        # controller = self.U0 @ H_x @ P @ Matrix(self.x)
+        controller = self.U0 @ H_x @ P @ Matrix(list(self.x))
         controller = self.__matrix_to_string(controller)
 
         P = self.__matrix_to_string(P)
@@ -369,15 +310,13 @@ class Stability:
 
         return {
             "function": {
-                "expression": {"x<sup>T</sup>Px": barrier},
+                "expression": {"x<sup>T</sup>Px": lyapunov},
                 "values": {"P": P},
             },
             "controller": {
                 "expression": {"U<sub>0</sub>H(x)Px": controller},
                 "values": {"H(x)": H_x},
             },
-            "gamma": str(gamma_var.value),
-            "lambda": str(lambda_var.value),
         }
 
 
@@ -691,11 +630,8 @@ class Stability:
         return H_x, Z
 
 
-    def generate_polynomial(self) -> list:
+    def generate_polynomial(self, space) -> list:
         """Generate the polynomial for the given space"""
-
-        # Space is -10^-6 to 10^6
-        space = [[-1.0e-308, 1.0e-308] for _ in range(self.dimensionality)]
 
         lower_bounds = []
         upper_bounds = []
@@ -718,3 +654,25 @@ class Stability:
         Convert a matrix to its comma-separated string notation.
         """
         return np.array2string(np.array(matrix), separator=", ")
+
+    @staticmethod
+    def __validate_solution(
+            schur_constraint
+    ) -> Union[bool, dict]:
+        """
+        Validate the solution of the SOS problem.
+        """
+
+        try:
+            schur_decomp = schur_constraint.get_sos_decomp()
+        except Exception as e:
+            return {"error": "No SOS decomposition found.", "description": str(e)}
+        # third_decomp = condition3.get_sos_decomp()
+
+        if (
+            schur_decomp.free_symbols == 0 or
+            len(schur_decomp) <= 0
+        ):
+            return {"error": "Constraints are not sum-of-squares."}
+
+        return True
