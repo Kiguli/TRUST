@@ -21,7 +21,6 @@ def calculate_result() -> dict:
     :return: the result of the calculation
     """
 
-    # TODO: validate data
     data = request.get_json()
 
     tracemalloc.start()

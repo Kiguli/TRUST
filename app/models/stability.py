@@ -64,15 +64,6 @@ class Stability:
     def calculate(self) -> dict:
         results = {}
 
-        # TODO: revise rank condition to match SafetyBarrier
-        # rank = np.linalg.matrix_rank(np.vstack((self.U0, self.X0)))
-        # n = self.X0.shape[0]
-        # if rank != n:
-        #     return {"error": "The data must be full rank."}
-
-        # Calculate N0, and pass it to the rank function
-        # For linear, just check X0
-
         if self.model == "Linear":
             results = self._solve_linear()
         elif self.model == "Non-Linear Polynomial":
@@ -81,35 +72,19 @@ class Stability:
         return results
 
     def _solve_linear(self) -> dict:
-        # X0 = np.array([self.X0])
-        # X1 = np.array([self.X1])
-
         n = self.X0.shape[0]
         T = self.X0.shape[1]
 
-        # P = cp.Variable((n, n), symmetric=True)
-        # H = cp.Variable((T, n))
-
-        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+        assert self.num_samples > self.dimensionality, "The number of samples, T, must be greater than the number of states, n."
 
         rank = np.linalg.matrix_rank(self.X0)
-        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
+        assert rank == self.dimensionality, "The X0 data is not full row-rank."
 
         H, Z = None, None
         if self.timing == "Discrete-Time":
             H, Z = self._discrete_constraints()
         elif self.timing == "Continuous-Time":
             H, Z = self._continuous_constraints()
-        # else:
-        #     constraints = []
-
-        # objective = cp.Minimize(cp.trace(P))
-
-        # prob = cp.Problem(objective, constraints)
-        # prob.solve()
-
-        # if prob.status in ["infeasible", "unbounded"]:
-        #     raise ValueError("The problem is infeasible or unbounded.")
 
         P = Matrix(Z).inv() if n > 1 else 1 / Z.value
 
@@ -148,8 +123,8 @@ class Stability:
         (2) dMdx @ X1 @ H_x + H_x.T @ X1.T @ dMdX.T << 0
         """
 
+        # Rank condition
         N0 = self.__compute_N0()
-
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
 
         rank = np.linalg.matrix_rank(N0)
@@ -173,19 +148,12 @@ class Stability:
         self.__add_positive_matrix_constraint(
             HZ_problem, Z - 1.0e-6 * np.eye(self.N), list(self.x)
         )
-        # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
-
-        # dMdx = np.array([[Matrix([m]).jacobian(x) for x in self.x] for m in self.M_x])
-        # dMdx = []
-        # for m in self.M_x:
-        #     for x in self.x:
-        #         dMdx.append(m.diff(x))
 
         dMdx = Matrix(self.M_x).jacobian(self.x)
 
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
 
-        # L and g
+        # Add a virtually infinite constraint
         L = [poly_variable("L" + str(i + 1), self.x, self.degree) for i in range(len(self.x))]
         g = self.generate_polynomial([[-1.0e-308, 1.0e-308] for _ in range(self.dimensionality)])
         Lg = sum([L * g for L, g in zip(L, g)])
@@ -195,9 +163,7 @@ class Stability:
             HZ_problem.add_sos_constraint(-lie_derivative - Lg, list(self.x))
         else:
             Lg = sp.Mul(Lg, Matrix(I(self.N)))
-            # HZ_problem.add_matrix_sos_constraint(simplify(-lie_derivative - Lg), list(self.x))
             HZ_problem.add_matrix_sos_constraint(-lie_derivative - Lg, list(self.x))
-            # self.__add_matrix_sos_constraint(HZ_problem, -lie_derivative - Lg, list(self.x))
 
         HZ_problem.solve(solver="mosek")
 
@@ -225,8 +191,6 @@ class Stability:
         }
 
     def __discrete_polynomial(self) -> dict:
-
-
         # Rank condition:
         # N0 is an (n, T) full row-rank matrix.
         N0 = self.__compute_N0()
