@@ -69,12 +69,11 @@ class SafetyBarrier(Barrier):
             )
 
     def _discrete_linear(self):
-
         # Rank condition:
-        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+        assert self.num_samples > self.dimensionality, "The number of samples, T, must be greater than the number of states, n."
 
         rank = np.linalg.matrix_rank(self.X0)
-        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
+        assert rank == self.dimensionality, "The X0 data is not full row-rank."
 
         X0 = Constant("X0", self.X0)
         X1 = Constant("X1", self.X1)
@@ -142,15 +141,7 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
-        # Rank condition:
-        # N0 is an (n, T) full row-rank matrix.
         N0 = self.__compute_N0()
-
-        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
-
-        rank = np.linalg.matrix_rank(N0)
-        assert rank == self.N, "The data must be full row rank."
-
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
@@ -190,31 +181,20 @@ class SafetyBarrier(Barrier):
 
         barrier = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
 
-        # 9a. SOS gamma
-        condition1 = self.problem.add_sos_constraint(
-            -barrier - Lg_init + gamma, self.x
-        )
+        # -- SOS constraints
 
-        # 9b. SOS lambda
+        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
+
         condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
             condition2.append(
-                self.problem.add_sos_constraint(
-                    barrier - Lg_unsafe - lambda_, self.x)
+                self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
             )
 
-        # Note: Redefine schur with the now-valued matrices
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
-
-        # 9c. SOS state space
         condition3 = self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
 
-        try:
-            self.__solve()
-        except SolutionFailure as e:
-            return {"error": "Failed to solve the problem.", "description": str(e)}
-        except Exception as e:
-            return {"error": "An unknown error occurred.", "description": str(e)}
+        self.__solve()
 
         validation = self.__validate_solution(
             condition1, condition2, condition3
@@ -350,13 +330,6 @@ class SafetyBarrier(Barrier):
 
         self.__add_matrix_constraint(HZ_problem, N0 @ H_x - Z, list(self.x))
         self.__add_positive_matrix_constraint(HZ_problem, Z - 1.0e-6 * np.eye(self.N), list(self.x))
-        # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
-
-        # dMdx = np.array([[Matrix([m]).jacobian(x) for x in self.x] for m in self.M_x])
-        # dMdx = []
-        # for m in self.M_x:
-        #     for x in self.x:
-        #         dMdx.append(m.diff(x))
 
         dMdx = Matrix(self.M_x).jacobian(self.x)
 
@@ -367,9 +340,7 @@ class SafetyBarrier(Barrier):
             HZ_problem.add_sos_constraint(-lie_derivative - Lg, list(self.x))
         else:
             Lg = sp.Mul(Lg, Matrix(I(self.N)))
-            # HZ_problem.add_matrix_sos_constraint(simplify(-lie_derivative - Lg), list(self.x))
             HZ_problem.add_matrix_sos_constraint(-lie_derivative - Lg, list(self.x))
-            # self.__add_matrix_sos_constraint(HZ_problem, -lie_derivative - Lg, list(self.x))
 
         HZ_problem.solve(solver="mosek")
 
@@ -379,15 +350,17 @@ class SafetyBarrier(Barrier):
 
         # --- (2) Then, solve remaining SOS conditions for gamma and lambda ---
 
-        # assert np.allclose(N0 @ H_x @ P, np.eye(self.N), atol=1e-6)
-
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
         barrier = (Matrix(self.M_x).T @ P @ Matrix(self.M_x))[0]
 
-        self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
+        condition1 = self.problem.add_sos_constraint(-barrier - Lg_init + gamma, self.x)
+
+        condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
+            condition2.append(
+                self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
+            )
 
         try:
             self.problem.solve(solver="mosek")
@@ -396,9 +369,6 @@ class SafetyBarrier(Barrier):
             return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
             return {"error": "An unknown error occurred.", "description": str(e)}
-
-        # Q(x) = H(x) @ P
-        # controller = U0 @ Hx @ P @ self.M_x
 
         validation = self.__validate_solution(
             barrier_constraint, condition1, condition2
@@ -509,21 +479,13 @@ class SafetyBarrier(Barrier):
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         # Rank conditions
-
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
-
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The N0 data is not full row-rank."
 
         return N0
 
     def __solve(self):
-        # validation = self.__validate_solution(
-        #     barrier_constraint, condition1, condition2
-        # )
-        # if validation != True and "error" in validation:
-        #     return validation
-
         try:
             self.problem.solve()
         except SolutionFailure as e:
