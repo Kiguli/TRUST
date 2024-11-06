@@ -23,12 +23,12 @@ from app.models.barrier import Barrier
 class SafetyBarrier(Barrier):
     """Safety Barrier Certificate"""
 
+    is_stability = False
+
     def __init__(self, data: dict):
         # TODO: migrate to builder pattern?
-        if data["mode"] != "Safety":
-            raise ValueError(
-                f"Invalid mode '{data['mode']}' for Safety Barrier calculations."
-            )
+        if data["mode"] == "Stability":
+            self.is_stability = True
 
         super().__init__(data)
 
@@ -253,7 +253,11 @@ class SafetyBarrier(Barrier):
         except Exception as e:
             return {"error": "An unknown error occurred.", "description": str(e)}
 
-        # TODO: validate
+        validation = self.__validate_solution(
+            barrier_constraint, condition1, condition2
+        )
+        if validation != True and "error" in validation:
+            return validation
 
         barrier = (Matrix(self.x).T * P * Matrix(self.x))[0]
         barrier = self.__matrix_to_string(barrier)
@@ -292,7 +296,7 @@ class SafetyBarrier(Barrier):
         X0 = Constant("X0", self.X0)
         X1 = Constant("X1", self.X1)
 
-        H = RealVariable("H", (self.X0.shape[1], self.dimensionality))
+        H = RealVariable("H", (self.num_samples, self.dimensionality))
         Z = SymmetricVariable("Z", (self.dimensionality, self.dimensionality))
 
         problem.add_constraint(H.T * X1.T + X1 * H << 0)
@@ -309,8 +313,6 @@ class SafetyBarrier(Barrier):
 
         # -- Solve for Q
         Q = H @ P
-
-        # TODO: Assert I = X0 @ Q? (It is, up to 10^-6)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
 
@@ -331,6 +333,12 @@ class SafetyBarrier(Barrier):
 
         # -- Solve
         self.problem.solve(solver="mosek")
+
+        validation = self.__validate_solution(
+            barrier_constraint, condition1, condition2
+        )
+        if validation != True and "error" in validation:
+            return validation
 
         barrier = np.array2string(np.array(barrier), separator=", ")
 
@@ -401,7 +409,6 @@ class SafetyBarrier(Barrier):
             HZ_problem.add_matrix_sos_constraint(-lie_derivative - Lg, list(self.x))
             # self.__add_matrix_sos_constraint(HZ_problem, -lie_derivative - Lg, list(self.x))
 
-
         HZ_problem.solve(solver="mosek")
 
         H_x, Z = self.__substitute_for_values(HZ_problem.variables.values(), H_x, Z)
@@ -431,8 +438,11 @@ class SafetyBarrier(Barrier):
         # Q(x) = H(x) @ P
         # controller = U0 @ Hx @ P @ self.M_x
 
-        # TODO: add SOS decomp (to all)
-        # TODO: save out barrier and controller (to all)
+        validation = self.__validate_solution(
+            barrier_constraint, condition1, condition2
+        )
+        if validation != True and "error" in validation:
+            return validation
 
         barrier = self.__matrix_to_string(barrier)
 
