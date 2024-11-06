@@ -14,7 +14,7 @@ Note: this project uses Python 3.12.2. If you don't have it installed, you can d
 
 It's recommended to use a virtual environment to install the dependencies. Use your favorite tool, or simply run:
 ```bash
-python -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 ```
 
