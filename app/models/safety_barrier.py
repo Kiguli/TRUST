@@ -279,7 +279,7 @@ class SafetyBarrier(Barrier):
             )
 
         # -- Solve
-        self.problem.solve(solver="mosek")
+        self.__solve()
 
         validation = self.__validate_solution(
             condition1, condition2
