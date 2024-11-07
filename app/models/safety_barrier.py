@@ -362,16 +362,10 @@ class SafetyBarrier(Barrier):
                 self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
             )
 
-        try:
-            self.problem.solve(solver="mosek")
-        except SolutionFailure as e:
-            # TODO: include info on what wasn't feasible
-            return {"error": "Failed to solve the problem.", "description": str(e)}
-        except Exception as e:
-            return {"error": "An unknown error occurred.", "description": str(e)}
+        self.__solve()
 
         validation = self.__validate_solution(
-            barrier_constraint, condition1, condition2
+            condition1, condition2
         )
         if validation != True and "error" in validation:
             return validation
@@ -487,7 +481,7 @@ class SafetyBarrier(Barrier):
 
     def __solve(self):
         try:
-            self.problem.solve()
+            self.problem.solve(solver="mosek")
         except SolutionFailure as e:
             return {"error": "Failed to solve the problem.", "description": str(e)}
         except Exception as e:
