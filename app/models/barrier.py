@@ -56,6 +56,10 @@ class Barrier:
         # return self.dimensionality if self.dimensionality % 2 == 0 else self.dimensionality - 1
         return 2
 
+    @degree.setter
+    def degree(self, value):
+        self.degree = value
+
     @property
     def dimensionality(self):
         """
