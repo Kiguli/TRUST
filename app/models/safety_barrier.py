@@ -254,19 +254,14 @@ class SafetyBarrier(Barrier):
 
         problem.solve(solver="mosek")
 
-        H = Matrix(H)
-        Z = Matrix(Z)
+        H = np.array(H)
+        Z = np.array(Z)
+        P = np.linalg.inv(Z)
 
-        P = Z.inv()
-
-        # -- Solve for Q
-        Q = H @ P
+        barrier = np.array(x).T @ P @ np.array(x)
 
         gamma, lambda_, gamma_var, lambda_var = self.__level_set_constraints()
-
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
-
-        barrier = (Matrix(x).T @ P @ Matrix(x))[0]
 
         # -- SOS constraints
 
@@ -274,9 +269,7 @@ class SafetyBarrier(Barrier):
 
         condition2 = []
         for Lg_unsafe in Lg_unsafe_set:
-            condition2.append(
-                self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x)
-            )
+            condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x))
 
         # -- Solve
         self.__solve()
@@ -294,7 +287,6 @@ class SafetyBarrier(Barrier):
 
         P = np.array2string(np.array(P), separator=", ")
         H = np.array2string(np.array(H), separator=", ")
-        Q = np.array2string(np.array(Q), separator=", ")
 
         return {
             "function": {
