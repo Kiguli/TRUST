@@ -51,9 +51,10 @@ class Barrier:
     @property
     def degree(self):
         """Default the degree to the dimensionality"""
-        # TODO: allow a custom degree
+        # TODO: allow a custom degree?
         # For now, if dimensionality is even, use it, else degree - 1
-        return self.dimensionality if self.dimensionality % 2 == 0 else self.dimensionality - 1
+        # return self.dimensionality if self.dimensionality % 2 == 0 else self.dimensionality - 1
+        return 2
 
     @property
     def dimensionality(self):
