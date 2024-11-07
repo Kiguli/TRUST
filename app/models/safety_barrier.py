@@ -231,10 +231,10 @@ class SafetyBarrier(Barrier):
 
     def _continuous_linear(self):
         # Rank condition:
-        assert self.num_samples > self.dimensionality, {"error": "The number of samples, T, must be greater than the number of states, n."}
+        assert self.num_samples > self.dimensionality, "The number of samples, T, must be greater than the number of states, n."
 
         rank = np.linalg.matrix_rank(self.X0)
-        assert rank == self.dimensionality, {"error": "The X0 data is not full row-rank."}
+        assert rank == self.dimensionality, "The X0 data is not full row-rank."
 
         problem = SOSProblem()
 
