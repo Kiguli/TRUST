@@ -41,7 +41,6 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
                 <Tab
                     v-for="mode in modes"
                     :key="mode"
-                    :disabled="mode.title === 'Upload'"
                     v-slot="{ selected }"
                     as="template">
                     <button
