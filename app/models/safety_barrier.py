@@ -145,7 +145,12 @@ class SafetyBarrier(Barrier):
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
 
-        Theta_x = self.Theta_x
+        # Theta_x = self.Theta_x
+        Theta_x = Matrix([
+            [1, 0],
+            [0, 1],
+            [0, self.x[0]]
+        ])
 
         # -- Part 2
 
