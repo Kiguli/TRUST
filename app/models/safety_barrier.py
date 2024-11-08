@@ -314,12 +314,9 @@ class SafetyBarrier(Barrier):
         N0 = self.__compute_N0()
 
         Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
-
         H_x = matrix_variable("H_x", list(self.x), Hx_degree, dim=(self.num_samples, self.N))
 
-        Z = matrix_variable(
-            "Z", list(self.x), 0, dim=(self.N, self.N), hom=False, sym=True
-        )
+        Z = matrix_variable("Z", list(self.x), 0, dim=(self.N, self.N))
 
         HZ_problem = SOSProblem()
 
