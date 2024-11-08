@@ -306,9 +306,9 @@ class SafetyBarrier(Barrier):
         Solve for a continuous non-linear polynomial system.
         """
 
-        # Get the highest degree term in M_x
-        highest_degree = max([term.total_degree() for term in self.M_x])
-        self.degree = highest_degree if highest_degree % 2 == 0 else highest_degree - 1
+        # TODO: Get the highest degree term in M_x
+        # highest_degree = max([term.total_degree() for term in self.M_x])
+        # self.degree = highest_degree if highest_degree % 2 == 0 else highest_degree - 1
 
         # TODO: Future work: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
