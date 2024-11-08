@@ -59,6 +59,7 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
                 <TabPanel v-for="mode in modes" :key="mode">
                     <UploadDataPanel
                         v-if="mode.title === 'Upload'"
+                        v-model="data"
                         :form="form" />
                     <ManualDataPanel v-else v-model="data" />
                 </TabPanel>

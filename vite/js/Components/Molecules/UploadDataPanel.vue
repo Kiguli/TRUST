@@ -11,6 +11,10 @@ defineProps({
 });
 
 const model = defineModel({ type: Object, default: () => ({}) });
+
+const uploadFile = (file) => {
+    model.value = file;
+}
 </script>
 
 <template>
