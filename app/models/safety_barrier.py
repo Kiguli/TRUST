@@ -149,9 +149,9 @@ class SafetyBarrier(Barrier):
 
         # -- Part 2
 
-        H_x = matrix_variable(
-            "H_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
-        )
+        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+
+        H_x = matrix_variable("H_x", self.x, Hx_degree, dim=(self.num_samples, self.dimensionality))
         Z = matrix_variable("Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True)
 
         design_HZ = SOSProblem()
@@ -301,25 +301,22 @@ class SafetyBarrier(Barrier):
         Solve for a continuous non-linear polynomial system.
         """
 
+        # TODO: Future work: approximate X1 as the derivatives of the state at each sampling time, if not provided.
+
         # # TODO: Get the highest degree term in M_x
         # highest_degree = max([term.total_degree() for term in self.M_x])
         # self.degree = highest_degree * 2
         # Test for Jet Engine setting degree to 9 (3^2)
         # Else, we can try highest degree (or highest degree - 1)
 
-        # TODO: Future work: approximate X1 as the derivatives of the state at each sampling time, if not provided.
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         N0 = self.__compute_N0()
 
-        H_x = matrix_variable(
-            "H_x",
-            list(self.x),
-            self.degree,
-            dim=(self.num_samples, self.N),
-            hom=False,
-            sym=False,
-        )
+        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+
+        H_x = matrix_variable("H_x", list(self.x), Hx_degree, dim=(self.num_samples, self.N))
+
         Z = matrix_variable(
             "Z", list(self.x), 0, dim=(self.N, self.N), hom=False, sym=True
         )
