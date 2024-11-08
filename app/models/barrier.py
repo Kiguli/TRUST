@@ -90,7 +90,7 @@ class Barrier:
         if np.array(self.theta_x).shape != (self.N, self.dimensionality):
             raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(self.theta_x).shape}")
 
-        return [sympify(term) for term in self.theta_x]
+        return [[sympify(term) for term in row] for row in self.theta_x]
 
     @property
     def N(self):
