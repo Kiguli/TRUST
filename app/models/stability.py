@@ -464,11 +464,7 @@ class Stability:
         Get the initial state of the system as a numpy array of floats
         """
 
-        for i in range(len(data)):
-            for j in range(len(data[i])):
-                data[i][j] = float(data[i][j])
-
-        return np.array(data)
+        return np.array(data, dtype=float)
 
     def __compute_N0(self) -> list:
         """
