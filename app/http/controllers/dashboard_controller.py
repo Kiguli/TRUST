@@ -5,7 +5,10 @@ from typing import Union
 from flask import Blueprint, Response, jsonify, request
 from flask_inertia import lazy_include, render_inertia
 import sympy as sp
+import numpy as np
 from picos import SolutionFailure
+import os
+import csv
 
 import tests
 from app.models.safety_barrier import SafetyBarrier
@@ -18,10 +21,19 @@ def calculate_result() -> dict:
     """
     Calculate the result of the user's input.
 
-    :return: the result of the calculation
+    :return: The result of the calculation
     """
 
-    data = request.get_json()
+    data = request.form.to_dict()
+
+    if request.files.items():
+        try:
+            data = _parse_uploaded_files(data)
+        except Exception as e:
+            return {
+                "error": "Unable to parse uploaded file(s).",
+                "description": str(e),
+            }
 
     tracemalloc.start()
 
@@ -125,3 +137,34 @@ def index():
             "result": lazy_include(calculate_result),
         },
     )
+
+def _parse_uploaded_files(data: dict) -> dict:
+    """
+    Parse the uploaded files and add them to the data dictionary.
+
+    :param data: The data dictionary
+    """
+
+    for key, file in request.files.items():
+        if not file or not file.filename:
+            continue
+
+        # Create the `storage/uploads` subfolder if it doesn't exist:
+        if not os.path.exists("storage/uploads"):
+            os.makedirs("storage/uploads")
+
+        file.save(f"storage/uploads/{file.filename}")
+
+        with open(f"storage/uploads/{file.filename}", "r") as f:
+            # Parse CSV, JSON or txt files
+            if file.filename.endswith(".csv"):
+                data[key] = np.array(list(csv.reader(f)))
+            elif file.filename.endswith(".json"):
+                data[key] = json.load(f)
+            elif file.filename.endswith(".txt"):
+                data[key] = f.read().splitlines()
+
+        # Remove the file from disk
+        os.remove(f"storage/uploads/{file.filename}")
+
+    return data

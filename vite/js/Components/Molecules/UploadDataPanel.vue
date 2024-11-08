@@ -29,19 +29,23 @@ const uploadFile = (file) => {
             </p>
         </div>
 
-        <input
-            :class="[
+            <input
+                :class="[
                 'file:m-1 file:mr-4 file:cursor-pointer file:rounded-md file:border-none file:bg-violet-900/75 file:px-5 file:py-3 file:text-white',
                 'file:hover:bg-violet-900/80 file:focus:ring-2 file:focus:ring-white/60 file:focus:ring-offset-2 file:focus:ring-offset-violet-300',
                 'file:active:ring-2 file:active:ring-white/60 file:active:ring-offset-2 file:active:ring-offset-violet-300',
             ]"
-            class="block w-full rounded-lg border border-gray-300 bg-gray-100 text-sm text-gray-500 focus:outline-none dark:border-none dark:bg-gray-950"
-            required
-            type="file"
-            @input="model = $event.target.files[0]" />
-        <progress v-if="form?.progress" :value="form.progress.percentage" max="100">
-            {{ form.progress.percentage }}
-        </progress>
+                class="block w-full rounded-lg border border-gray-300 bg-gray-100 text-sm text-gray-500 focus:outline-none dark:border-none dark:bg-gray-950"
+                required
+                type="file"
+                @input="uploadFile($event.target.files[0])" />
+            <progress
+                v-if="form?.progress"
+                :value="form.progress.percentage"
+                class="flex w-full mt-1 rounded-sm overflow-clip h-2 border-none outline-none"
+                max="100">
+                {{ form.progress.percentage }}
+            </progress>
     </div>
 </template>
 

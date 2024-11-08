@@ -1,31 +1,18 @@
 import array
-from typing import Self
+import json
+from typing import List, Self, Union
 
-import cvxpy as cp
 import numpy as np
 import sympy as sp
-from SumOfSquares import SOSProblem
-from picos import Constant, RealVariable, SymmetricVariable, I
-from sympy import Matrix
-
-import io
-import time
-from contextlib import redirect_stdout
-from typing import Union, List
-
 from SumOfSquares import (
     Basis,
-    SOSConstraint,
     SOSProblem,
     matrix_variable,
     poly_variable,
 )
-from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
+from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
-from soupsieve.util import deprecated
-from sympy import Matrix, simplify, sympify
-
-from app.models.barrier import Barrier
+from sympy import Matrix, sympify
 
 
 class Stability:
@@ -44,20 +31,20 @@ class Stability:
         """
         Create a new instance of the Stability class with the given data.
         """
-        if data["mode"] != "Stability":
+        if data.get("mode") != "Stability":
             raise ValueError(
-                f"Invalid mode '{data["mode"]}' for Stability calculations."
+                f"Invalid mode '{data.get("mode")}' for Stability calculations."
             )
 
-        self.model = data["model"]
-        self.timing = data["timing"]
+        self.model = data.get("model")
+        self.timing = data.get("timing")
         self.monomials = data.get("monomials", [])
-        self.X0 = self.parse_dataset(data["X0"])
-        self.X1 = self.parse_dataset(data["X1"])
-        self.U0 = self.parse_dataset(data["U0"])
-        self.state_space = data["stateSpace"]
-        self.initial_state = data["initialState"]
-        self.unsafe_states = data["unsafeStates"]
+        self.X0 = self.parse_dataset(data.get("X0"))
+        self.X1 = self.parse_dataset(data.get("X1"))
+        self.U0 = self.parse_dataset(data.get("U0"))
+        self.state_space = data.get("stateSpace")
+        self.initial_state = data.get("initialState")
+        self.unsafe_states = data.get("unsafeStates")
 
         return self
 
@@ -75,7 +62,9 @@ class Stability:
         n = self.X0.shape[0]
         T = self.X0.shape[1]
 
-        assert self.num_samples > self.dimensionality, "The number of samples, T, must be greater than the number of states, n."
+        assert (
+            self.num_samples > self.dimensionality
+        ), "The number of samples, T, must be greater than the number of states, n."
 
         rank = np.linalg.matrix_rank(self.X0)
         assert rank == self.dimensionality, "The X0 data is not full row-rank."
@@ -125,7 +114,9 @@ class Stability:
 
         # Rank condition
         N0 = self.__compute_N0()
-        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+        assert (
+            self.num_samples > self.N
+        ), "The number of samples, T, must be greater than the number of monomial terms, N."
 
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The data must be full row rank."
@@ -154,8 +145,13 @@ class Stability:
         lie_derivative = dMdx @ self.X1 @ H_x + H_x.T @ self.X1.T @ dMdx.T
 
         # Add a virtually infinite constraint
-        L = [poly_variable("L" + str(i + 1), self.x, self.degree) for i in range(len(self.x))]
-        g = self.generate_polynomial([[-1.0e-308, 1.0e-308] for _ in range(self.dimensionality)])
+        L = [
+            poly_variable("L" + str(i + 1), self.x, self.degree)
+            for i in range(len(self.x))
+        ]
+        g = self.generate_polynomial(
+            [[-1.0e-308, 1.0e-308] for _ in range(self.dimensionality)]
+        )
         Lg = sum([L * g for L, g in zip(L, g)])
 
         if self.N == 1:
@@ -183,7 +179,8 @@ class Stability:
         return {
             "function": {
                 "expression": {"M(x)^T @ P @ M(x)": lyapunov},
-                "values": {"P": P}},
+                "values": {"P": P},
+            },
             "controller": {
                 "expression": {"U0 @ H(x) @ P @ M(x)": controller},
                 "values": {"H(x)": H_x},
@@ -195,36 +192,43 @@ class Stability:
         # N0 is an (n, T) full row-rank matrix.
         N0 = self.__compute_N0()
 
-        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+        assert (
+            self.num_samples > self.N
+        ), "The number of samples, T, must be greater than the number of monomial terms, N."
 
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The data must be full row rank."
 
-
-        L = [poly_variable("L" + str(i + 1), self.x, self.degree) for i in range(len(self.x))]
-        g = self.generate_polynomial([[-1.0e-6, 1.0e-6] for _ in range(self.dimensionality)])
+        L = [
+            poly_variable("L" + str(i + 1), self.x, self.degree)
+            for i in range(len(self.x))
+        ]
+        g = self.generate_polynomial(
+            [[-1.0e-6, 1.0e-6] for _ in range(self.dimensionality)]
+        )
         Lg = sum([L * g for L, g in zip(L, g)])
 
         # TODO: pull theta from data
         # Theta_x = self.Theta_x
 
-        Theta_x = Matrix(np.array([
-            [0, 1],
-            [self.x[0], 0]
-        ]))
+        Theta_x = Matrix(np.array([[0, 1], [self.x[0], 0]]))
 
         # -- Part 2
 
         H_x = matrix_variable(
             "H_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
         )
-        Z = matrix_variable("Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True)
+        Z = matrix_variable(
+            "Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True
+        )
 
         design_HZ = SOSProblem()
 
         # 21a. N0 @ H(x) = Theta(x) @ Z and Z is positive definite
         self.__add_matrix_constraint(design_HZ, (N0 @ H_x) - (Theta_x @ Z), self.x)
-        self.__add_positive_matrix_constraint(design_HZ, Z - 1.0e-6 * np.eye(self.dimensionality), self.x)
+        self.__add_positive_matrix_constraint(
+            design_HZ, Z - 1.0e-6 * np.eye(self.dimensionality), self.x
+        )
         # design_HZ.add_constraint(Z - 1.0e-6 * I(self.dimensionality) >> 0)
         # design_HZ.add_constraint(Z - 1.0e-6 * np.eye(self.dimensionality) >> 0)
 
@@ -233,10 +237,14 @@ class Stability:
 
         if self.N == 1:
             schur = schur[0]
-            schur_constraint = design_HZ.add_matrix_sos_constraint(schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x))
+            schur_constraint = design_HZ.add_matrix_sos_constraint(
+                schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x)
+            )
         else:
             Lg = sp.Mul(Lg, Matrix(I(2 * self.dimensionality)))
-            schur_constraint = design_HZ.add_matrix_sos_constraint(schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x))
+            schur_constraint = design_HZ.add_matrix_sos_constraint(
+                schur - Lg - 1.0e-6 * np.eye(2 * self.dimensionality), list(self.x)
+            )
 
         # 9c. SOS state space
 
@@ -258,9 +266,7 @@ class Stability:
         lyapunov = (Matrix(self.x).T @ P @ Matrix(self.x))[0]
         lyapunov = self.__matrix_to_string(lyapunov)
 
-        validation = self.__validate_solution(
-            schur_constraint
-        )
+        validation = self.__validate_solution(schur_constraint)
         if validation != True and "error" in validation:
             return validation
 
@@ -282,7 +288,6 @@ class Stability:
                 "values": {"H(x)": H_x},
             },
         }
-
 
     def calculate_dMdx(self, M_x):
         dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
@@ -394,7 +399,11 @@ class Stability:
         """Default the degree to the dimensionality"""
         # TODO: allow a custom degree
         # For now, if dimensionality is even, use it, else degree - 1
-        return self.dimensionality if self.dimensionality % 2 == 0 else self.dimensionality - 1
+        return (
+            self.dimensionality
+            if self.dimensionality % 2 == 0
+            else self.dimensionality - 1
+        )
 
     @property
     def dimensionality(self):
@@ -464,6 +473,10 @@ class Stability:
         Get the initial state of the system as a numpy array of floats
         """
 
+        # if data is a string, it's manual input we've sent as a string. Simply json.loads it
+        if isinstance(data, str):
+            data = json.loads(data)
+
         return np.array(data, dtype=float)
 
     def __compute_N0(self) -> list:
@@ -484,7 +497,9 @@ class Stability:
 
         # Rank conditions
 
-        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
+        assert (
+            self.num_samples > self.N
+        ), "The number of samples, T, must be greater than the number of monomial terms, N."
 
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The N0 data is not full row-rank."
@@ -493,7 +508,7 @@ class Stability:
 
     @staticmethod
     def __add_matrix_constraint(
-            problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
     ) -> List[Constraint]:
         """
         Add a matrix constraint to the problem.
@@ -529,7 +544,7 @@ class Stability:
 
     @staticmethod
     def __add_positive_matrix_constraint(
-            problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
+        problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
     ) -> List[Constraint]:
         """
         Add a matrix constraint to the problem.
@@ -568,8 +583,7 @@ class Stability:
         """
         Return the monomial terms.
         """
-        return [sympify(term) for term in self.monomials['terms']]
-
+        return [sympify(term) for term in self.monomials["terms"]]
 
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
@@ -589,7 +603,6 @@ class Stability:
 
         return H_x, Z
 
-
     def generate_polynomial(self, space) -> list:
         """Generate the polynomial for the given space"""
 
@@ -598,7 +611,9 @@ class Stability:
 
         for dimension in space:
             if dimension[0] is None or dimension[1] is None:
-                raise ValueError(f"{space} is not a valid state space. Please provide valid lower and upper bounds.")
+                raise ValueError(
+                    f"{space} is not a valid state space. Please provide valid lower and upper bounds."
+                )
 
             lower_bounds.append(float(dimension[0]))
             upper_bounds.append(float(dimension[1]))
@@ -606,7 +621,10 @@ class Stability:
         lower_bounds = [float(dimension[0]) for dimension in space]
         upper_bounds = [float(dimension[1]) for dimension in space]
 
-        return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)]
+        return [
+            (var - lower) * (upper - var)
+            for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)
+        ]
 
     @staticmethod
     def __matrix_to_string(matrix):
@@ -616,9 +634,7 @@ class Stability:
         return np.array2string(np.array(matrix), separator=", ")
 
     @staticmethod
-    def __validate_solution(
-            schur_constraint
-    ) -> Union[bool, dict]:
+    def __validate_solution(schur_constraint) -> Union[bool, dict]:
         """
         Validate the solution of the SOS problem.
         """
@@ -629,10 +645,7 @@ class Stability:
             return {"error": "No SOS decomposition found.", "description": str(e)}
         # third_decomp = condition3.get_sos_decomp()
 
-        if (
-            schur_decomp.free_symbols == 0 or
-            len(schur_decomp) <= 0
-        ):
+        if schur_decomp.free_symbols == 0 or len(schur_decomp) <= 0:
             return {"error": "Constraints are not sum-of-squares."}
 
         return True

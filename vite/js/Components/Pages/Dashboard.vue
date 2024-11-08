@@ -54,13 +54,23 @@ const dimension = ref(1);
 const deltaTime = ref(0);
 
 const submit = () => {
-    form.post(route("dashboard.index"), {
+    form.transform((data) => {
+        ["X0", "U0", "X1"].forEach((key) => {
+            data[key] = Array.isArray(data[key]) ? JSON.stringify(data[key]) : data[key];
+        });
+
+        ["monomials", "theta_x", "stateSpace", "initialState", "unsafeStates"].forEach((key) => {
+            data[key] = JSON.stringify(data[key]);
+        });
+
+        return data;
+    }).post(route("dashboard.index"), {
+        forceFormData: true,
         preserveState: true,
         preserveScroll: true,
         only: ["result"],
         onStart: () => {
             deltaTime.value = useInterval(1000);
-
         },
         onSuccess: () => {
             deltaTime.value = null;
