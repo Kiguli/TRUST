@@ -41,7 +41,7 @@ def calculate_result() -> dict:
 
     try:
         if data["mode"] == "Stability":
-            results = Stability().create(data).calculate()
+            results = Stability(data).calculate()
         else:
             results = SafetyBarrier(data).calculate()
     except SolutionFailure as e:
