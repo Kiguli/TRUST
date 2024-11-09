@@ -1,6 +1,6 @@
 import array
 import json
-from typing import List, Self, Union
+from typing import List, Optional, Self, Union
 
 import numpy as np
 import sympy as sp
@@ -16,37 +16,20 @@ from sympy import Matrix, sympify
 
 
 class Stability:
-    def __init__(self):
-        self.model = None
-        self.timing = None
-        self.monomials = None
-        self.X0 = None
-        self.X1 = None
-        self.U0 = None
-        self.state_space = None
-        self.initial_state = None
-        self.unsafe_states = None
+    def __init__(self, data: dict):
+        self._data: dict = data
 
-    def create(self, data: dict) -> Self:
-        """
-        Create a new instance of the Stability class with the given data.
-        """
-        if data.get("mode") != "Stability":
+        if self._data.get("mode") != "Stability":
             raise ValueError(
-                f"Invalid mode '{data.get("mode")}' for Stability calculations."
+                f"Invalid mode '{self._data.get("mode")}' for Stability calculations."
             )
 
-        self.model = data.get("model")
-        self.timing = data.get("timing")
-        self.monomials = data.get("monomials", [])
-        self.X0 = self.parse_dataset(data.get("X0"))
-        self.X1 = self.parse_dataset(data.get("X1"))
-        self.U0 = self.parse_dataset(data.get("U0"))
-        self.state_space = data.get("stateSpace")
-        self.initial_state = data.get("initialState")
-        self.unsafe_states = data.get("unsafeStates")
-
-        return self
+        self.model = self._data.get("model")
+        self.timing = self._data.get("timing")
+        self.monomials = self._data.get("monomials", [])
+        self.X0 = self.parse_dataset(self._data.get("X0"))
+        self.X1 = self.parse_dataset(self._data.get("X1"))
+        self.U0 = self.parse_dataset(self._data.get("U0"))
 
     def calculate(self) -> dict:
         results = {}
@@ -427,11 +410,30 @@ class Stability:
         return self.X0.shape[1]
 
     @property
+    def state_space(self) -> Union[array, None]:
+        return self._get_value('stateSpace')
+
+    @property
+    def initial_state(self) -> array:
+        return self._get_value('initialState')
+
+    @property
+    def unsafe_states(self) -> array:
+        return self._get_value('unsafeStates')
+
+    @property
     def x(self) -> list[sp.Symbol]:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """
         return sp.symbols(f"x1:{self.dimensionality + 1}")
+
+    def _get_value(self, key: str) -> Union[Optional[list], None]:
+        value = self._data.get(key)
+        if value is None:
+            return None
+
+        return json.loads(value)
 
     # --- Builder Pattern ---
 
