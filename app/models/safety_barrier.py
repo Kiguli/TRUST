@@ -461,7 +461,7 @@ class SafetyBarrier(Barrier):
             x_t = self.X0[:, t]
 
             for i in range(self.N):
-                expr = sympify(self.monomials["terms"][i])
+                expr = self.M_x[i]
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         # Rank conditions
