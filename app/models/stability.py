@@ -473,7 +473,6 @@ class Stability:
         Get the initial state of the system as a numpy array of floats
         """
 
-        # if data is a string, it's manual input we've sent as a string. Simply json.loads it
         if isinstance(data, str):
             data = json.loads(data)
 
