@@ -106,6 +106,8 @@ const monomials = ref();
 watchEffect(() => {
     dimension.value = Math.max(form.X0?.length ?? 1, 1);
     samples.value = form.X0?.[0]?.length ?? 0;
+
+    // TODO: show datasets error when inconsistent shapes
 });
 
 watchDebounced(monomials, () => {
