@@ -1,14 +1,18 @@
+import array
 import json
+from typing import Optional, Union
+
 import numpy as np
 import sympy as sp
-from numpy.core.numeric import ufunc
-from sympy import Matrix, sympify
+from sympy import sympify
 
 
 class Barrier:
     """Barrier Interface"""
 
     def __init__(self, data: dict):
+        self._data = data
+
         self.model = data['model']
         self.timing = data['timing']
         self.monomials: dict = data.get('monomials', {})
@@ -16,9 +20,6 @@ class Barrier:
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
         self.U0 = self.parse_dataset(data['U0'])
-        self.state_space = data['stateSpace']
-        self.initial_state = data['initialState']
-        self.unsafe_states = data['unsafeStates']
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
@@ -41,6 +42,18 @@ class Barrier:
         upper_bounds = [float(dimension[1]) for dimension in space]
 
         return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)]
+
+    @property
+    def state_space(self) -> Union[array, None]:
+        return self._get_value('stateSpace')
+
+    @property
+    def initial_state(self) -> array:
+        return self._get_value('initialState')
+
+    @property
+    def unsafe_states(self) -> array:
+        return self._get_value('unsafeStates')
 
     @property
     def x(self) -> list[sp.Symbol]:
@@ -110,3 +123,11 @@ class Barrier:
             data = json.loads(data)
 
         return np.array(data, dtype=float)
+
+    def _get_value(self, key: str) -> Union[Optional[list], None]:
+        value = self._data.get(key)
+        if value is None:
+            return
+
+        return json.loads(value)
+
