@@ -15,7 +15,6 @@ class Barrier:
 
         self.model = data['model']
         self.timing = data['timing']
-        self.monomials: dict = data.get('monomials', {})
         self.theta_x: dict = data.get('theta_x', {})
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
@@ -93,7 +92,8 @@ class Barrier:
         """
         Return the monomial terms.
         """
-        return [sympify(term) for term in self.monomials['terms']]
+        monomials = self._get_value('monomials')
+        return [sympify(term) for term in monomials['terms']]
 
     @property
     def Theta_x(self) -> list:
@@ -124,7 +124,7 @@ class Barrier:
 
         return np.array(data, dtype=float)
 
-    def _get_value(self, key: str) -> Union[Optional[list], None]:
+    def _get_value(self, key: str) -> Union[Optional[list], Optional[dict], None]:
         value = self._data.get(key)
         if value is None:
             return
