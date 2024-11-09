@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import sympy as sp
 from numpy.core.numeric import ufunc
@@ -105,8 +106,7 @@ class Barrier:
         Get the initial state of the system as a numpy array of floats
         """
 
-        for i in range(len(data)):
-            for j in range(len(data[i])):
-                data[i][j] = float(data[i][j])
+        if isinstance(data, str):
+            data = json.loads(data)
 
-        return np.array(data)
+        return np.array(data, dtype=float)
