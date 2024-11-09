@@ -3,7 +3,7 @@ from tests import sample_data
 
 
 def test_it_calculates_the_lyapunov_function_and_controller(sample_data):
-    stability = Stability().create(sample_data)
+    stability = Stability(sample_data)
 
     actual = stability.calculate()
 
@@ -20,7 +20,7 @@ def test_it_solves_discrete_time_linear_systems(sample_data):
     sample_data["mode"] = "Stability"
     sample_data["model"] = "Linear"
     sample_data["timing"] = "Discrete-Time"
-    stability = Stability().create(sample_data)
+    stability = Stability(sample_data)
 
     actual = stability.calculate()
 
@@ -42,7 +42,7 @@ def test_it_solves_continuous_time_linear_systems(sample_data):
     sample_data["mode"] = "Stability"
     sample_data["model"] = "Linear"
     sample_data["timing"] = "Continuous-Time"
-    stability = Stability().create(sample_data)
+    stability = Stability(sample_data)
 
     actual = stability.calculate()
 
@@ -61,7 +61,7 @@ class TestContinuousTimeNonlinearPolynomialSafety:
     def test_it_returns_a_response(self, sample_data):
         sample_data = _continuous_polynomial_setup(sample_data)
 
-        response = Stability().create(sample_data).calculate()
+        response = Stability(sample_data).calculate()
 
         assert isinstance(response, dict)
         assert "lyapunov" in response
@@ -70,7 +70,7 @@ class TestContinuousTimeNonlinearPolynomialSafety:
     def test_it_returns_the_Lyapunov_function(self, sample_data):
         sample_data = _continuous_polynomial_setup(sample_data)
 
-        response = Stability().create(sample_data).calculate()
+        response = Stability(sample_data).calculate()
 
         assert "expression" in response["lyapunov"]
         assert "values" in response["lyapunov"]
@@ -80,7 +80,7 @@ class TestContinuousTimeNonlinearPolynomialSafety:
     def test_it_returns_the_controller(self, sample_data):
         sample_data = _continuous_polynomial_setup(sample_data)
 
-        response = Stability().create(sample_data).calculate()
+        response = Stability(sample_data).calculate()
 
         assert "expression" in response["controller"]
         assert "values" in response["controller"]
@@ -93,7 +93,7 @@ class TestDiscreteTimeNonlinearPolynomialSafety:
     def test_it_returns_a_response(self, sample_data):
         sample_data = _discrete_polynomial_setup(sample_data)
 
-        response = Stability().create(sample_data).calculate()
+        response = Stability(sample_data).calculate()
 
         assert isinstance(response, dict)
         assert "lyapunov" in response
@@ -102,7 +102,7 @@ class TestDiscreteTimeNonlinearPolynomialSafety:
     def test_it_returns_the_Lyapunov_function(self, sample_data):
         sample_data = _discrete_polynomial_setup(sample_data)
 
-        response = Stability().create(sample_data).calculate()
+        response = Stability(sample_data).calculate()
 
         assert "expression" in response["lyapunov"]
         assert "values" in response["lyapunov"]
