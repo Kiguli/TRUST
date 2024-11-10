@@ -96,7 +96,12 @@ def validate_monomials() -> bool | list:
     # e.g. x1**2; x2 + 2 is valid if dimensions = 2
     dimensions = monomials["dimensions"]
     for term in terms:
-        for x in term.atoms(sp.Symbol):
+        try:
+            atoms = term.atoms(sp.Symbol)
+        except AttributeError:
+            break
+
+        for x in atoms:
             if (
                 not x.name.startswith("x")
                 or not x.name[1:].isdigit()
