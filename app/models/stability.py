@@ -382,10 +382,10 @@ class Stability:
         """
         return sp.symbols(f"x1:{self.dimensionality + 1}")
 
-    def _get_value(self, key: str) -> Union[Optional[list], None]:
+    def _get_value(self, key: str) -> Union[Optional[list], Optional[dict], None]:
         value = self._data.get(key)
         if value is None:
-            return None
+            return
 
         return json.loads(value)
 
@@ -447,15 +447,11 @@ class Stability:
             x_t = self.X0[:, t]
 
             for i in range(self.N):
-                expr = sympify(self.monomials["terms"][i])
+                expr = self.M_x[i]
                 N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
 
         # Rank conditions
-
-        assert (
-            self.num_samples > self.N
-        ), "The number of samples, T, must be greater than the number of monomial terms, N."
-
+        assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The N0 data is not full row-rank."
 
@@ -538,7 +534,8 @@ class Stability:
         """
         Return the monomial terms.
         """
-        return [sympify(term) for term in self.monomials["terms"]]
+        monomials = self._get_value('monomials')
+        return [sympify(term) for term in monomials['terms']]
 
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
