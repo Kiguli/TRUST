@@ -272,52 +272,6 @@ class Stability:
             },
         }
 
-    def calculate_dMdx(self, M_x):
-        dMdx = np.array([[m.diff(x) for x in self.x] for m in M_x])
-        # x is a list of symbols for the state space, from x1 to xN
-        # Substitute the initial conditions, X0, into the expression
-        dMdx = np.array(
-            [
-                [
-                    d.subs({x: self.X0.T[i][j] for j, x in enumerate(self.x)})
-                    for d in row
-                ]
-                for i, row in enumerate(dMdx)
-            ]
-        )
-        return dMdx
-
-    def _calculate_M_x(self):
-        M_x = [sp.sympify(m) for m in self.monomials]
-        return M_x
-
-    def _calculate_N0(self, M_x):
-        """
-        N0 is an (N x T) full row-rank matrix.
-        N0 = [M(x(0)), M(x(1)), M(x(2)), ..., M(x(T − 1))]
-        """
-        N0 = []
-
-        for k in range(self.num_samples):
-            N0.append(
-                [
-                    m.subs({x: self.X0.T[k][i] for i, x in enumerate(self.x)})
-                    for m in M_x
-                ]
-            )
-
-        return np.array(N0).T
-
-    def _calculate_Theta_x(self, M_x: list[sp.Expr]) -> list:
-        """
-        Theta_x is an (N x n) matrix.
-        """
-        Theta_x = {}
-        for i, expr in enumerate(M_x):
-            Theta_x[expr] = [expr.coeff(x) for x in self.x]
-
-        return list(Theta_x.values())
-
     def _discrete_constraints(self) -> array:
         # block_matrix = cp.bmat([[Z, X1 @ H], [H.T @ X1.T, Z]])
         #
