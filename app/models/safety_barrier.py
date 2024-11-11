@@ -111,7 +111,9 @@ class SafetyBarrier(Barrier):
                 self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
             )
 
-        self.__solve()
+        result = self.__solve()
+        if result is False:
+            return result
 
         validation = self.__validate_solution(
             condition1, condition2
@@ -194,7 +196,9 @@ class SafetyBarrier(Barrier):
         schur = Matrix([[Z, self.X1 @ H_x], [H_x.T @ self.X1.T, Z]])
         condition3 = self.problem.add_matrix_sos_constraint(schur - Lg, list(self.x))
 
-        self.__solve()
+        result = self.__solve()
+        if result is False:
+            return result
 
         validation = self.__validate_solution(
             condition1, condition2, condition3
@@ -267,7 +271,9 @@ class SafetyBarrier(Barrier):
             condition2.append(self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, x))
 
         # -- Solve
-        self.__solve()
+        result = self.__solve()
+        if result is False:
+            return result
 
         validation = self.__validate_solution(
             condition1, condition2
@@ -354,7 +360,9 @@ class SafetyBarrier(Barrier):
                 self.problem.add_sos_constraint(barrier - Lg_unsafe - lambda_, self.x)
             )
 
-        self.__solve()
+        result = self.__solve()
+        if result is False:
+            return result
 
         validation = self.__validate_solution(
             condition1, condition2
