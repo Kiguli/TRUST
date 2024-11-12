@@ -4,6 +4,3 @@ INFO: Peak memory usage
 B(x) =
 
 U =
-
-gamma =
-lambda =
