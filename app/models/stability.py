@@ -190,7 +190,7 @@ class Stability:
         )
         Lg = sum([L * g for L, g in zip(L, g)])
 
-        Theta_x = self.Theta_x
+        Theta_x = Matrix(self.Theta_x)
 
         # -- Part 2
 
