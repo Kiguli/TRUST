@@ -26,7 +26,6 @@ class Stability:
 
         self.model = self._data.get("model")
         self.timing = self._data.get("timing")
-        self.monomials = self._data.get("monomials", [])
         self.X0 = self.parse_dataset(self._data.get("X0"))
         self.X1 = self.parse_dataset(self._data.get("X1"))
         self.U0 = self.parse_dataset(self._data.get("U0"))
@@ -191,10 +190,7 @@ class Stability:
         )
         Lg = sum([L * g for L, g in zip(L, g)])
 
-        # TODO: pull theta from data
-        # Theta_x = self.Theta_x
-
-        Theta_x = Matrix(np.array([[0, 1], [self.x[0], 0]]))
+        Theta_x = self.Theta_x
 
         # -- Part 2
 
@@ -536,6 +532,19 @@ class Stability:
         """
         monomials = self._get_value('monomials')
         return [sympify(term) for term in monomials['terms']]
+
+    @property
+    def Theta_x(self) -> list:
+        """
+        Return the theta terms.
+        """
+
+        theta_x = self._get_value('theta_x')
+
+        if np.array(theta_x).shape != (self.N, self.dimensionality):
+            raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(theta_x).shape}")
+
+        return [[sympify(term) for term in row] for row in theta_x]
 
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
