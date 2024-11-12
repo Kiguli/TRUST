@@ -32,7 +32,9 @@ const parseMatrix = (input) => {
 </script>
 
 <template>
-    <slot name="title"></slot>
+    <div class="relative">
+        <slot name="title"></slot>
+    </div>
     <slot name="description"></slot>
 
     <div class="mt-3">

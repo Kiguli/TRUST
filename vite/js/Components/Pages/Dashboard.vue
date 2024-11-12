@@ -158,6 +158,10 @@ watchDebounced(monomials, () => {
 
 const submitBtn = ref();
 
+const autofill = () => {
+    // TODO: autofill matrix theta(x) based on monomials
+};
+
 onMounted(() => {
     window.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -269,6 +273,9 @@ onMounted(() => {
                 >
                     <template #title>
                         <H2>Matrix &theta;(x)</H2>
+                        <button type="button" @click="autofill" class="absolute right-0 top-3.5 text-xs text-gray-400 hover:underline">
+                            Autofill
+                        </button>
                     </template>
 
                     <template #description>
