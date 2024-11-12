@@ -324,14 +324,11 @@ class Stability:
 
     @property
     def degree(self):
-        """Default the degree to the dimensionality"""
         # TODO: allow a custom degree
-        # For now, if dimensionality is even, use it, else degree - 1
-        return (
-            self.dimensionality
-            if self.dimensionality % 2 == 0
-            else self.dimensionality - 1
-        )
+        if self.M_x:
+            return max([sp.poly(term).total_degree() for term in self.M_x]) * 2
+
+        return 2
 
     @property
     def dimensionality(self):
@@ -521,11 +518,14 @@ class Stability:
         return constraints
 
     @property
-    def M_x(self) -> list:
+    def M_x(self) -> Union[list, None]:
         """
         Return the monomial terms.
         """
         monomials = self._get_value('monomials')
+        if monomials is None:
+            return None
+
         return [sympify(term) for term in monomials['terms']]
 
     @property

@@ -143,9 +143,8 @@ class SafetyBarrier(Barrier):
         }
 
     def _discrete_nps(self):
-        N0 = self.__compute_N0()
-
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
+        N0 = self.__compute_N0()
 
         Theta_x = Matrix(self.Theta_x)
 
@@ -308,13 +307,6 @@ class SafetyBarrier(Barrier):
         """
 
         # TODO: Future work: approximate X1 as the derivatives of the state at each sampling time, if not provided.
-
-        # # TODO: Get the highest degree term in M_x
-        # highest_degree = max([term.total_degree() for term in self.M_x])
-        # self.degree = highest_degree * 2
-        # Test for Jet Engine setting degree to 9 (3^2)
-        # Else, we can try highest degree (or highest degree - 1)
-
 
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         N0 = self.__compute_N0()
