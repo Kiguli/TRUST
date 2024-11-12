@@ -31,7 +31,7 @@ class Barrier:
 
         for dimension in space:
             if dimension[0] is None or dimension[1] is None:
-                raise ValueError(f"{space} is not a valid state space. Please provide valid lower and upper bounds.")
+                raise ValueError(f"Provided spaces are not valid. Please provide valid lower and upper bounds.")
 
             lower_bounds.append(float(dimension[0]))
             upper_bounds.append(float(dimension[1]))
