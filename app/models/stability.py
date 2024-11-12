@@ -324,8 +324,7 @@ class Stability:
 
     @property
     def degree(self):
-        # TODO: allow a custom degree
-        if self.M_x:
+        if self.timing == 'Continuous-Time' and self.model == 'Non-Linear Polynomial':
             return max([sp.poly(term).total_degree() for term in self.M_x]) * 2
 
         return 2
