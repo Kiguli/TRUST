@@ -53,7 +53,7 @@ def test_it_has_a_lazy_loaded_result(client, sample_data):
         'Accept': 'application/json',
     }
 
-    response = client.post('/', json=sample_data, headers=headers)
+    response = client.post('/', form=sample_data, headers=headers)
 
     assert response.status_code == 200
     result = response.json['props']['result']
