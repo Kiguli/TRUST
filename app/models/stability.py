@@ -41,9 +41,6 @@ class Stability:
         return results
 
     def _solve_linear(self) -> dict:
-        n = self.X0.shape[0]
-        T = self.X0.shape[1]
-
         assert (
             self.num_samples > self.dimensionality
         ), "The number of samples, T, must be greater than the number of states, n."
@@ -57,7 +54,7 @@ class Stability:
         elif self.timing == "Continuous-Time":
             H, Z = self._continuous_constraints()
 
-        P = Matrix(Z).inv() if n > 1 else 1 / Z.value
+        P = Matrix(Z).inv() if self.dimensionality > 1 else 1 / Z.value
 
         lyapunov = Matrix(self.x).T @ P @ Matrix(self.x)
         lyapunov = np.array2string(np.array(lyapunov), separator=", ")
