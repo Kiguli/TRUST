@@ -15,7 +15,6 @@ class Barrier:
 
         self.model = data['model']
         self.timing = data['timing']
-        self.theta_x: dict = data.get('theta_x', {})
         self.X0 = self.parse_dataset(data['X0'])
         self.X1 = self.parse_dataset(data['X1'])
         self.U0 = self.parse_dataset(data['U0'])
@@ -101,10 +100,12 @@ class Barrier:
         Return the theta terms.
         """
 
-        if np.array(self.theta_x).shape != (self.N, self.dimensionality):
-            raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(self.theta_x).shape}")
+        theta_x = self._get_value('theta_x')
 
-        return [[sympify(term) for term in row] for row in self.theta_x]
+        if np.array(theta_x).shape != (self.N, self.dimensionality):
+            raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(theta_x).shape}")
+
+        return [[sympify(term) for term in row] for row in theta_x]
 
     @property
     def N(self):
