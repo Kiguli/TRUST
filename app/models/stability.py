@@ -103,10 +103,11 @@ class Stability:
         rank = np.linalg.matrix_rank(N0)
         assert rank == self.N, "The data must be full row rank."
 
+        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
         H_x = matrix_variable(
             "H_x",
             list(self.x),
-            self.degree,
+            Hx_degree,
             dim=(self.num_samples, self.N),
             hom=False,
             sym=False,
@@ -194,12 +195,9 @@ class Stability:
 
         # -- Part 2
 
-        H_x = matrix_variable(
-            "H_x", self.x, self.degree, dim=(self.num_samples, self.dimensionality)
-        )
-        Z = matrix_variable(
-            "Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True
-        )
+        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+        H_x = matrix_variable("H_x", self.x, Hx_degree, dim=(self.num_samples, self.dimensionality))
+        Z = matrix_variable("Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True)
 
         design_HZ = SOSProblem()
 
