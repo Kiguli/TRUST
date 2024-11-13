@@ -5,6 +5,7 @@ from typing import Optional, Union
 import numpy as np
 import sympy as sp
 from sympy import sympify
+from werkzeug.utils import cached_property
 
 
 class Barrier:
@@ -15,9 +16,9 @@ class Barrier:
 
         self.model = data['model']
         self.timing = data['timing']
-        self.X0 = self.parse_dataset(data['X0'])
-        self.X1 = self.parse_dataset(data['X1'])
-        self.U0 = self.parse_dataset(data['U0'])
+        self._X0 = self.parse_dataset(data['X0'])
+        self._X1 = self.parse_dataset(data['X1'])
+        self._U0 = self.parse_dataset(data['U0'])
 
     def calculate(self):
         """Calculate the components of the Barrier Certificate"""
@@ -41,47 +42,47 @@ class Barrier:
 
         return [(var - lower) * (upper - var) for var, lower, upper in zip(self.x, lower_bounds, upper_bounds)]
 
-    @property
+    @cached_property
     def state_space(self) -> Union[array, None]:
         return self._get_value('stateSpace')
 
-    @property
+    @cached_property
     def initial_state(self) -> array:
         return self._get_value('initialState')
 
-    @property
+    @cached_property
     def unsafe_states(self) -> array:
         return self._get_value('unsafeStates')
 
-    @property
+    @cached_property
     def x(self) -> list[sp.Symbol]:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """
         return sp.symbols(f'x1:{self.dimensionality + 1}')
 
-    @property
+    @cached_property
     def degree(self):
         if self.timing == 'Continuous-Time' and self.model == 'Non-Linear Polynomial':
             return max([sp.poly(term).total_degree() for term in self.M_x]) * 2
 
         return 2
 
-    @property
+    @cached_property
     def dimensionality(self):
         """
         Return the dimensionality in the state space, n
         """
         return len(self.state_space)
 
-    @property
+    @cached_property
     def num_samples(self):
         """
         Return the number of samples, T
         """
         return self.X0.shape[1]
 
-    @property
+    @cached_property
     def M_x(self) -> Union[list, None]:
         """
         Return the monomial terms.
@@ -92,7 +93,7 @@ class Barrier:
 
         return [sympify(term) for term in monomials['terms']]
 
-    @property
+    @cached_property
     def Theta_x(self) -> list:
         """
         Return the theta terms.
@@ -105,12 +106,33 @@ class Barrier:
 
         return [[sympify(term) for term in row] for row in theta_x]
 
-    @property
+    @cached_property
     def N(self):
         """
         Return the number of monomial terms, N
         """
         return len(self.M_x)
+
+    @cached_property
+    def X0(self):
+        """
+        Return the initial state of the system
+        """
+        return self._X0
+
+    @cached_property
+    def X1(self):
+        """
+        Return the final state of the system
+        """
+        return self._X1
+
+    @cached_property
+    def U0(self):
+        """
+        Return the initial input of the system
+        """
+        return self._U0
 
     @staticmethod
     def parse_dataset(data: list) -> np.array:

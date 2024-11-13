@@ -553,91 +553,8 @@ class SafetyBarrier(Barrier):
 
         return constraints
 
-    # @staticmethod
-    # def __add_positive_matrix_constraint(
-    #         problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
-    # ) -> List[Constraint]:
-    #     """
-    #     Add a matrix constraint to the problem.
-    #     """
-    #
-    #     variables = sorted(variables, key=str)  # To lex order
-    #
-    #     constraints = []
-    #
-    #     # TODO: parallelize this loop
-    #     n, m = mat.shape
-    #     for i in range(n):
-    #         for j in range(m):
-    #             expr = mat[i, j]
-    #
-    #             poly = sp.poly(expr, variables)
-    #             mono_to_coeffs = dict(
-    #                 zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
-    #             )
-    #             basis = Basis.from_poly_lex(poly, sparse=True)
-    #
-    #             R = SymmetricVariable(f"R_{i}_{j}", len(basis))
-    #             for mono, pairs in basis.sos_sym_entries.items():
-    #                 coeff = mono_to_coeffs.get(mono, 0)
-    #                 coeff_constraint = problem.add_constraint(
-    #                     sum(R[k, l] for k, l in pairs) == coeff
-    #                 )
-    #                 constraints.append(coeff_constraint)
-    #
-    #             problem.add_constraint(R >> 0)
-    #
-    #     return constraints
-
-    # @staticmethod
-    # def __add_matrix_sos_constraint(
-    #         problem: SOSProblem, mat: sp.Matrix, variables: List[sp.Symbol]
-    # ) -> List[SOSConstraint]:
-    #     """
-    #     Add a matrix SOS constraint to the problem.
-    #     """
-    #
-    #     n, m = mat.shape
-    #     assert n == m, 'Matrix must be square!'
-    #
-    #     name = hash(mat)
-    #     aux_var_name = f'_y{name}'
-    #     aux_vars = list(sp.symbols(f'{aux_var_name}_:{n}'))
-    #
-    #     # p is sos iff all matrix elements are sos?
-    #
-    #     variables = sorted(variables, key=str) + aux_vars
-    #     sos_constraints = []
-    #
-    #     # TODO: parallelize this loop
-    #     for i in range(n):
-    #         for j in range(m):
-    #             expr = mat[i, j]
-    #
-    #             poly = sp.poly(expr, variables)
-    #
-    #             deg = poly.total_degree() # Fails for some matrix polys
-    #             assert deg % 2 == 0, 'Polynomial degree must be even!'
-    #
-    #             mono_to_coeffs = dict(
-    #                 zip(poly.monoms(), map(problem.sp_to_picos, poly.coeffs()))
-    #             )
-    #             basis = Basis.from_poly_lex(poly, sparse=True)
-    #
-    #             Q = SymmetricVariable(f"Q_sos_{i}_{j}", len(basis))
-    #             for mono, pairs in basis.sos_sym_entries.items():
-    #                 coeff = mono_to_coeffs.get(mono, 0)
-    #                 problem.add_constraint(sum(Q[k, l] for k, l in pairs) == coeff)
-    #
-    #             constraint = problem.add_constraint (Q >> 0)
-    #
-    #             sos_constraints.append(SOSConstraint(constraint, Q, basis, variables, deg))
-    #
-    #     return sos_constraints
-
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:
-        # TODO: refactor for efficiency?
         H_x_dict = {}
         Z_dict = {}
         for item in variables:
@@ -648,8 +565,6 @@ class SafetyBarrier(Barrier):
 
         H_x = H_x.subs({key: value for key, value in H_x_dict.items()})
         Z = Z.subs({key: value for key, value in Z_dict.items()})
-
-        # assert values are correct
 
         return H_x, Z
 

@@ -13,6 +13,7 @@ from SumOfSquares import (
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
 from sympy import Matrix, sympify
+from werkzeug.utils import cached_property
 
 
 class Stability:
@@ -24,11 +25,11 @@ class Stability:
                 f"Invalid mode '{self._data.get("mode")}' for Stability calculations."
             )
 
-        self.model = self._data.get("model")
-        self.timing = self._data.get("timing")
-        self.X0 = self.parse_dataset(self._data.get("X0"))
-        self.X1 = self.parse_dataset(self._data.get("X1"))
-        self.U0 = self.parse_dataset(self._data.get("U0"))
+        self._model = self._data.get("model")
+        self._timing = self._data.get("timing")
+        self._X0 = self.parse_dataset(self._data.get("X0"))
+        self._X1 = self.parse_dataset(self._data.get("X1"))
+        self._U0 = self.parse_dataset(self._data.get("U0"))
 
     def calculate(self) -> dict:
         results = {}
@@ -322,52 +323,74 @@ class Stability:
 
     # --- Properties ---
 
-    @property
+    @cached_property
     def degree(self):
         if self.timing == 'Continuous-Time' and self.model == 'Non-Linear Polynomial':
             return max([sp.poly(term).total_degree() for term in self.M_x]) * 2
 
         return 2
 
-    @property
+    @cached_property
     def dimensionality(self):
         """
         Return the dimensionality in the state space, n
         """
         return len(self.X0)
 
-    @property
+    @cached_property
     def N(self) -> int:
         """
         Return the number of monomial terms, N
         """
         return len(self.M_x)
 
-    @property
+    @cached_property
     def num_samples(self) -> int:
         """
         Return the number of samples, T
         """
         return self.X0.shape[1]
 
-    @property
+    @cached_property
     def state_space(self) -> Union[array, None]:
         return self._get_value('stateSpace')
 
-    @property
+    @cached_property
     def initial_state(self) -> array:
         return self._get_value('initialState')
 
-    @property
+    @cached_property
     def unsafe_states(self) -> array:
         return self._get_value('unsafeStates')
 
-    @property
+    @cached_property
     def x(self) -> list[sp.Symbol]:
         """
         Return a range of symbols for the state space, from x1 to xN, where N is the number of dimensions
         """
         return sp.symbols(f"x1:{self.dimensionality + 1}")
+
+    @cached_property
+    def model(self) -> str:
+        return self._model
+
+    @cached_property
+    def timing(self) -> str:
+        return self._timing
+
+    @cached_property
+    def X0(self) -> np.array:
+        return self._X0
+
+    @cached_property
+    def X1(self) -> np.array:
+        return self._X1
+
+    @cached_property
+    def U0(self) -> np.array:
+        return self._U0
+
+    # --- Helper Methods ---
 
     def _get_value(self, key: str) -> Union[Optional[list], Optional[dict], None]:
         value = self._data.get(key)
@@ -375,40 +398,6 @@ class Stability:
             return
 
         return json.loads(value)
-
-    # --- Builder Pattern ---
-
-    def model(self, model: str) -> Self:
-        self.model = model
-        return self
-
-    def timing(self, timing: str) -> Self:
-        self.timing = timing
-        return self
-
-    def X0(self, X0: array) -> Self:
-        self.X0 = X0
-        return self
-
-    def X1(self, X1: array) -> Self:
-        self.X1 = X1
-        return self
-
-    def U0(self, U0: array) -> Self:
-        self.U0 = U0
-        return self
-
-    def state_space(self, state_space: array) -> Self:
-        self.state_space = state_space
-        return self
-
-    def initial_state(self, initial_state: array) -> Self:
-        self.initial_state = initial_state
-        return self
-
-    def unsafe_states(self, unsafe_states: array) -> Self:
-        self.unsafe_states = unsafe_states
-        return self
 
     @staticmethod
     def parse_dataset(data: list) -> np.array:
