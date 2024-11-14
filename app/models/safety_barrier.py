@@ -150,9 +150,10 @@ class SafetyBarrier(Barrier):
 
         # -- Part 2
 
-        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
-
+        # Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+        Hx_degree = 2
         H_x = matrix_variable("H_x", self.x, Hx_degree, dim=(self.num_samples, self.dimensionality))
+
         Z = matrix_variable("Z", self.x, 0, dim=(self.dimensionality, self.dimensionality), sym=True)
 
         design_HZ = SOSProblem()
@@ -311,7 +312,8 @@ class SafetyBarrier(Barrier):
         Lg_init, Lg_unsafe_set, Lg = self.__compute_lagrangians()
         N0 = self.__compute_N0()
 
-        Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+        # Hx_degree = max([sp.poly(term).total_degree() for term in self.M_x])
+        Hx_degree = 2
         H_x = matrix_variable("H_x", list(self.x), Hx_degree, dim=(self.num_samples, self.N))
 
         Z = matrix_variable("Z", list(self.x), 0, dim=(self.N, self.N))
