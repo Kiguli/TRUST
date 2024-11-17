@@ -17,7 +17,7 @@ ENV FLASK_APP="main.py"
 ENV FLASK_ENV="development"
 ENV FLASK_DEBUG=1
 
-ENV SUPERVISOR_FLASK_COMMAND="/bin/bash -c 'source venv/bin/activate && flask run --host=0.0.0.0'"
+ENV SUPERVISOR_FLASK_COMMAND="flask run --host=0.0.0.0"
 ENV SUPERVISOR_FLASK_USER="trustapp"
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
