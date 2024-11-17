@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 
+# Ensure user is set correctly
 if [ "$SUPERVISOR_FLASK_USER" != "root" ] && [ "$SUPERVISOR_FLASK_USER" != "trustapp" ]; then
     echo "You should set SUPERVISOR_FLASK_USER to either 'trustapp' or 'root'."
     exit 1
 fi
 
+# Update user id if needed
 if [ ! -z "$WWWUSER" ]; then
-    usermod -u "$WWWUSER" sail
+    usermod -u "$WWWUSER" trustapp
 fi
 
+# Copy .env file if it doesn't exist
+if [ ! -f "/var/www/html/.env" ]; then
+    cp /var/www/html/.env.example /var/www/html/.env
+fi
+
+# Install npm packages
+. venv/bin/activate
+flask vite install
+
+# Start supervisord
 if [ $# -gt 0 ]; then
     if [ "$SUPERVISOR_FLASK_USER" = "root" ]; then
       exec "$@"
