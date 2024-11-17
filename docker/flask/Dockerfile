@@ -44,11 +44,12 @@ RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY requirements.txt /var/www/html/requirements.txt
-RUN python3 -m venv venv \
-    && chmod +x venv/bin/activate \
-    && . venv/bin/activate \
-    && python3 -m ensurepip --default-pip \
+ENV VIRTUAL_ENV=/var/www/html/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY requirements.txt .
+RUN python3 -m ensurepip --default-pip \
     && pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt
 
