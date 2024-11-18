@@ -44,21 +44,22 @@ RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENV VIRTUAL_ENV=/var/www/html/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-COPY requirements.txt .
-RUN python3 -m ensurepip --default-pip \
-    && pip install --upgrade pip setuptools wheel \
-    && pip install -r requirements.txt
-
 RUN groupadd --force -g $WWWGROUP trustapp
 RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 trustapp
 
 COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN chmod +x /usr/local/bin/start-container
+
+ENV VIRTUAL_ENV=/var/www/html/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY requirements.txt .
+RUN . venv/bin/activate \
+    && python -m ensurepip --default-pip \
+    && pip install --upgrade pip setuptools wheel \
+    && pip install -r requirements.txt
 
 EXPOSE 5000/tcp
 
