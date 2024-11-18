@@ -2,6 +2,7 @@ import tracemalloc
 from time import time
 from typing import Union
 
+import mosek
 from flask import Blueprint, Response, jsonify, request
 from flask_inertia import lazy_include, render_inertia
 import sympy as sp
@@ -9,6 +10,9 @@ import numpy as np
 from picos import SolutionFailure
 import os
 import csv
+import tempfile
+
+from werkzeug.datastructures.file_storage import FileStorage
 
 import tests
 from app.models.safety_barrier import SafetyBarrier
@@ -158,18 +162,38 @@ def _parse_uploaded_files(data: dict) -> dict:
         if not os.path.exists("storage/uploads"):
             os.makedirs("storage/uploads")
 
-        file.save(f"storage/uploads/{file.filename}")
+        # If file is MOSEK.lic, save it to a subfolder in uploads that we can then add to the env path.
+        if key == "mosek_lic":
+            __load_mosek_license(file)
+        else:
+            file.save(f"storage/uploads/{file.filename}")
 
-        with open(f"storage/uploads/{file.filename}", "r") as f:
-            # Parse CSV, JSON or txt files
-            if file.filename.endswith(".csv"):
-                data[key] = np.array(list(csv.reader(f)))
-            elif file.filename.endswith(".json"):
-                data[key] = json.load(f)
-            elif file.filename.endswith(".txt"):
-                data[key] = f.read().splitlines()
+            with open(f"storage/uploads/{file.filename}", "r") as f:
+                # Parse CSV, JSON or txt files
+                if file.filename.endswith(".csv"):
+                    data[key] = np.array(list(csv.reader(f)))
+                elif file.filename.endswith(".json"):
+                    data[key] = json.load(f)
+                elif file.filename.endswith(".txt"):
+                    data[key] = f.read().splitlines()
 
-        # Remove the file from disk
-        os.remove(f"storage/uploads/{file.filename}")
+            # Remove the file from disk
+            os.remove(f"storage/uploads/{file.filename}")
 
     return data
+
+def __load_mosek_license(file: FileStorage) -> bool:
+    """
+    Read the MOSEK licence file into this request.
+    """
+
+    # Save licence as temporary file
+    with tempfile.NamedTemporaryFile(delete=True) as temp:
+        temp.write(file.read())
+
+        # Load license
+        mosek.Env().putlicensepath(temp.name)
+
+        temp.close()
+
+    return True

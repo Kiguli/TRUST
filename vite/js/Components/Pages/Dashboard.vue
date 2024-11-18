@@ -33,6 +33,7 @@ const props = defineProps({
 // TODO: manually save state with remember and restore
 // https://inertiajs.com/remembering-state#manually-saving-state
 const data = {
+    mosek_lic: null,
     model: null,
     timing: null,
     mode: null,
@@ -192,6 +193,7 @@ onMounted(() => {
 
                 <UploadDataPanel
                     :form="form"
+                    v-model="form.mosek_lic"
                     description="Upload or drag and drop your MOSEK license file." />
             </div>
 
