@@ -2,7 +2,6 @@ import tracemalloc
 from time import time
 from typing import Union
 
-import mosek
 from flask import Blueprint, Response, jsonify, request
 from flask_inertia import lazy_include, render_inertia
 import sympy as sp
@@ -20,7 +19,6 @@ from app.models.stability import Stability
 
 bp = Blueprint("dashboard", __name__)
 
-
 def calculate_result() -> dict:
     """
     Calculate the result of the user's input.
@@ -29,10 +27,11 @@ def calculate_result() -> dict:
     """
 
     data = request.form.to_dict()
+    _license_path = None
 
     if request.files.items():
         try:
-            data = _parse_uploaded_files(data)
+            data, _license_path = _parse_uploaded_files(data)
         except Exception as e:
             return {
                 "error": "Unable to parse uploaded file(s).",
@@ -59,6 +58,9 @@ def calculate_result() -> dict:
             "error": "An unknown error occurred.",
             "description": str(e),
         }
+    finally:
+        if _license_path is not None and os.path.exists(_license_path):
+            os.remove(_license_path)
 
     time_taken = time() - start_time
 
@@ -164,7 +166,7 @@ def _parse_uploaded_files(data: dict) -> dict:
 
         # If file is MOSEK.lic, save it to a subfolder in uploads that we can then add to the env path.
         if key == "mosek_lic":
-            __load_mosek_license(file)
+            _license_path = __load_mosek_license(file)
         else:
             file.save(f"storage/uploads/{file.filename}")
 
@@ -180,20 +182,27 @@ def _parse_uploaded_files(data: dict) -> dict:
             # Remove the file from disk
             os.remove(f"storage/uploads/{file.filename}")
 
-    return data
+    return data, _license_path
 
-def __load_mosek_license(file: FileStorage) -> bool:
+def __load_mosek_license(file: FileStorage) -> str:
     """
     Read the MOSEK licence file into this request.
     """
 
+
     # Save licence as temporary file
-    with tempfile.NamedTemporaryFile(delete=True) as temp:
+    with tempfile.NamedTemporaryFile(delete=False) as temp:
         temp.write(file.read())
 
-        # Load license
-        mosek.Env().putlicensepath(temp.name)
+        _license_path = temp.name
+
+        # Load license into environment, if possible.
+        os.environ["MOSEKLM_LICENSE_FILE"] = _license_path
+
+        # Load license directly into MOSEK env.
+        import mosek
+        mosek.Env().putlicensepath(_license_path)
 
         temp.close()
 
-    return True
+    return _license_path
