@@ -27,22 +27,14 @@ def calculate_result() -> dict:
     """
 
     data = request.form.to_dict()
-    _license_path = None
-
-    if request.files.items():
-        try:
-            data, _license_path = _parse_uploaded_files(data)
-        except Exception as e:
-            return {
-                "error": "Unable to parse uploaded file(s).",
-                "description": str(e),
-            }
 
     tracemalloc.start()
 
     start_time = time()
 
     try:
+        data = _parse_uploaded_files(data)
+
         if data["mode"] == "Stability":
             results = Stability(data).calculate()
         else:
@@ -58,9 +50,6 @@ def calculate_result() -> dict:
             "error": "An unknown error occurred.",
             "description": str(e),
         }
-    finally:
-        if _license_path is not None and os.path.exists(_license_path):
-            os.remove(_license_path)
 
     time_taken = time() - start_time
 
@@ -166,7 +155,7 @@ def _parse_uploaded_files(data: dict) -> dict:
 
         # If file is MOSEK.lic, save it to a subfolder in uploads that we can then add to the env path.
         if key == "mosek_lic":
-            _license_path = __load_mosek_license(file)
+            __load_mosek_license(file)
         else:
             file.save(f"storage/uploads/{file.filename}")
 
@@ -182,27 +171,19 @@ def _parse_uploaded_files(data: dict) -> dict:
             # Remove the file from disk
             os.remove(f"storage/uploads/{file.filename}")
 
-    return data, _license_path
+    return data
 
-def __load_mosek_license(file: FileStorage) -> str:
+def __load_mosek_license(_file: FileStorage) -> bool:
     """
     Read the MOSEK licence file into this request.
     """
 
-
-    # Save licence as temporary file
     with tempfile.NamedTemporaryFile(delete=False) as temp:
-        temp.write(file.read())
+        license_contents = _file.stream.read()
+        temp.write(license_contents)
 
-        _license_path = temp.name
-
-        # Load license into environment, if possible.
-        os.environ["MOSEKLM_LICENSE_FILE"] = _license_path
-
-        # Load license directly into MOSEK env.
-        import mosek
-        mosek.Env().putlicensepath(_license_path)
+        os.environ["MOSEKLM_LICENSE_FILE"] = temp.name
 
         temp.close()
 
-    return _license_path
+    return True
