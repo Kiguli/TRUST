@@ -17,9 +17,8 @@ if [ ! -f "/var/www/html/.env" ]; then
 fi
 
 # Install and run GUI
-. venv/bin/activate
 cd vite && npm ci && cd ..
-flask vite build
+/var/www/html/venv/bin/flask vite build
 
 # Start supervisord
 if [ $# -gt 0 ]; then
