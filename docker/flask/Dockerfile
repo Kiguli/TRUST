@@ -13,13 +13,6 @@ ENV TZ=UTC
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-ENV FLASK_APP="main.py"
-ENV FLASK_ENV="development"
-ENV FLASK_DEBUG=1
-
-ENV SUPERVISOR_FLASK_COMMAND="/var/www/html/venv/bin/gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
-ENV SUPERVISOR_FLASK_USER="trustapp"
-
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
@@ -46,6 +39,13 @@ RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
 
 RUN groupadd --force -g $WWWGROUP trustapp
 RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 trustapp
+
+ENV FLASK_APP="main.py"
+ENV FLASK_ENV="production"
+ENV FLASK_DEBUG=1
+
+ENV SUPERVISOR_FLASK_COMMAND="/var/www/html/venv/bin/gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
+ENV SUPERVISOR_FLASK_USER="trustapp"
 
 COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
