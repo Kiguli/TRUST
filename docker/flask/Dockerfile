@@ -60,6 +60,8 @@ COPY vite/package.json .
 RUN . venv/bin/activate \
     && python -m ensurepip --default-pip \
     && pip install --upgrade pip setuptools wheel \
-    && pip install -r requirements.txt \
+    && pip install -r requirements.txt
+
+EXPOSE 5000/tcp
 
 ENTRYPOINT ["start-container"]
