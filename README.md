@@ -7,16 +7,16 @@
 </p>
 
 **TRUST** is an open-source software tool developed for data-driven controller synthesis of dynamical systems with unknown mathematical models, ensuring either stability or safety properties. By collecting only a single input-state trajectory from the unknown system and satisfying a rank condition that ensures the system is persistently excited according to Willems *et al.*'s fundamental lemma, **TRUST** aims to design either control Lyapunov functions (CLF) or control barrier certificates (CBC), along with their corresponding stability or safety controllers. The tool implements sum-of-squares (SOS) optimization programs solely based on data to enforce stability or safety properties across four system classes:
-- continuous-time nonlinear polynomial systems,
-- continuous-time linear systems,
-- discrete-time nonlinear polynomial systems, and
-- discrete-time linear systems.
+- _continuous-time nonlinear polynomial systems_,
+- _continuous-time linear systems_,
+- _discrete-time nonlinear polynomial systems_, and
+- _discrete-time linear systems_.
 
 **TRUST** is a Python-based web application featuring an intuitive, reactive graphic user interface (GUI) built with web technologies. It can be accessed at <https://trust.tgo.dev> or installed locally, and supports both manual data entry and data file uploads. Leveraging the power of the Python backend and a JavaScript frontend, **TRUST** is designed to be highly user-friendly and accessible across desktop, laptop, tablet, and mobile devices. We apply **TRUST** to a set of physical benchmarks with unknown dynamics, ensuring either stability or safety properties across the four supported classes of models.
 
 ## Table of Contents
 - [Artifact Evaluation](#Artifact-Evaluation)
-- [Installation](#installation)
+- [Installation](#install-instructions)
 - [Examples](#examples)
 - [Related Paper](#related-paper)
 - [Reporting Bugs](#reporting-bugs)
@@ -36,12 +36,12 @@ We have made every effort to ensure the following instructions are comprehensive
 ### Docker
 Docker is used for this project to simplify the installation process. You can download and install Docker by following their instructions for your operating system at <https://docs.docker.com/get-docker/>.
 
-### Get Mosek License
+### Mosek License
 Since the underlying packages that TRUST uses rely on the MOSEK solver, we will now install the MOSEK license (a free trial is available and it is free for academic users). Fill in your details to get a Mosek license at <https://www.mosek.com/license/request/?i=acp>.
 
 The license file will be emailed to you with instructions of where to place the file in your home directory. This license is required within the TRUST GUI, where you will be prompted to upload the file.
 
-## Install TRUST
+## Installing TRUST
 
 You can download the repository from Github at <https://github.com/thatgardnerone/TRUST>. Simply navigate to the page and click the green "Code" button, then "Download ZIP". Once downloaded, unzip the folder to your home directory which on Windows is usually `C:\Users\YourUsername` and on macOS and Linux is `/home/YourUsername`.
 
@@ -57,9 +57,8 @@ Once you have a terminal open, navigate to the `TRUST` folder by running the fol
 # On macOS and Linux
 cd ~/TRUST
 ```
-OR
+Or on Windows
 ```cmd
-# On Windows
 cd $HOME\TRUST
 ```
 
@@ -70,9 +69,8 @@ The project contains an example environment file containing the relevant environ
 # On macOS and Linux
 cp .env.example .env
 ```
-OR
+Or on Windows
 ```cmd
-# On Windows
 copy .env.example .env
 ```
 
@@ -105,9 +103,9 @@ For each of the safety examples, the following conventions are used.
     <img src="./storage/images/ctNPS_van_der_pol_oscillator.png" width="400"/>
 </p>
 
-The first figure shows a ct-NPS predator-prey system.
+The first figure shows a safe ct-NPS predator-prey system.
 
-The second figure shows a ct-NPS Van der Pol oscillator system.
+The second figure shows a safe ct-NPS Van der Pol oscillator system.
 
 ### Example 3 to 5 - Continuous Time Linear Systems (Safety)
 <p align="center">
@@ -116,11 +114,11 @@ The second figure shows a ct-NPS Van der Pol oscillator system.
 <img src="./storage/images/ctLS_two_tank.png" width="400"/>
 </p>
 
-The first figure shows a ct-LS DC motor system.
+The first figure shows a safe ct-LS DC motor system.
 
-The second figure shows a ct-LS room temperature system.
+The second figure shows a safe ct-LS room temperature system.
 
-The third figure shows a ct-LS two-tank system.
+The third figure shows a safe ct-LS two-tank system.
 
 ### Examples 6 and 7 - Discrete Time Nonlinear Polynomial Systems (Safety)
 <p align="center">
@@ -128,9 +126,9 @@ The third figure shows a ct-LS two-tank system.
 <img src="./storage/images/dtNPS_lorenz_smalltau.png" width="400"/>
 </p>
 
-The first figure shows a dt-NPS predator-prey system.
+The first figure shows a safe dt-NPS predator-prey system.
 
-The second figure shows a dt-NPS Lorenz system.
+The second figure shows a safe dt-NPS Lorenz system.
 
 ### Examples 8 to 11 - Discrete Time Linear Systems (Safety)
 
@@ -141,13 +139,62 @@ The second figure shows a dt-NPS Lorenz system.
 <img src="./storage/images/dtLS_two_tank.png" width="400"/>
 </p>
 
-The first figure shows a dt-LS DC motor system.
+The first figure shows a safe dt-LS DC motor system.
 
-The second figure shows a dt-LS room temperature system.
+The second figure shows a safe dt-LS room temperature system.
 
-The third figure shows a 3D dt-LS room temperature system.
+The third figure shows a safe 3D dt-LS room temperature system.
 
-The fourth figure shows a dt-LS two-tank system.
+The fourth figure shows a safe dt-LS two-tank system.
+
+### Examples 12 and 13 - Continuous Time Nonlinear Polynomial Systems (Stability)
+
+<p align="center">
+<img src="./storage/images/stability_ctNPS_predator_prey.png" width="400"/>
+<img src="./storage/images/stability_ctNPS_van_der_pol_oscillator.png" width="400"/>
+
+The first figure shows a stable ct-NPS predator-prey system.
+
+The second figure shows a stable ct-NPS Van der Pol oscillator system.
+
+### Examples 14 to 16 - Continuous Time Linear Systems (Stability)
+
+<p align="center">
+<img src="./storage/images/stability_ctLS_dc_motor.png" width="400"/>
+<img src="./storage/images/stability_ctLS_room_temp.png" width="400"/>
+<img src="./storage/images/stability_ctLS_two_tank.png" width="400"/>
+
+The first figure shows a stable ct-LS DC motor system.
+
+The second figure shows a stable ct-LS room temperature system.
+
+The third figure shows a stable ct-LS two-tank system.
+
+### Examples 17 and 18 - Discrete Time Nonlinear Polynomial Systems (Stability)
+
+<p align="center">
+<img src="./storage/images/stability_dtNPS_academic.png" width="400"/>
+<img src="./storage/images/stability_Lorenz_dtNPS.png" width="400"/>
+
+The first figure shows a stable dt-NPS academic system.
+
+The second figure shows a stable dt-NPS Lorenz system.
+
+### Examples 19 to 22 - Discrete Time Linear Systems (Stability)
+
+<p align="center">
+<img src="./storage/images/stability_dtLS_dc_motor.png" width="400"/>
+<img src="./storage/images/stability_dtLS_room_temp.png" width="400"/>
+<img src="./storage/images/stability_dtLS_3D_room_temp.png" width="400"/>
+<img src="./storage/images/stability_dtLS_two_tank.png" width="400"/>
+
+The first figure shows a stable dt-LS DC motor system.
+
+The second figure shows a stable dt-LS room temperature system.
+
+The third figure shows a stable 3D dt-LS room temperature system.
+
+The fourth figure shows a stable dt-LS two-tank system.
 
 ## Related Paper
 
