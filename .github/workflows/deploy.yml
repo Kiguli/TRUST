@@ -39,3 +39,9 @@ jobs:
             git pull
             docker compose up -d --build --remove-orphans --force-recreate
           EOF
+
+      - name: Reload NGINX
+        run: |
+          ssh target << 'EOF'
+            sudo nginx -s reload
+          EOF
