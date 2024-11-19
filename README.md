@@ -103,9 +103,9 @@ For each of the safety examples, the following conventions are used.
     <img src="./storage/images/ctNPS_van_der_pol_oscillator.png" width="400"/>
 </p>
 
-The first figure shows a safe ct-NPS predator-prey system.
+First figure: ct-NPS predator-prey system.
 
-The second figure shows a safe ct-NPS Van der Pol oscillator system.
+Second figure: ct-NPS Van der Pol oscillator system.
 
 ### Example 3 to 5 - Continuous Time Linear Systems (Safety)
 <p align="center">
