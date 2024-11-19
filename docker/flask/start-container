@@ -18,8 +18,7 @@ fi
 
 # Install and run GUI
 . venv/bin/activate
-flask vite install
-flask vite start
+cd vite && npm install && npm run dev && cd ..
 
 # Start supervisord
 if [ $# -gt 0 ]; then
