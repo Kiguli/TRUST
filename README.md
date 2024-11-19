@@ -114,11 +114,11 @@ The second figure shows a safe ct-NPS Van der Pol oscillator system.
 <img src="./storage/images/ctLS_two_tank.png" width="400"/>
 </p>
 
-The first figure shows a safe ct-LS DC motor system.
+First figure: ct-LS DC motor system
 
-The second figure shows a safe ct-LS room temperature system.
+Second figure: ct-LS room temperature system
 
-The third figure shows a safe ct-LS two-tank system.
+Third figure: ct-LS two-tank system
 
 ### Examples 6 and 7 - Discrete Time Nonlinear Polynomial Systems (Safety)
 <p align="center">
@@ -126,9 +126,9 @@ The third figure shows a safe ct-LS two-tank system.
 <img src="./storage/images/dtNPS_lorenz_smalltau.png" width="400"/>
 </p>
 
-The first figure shows a safe dt-NPS predator-prey system.
+First figure: dt-NPS predator-prey system
 
-The second figure shows a safe dt-NPS Lorenz system.
+Second figure: dt-NPS Lorenz system
 
 ### Examples 8 to 11 - Discrete Time Linear Systems (Safety)
 
@@ -139,13 +139,13 @@ The second figure shows a safe dt-NPS Lorenz system.
 <img src="./storage/images/dtLS_two_tank.png" width="400"/>
 </p>
 
-The first figure shows a safe dt-LS DC motor system.
+First figure: dt-LS DC motor system
 
-The second figure shows a safe dt-LS room temperature system.
+Second figure: dt-LS room temperature system
 
-The third figure shows a safe 3D dt-LS room temperature system.
+Third figure: 3D dt-LS room temperature system
 
-The fourth figure shows a safe dt-LS two-tank system.
+Fourth figure: dt-LS two-tank system
 
 ### Examples 12 and 13 - Continuous Time Nonlinear Polynomial Systems (Stability)
 
@@ -153,9 +153,9 @@ The fourth figure shows a safe dt-LS two-tank system.
 <img src="./storage/images/stability_ctNPS_predator_prey.png" width="400"/>
 <img src="./storage/images/stability_ctNPS_van_der_pol_oscillator.png" width="400"/>
 
-The first figure shows a stable ct-NPS predator-prey system.
+First figure: ct-NPS predator-prey system
 
-The second figure shows a stable ct-NPS Van der Pol oscillator system.
+Second figure: ct-NPS Van der Pol oscillator system
 
 ### Examples 14 to 16 - Continuous Time Linear Systems (Stability)
 
@@ -164,11 +164,11 @@ The second figure shows a stable ct-NPS Van der Pol oscillator system.
 <img src="./storage/images/stability_ctLS_room_temp.png" width="400"/>
 <img src="./storage/images/stability_ctLS_two_tank.png" width="400"/>
 
-The first figure shows a stable ct-LS DC motor system.
+First figure: ct-LS DC motor system
 
-The second figure shows a stable ct-LS room temperature system.
+Second figure: ct-LS room temperature system
 
-The third figure shows a stable ct-LS two-tank system.
+Third figure: ct-LS two-tank system
 
 ### Examples 17 and 18 - Discrete Time Nonlinear Polynomial Systems (Stability)
 
@@ -176,9 +176,9 @@ The third figure shows a stable ct-LS two-tank system.
 <img src="./storage/images/stability_dtNPS_academic.png" width="400"/>
 <img src="./storage/images/stability_Lorenz_dtNPS.png" width="400"/>
 
-The first figure shows a stable dt-NPS academic system.
+First figure: dt-NPS academic system
 
-The second figure shows a stable dt-NPS Lorenz system.
+Second figure: dt-NPS Lorenz system
 
 ### Examples 19 to 22 - Discrete Time Linear Systems (Stability)
 
@@ -188,13 +188,13 @@ The second figure shows a stable dt-NPS Lorenz system.
 <img src="./storage/images/stability_dtLS_3D_room_temp.png" width="400"/>
 <img src="./storage/images/stability_dtLS_two_tank.png" width="400"/>
 
-The first figure shows a stable dt-LS DC motor system.
+First figure: dt-LS DC motor system
 
-The second figure shows a stable dt-LS room temperature system.
+Second figure: dt-LS room temperature system
 
-The third figure shows a stable 3D dt-LS room tem§perature system.
+Third figure: 3D dt-LS room tem§perature system
 
-The fourth figure shows a stable dt-LS two-tank system.
+Fourth figure: dt-LS two-tank system
 
 ## Related Paper
 
