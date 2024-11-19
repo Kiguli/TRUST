@@ -192,7 +192,7 @@ The first figure shows a stable dt-LS DC motor system.
 
 The second figure shows a stable dt-LS room temperature system.
 
-The third figure shows a stable 3D dt-LS room temperature system.
+The third figure shows a stable 3D dt-LS room tem§perature system.
 
 The fourth figure shows a stable dt-LS two-tank system.
 
