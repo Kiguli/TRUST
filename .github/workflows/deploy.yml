@@ -38,5 +38,4 @@ jobs:
             docker compose down
             git pull
             docker compose up -d --build --remove-orphans --force-recreate
-            docker compose exec flask flask vite start
           EOF

@@ -61,8 +61,9 @@ RUN . venv/bin/activate \
     && pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt
 
-COPY package.json .
-RUN npm install
+COPY vite/package.json .
+RUN flask vite install \
+    && flask vite start
 
 EXPOSE 5000/tcp
 
