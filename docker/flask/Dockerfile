@@ -56,11 +56,11 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt .
-COPY vite/package.json .
-RUN . venv/bin/activate \
-    && python -m ensurepip --default-pip \
-    && pip install --upgrade pip setuptools wheel \
-    && pip install -r requirements.txt
+RUN /var/www/html/venv/python3 -m ensurepip --default-pip \
+    && /var/www/html/venv/python3 -m pip install --upgrade pip setuptools wheel \
+    && /var/www/html/venv/python3 -m pip install -r requirements.txt
+
+COPY vite/package.json ./vite/package.json
 
 EXPOSE 5000/tcp
 
