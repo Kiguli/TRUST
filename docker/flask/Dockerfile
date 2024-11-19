@@ -56,13 +56,12 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt .
+COPY vite/package.json .
 RUN . venv/bin/activate \
     && python -m ensurepip --default-pip \
     && pip install --upgrade pip setuptools wheel \
-    && pip install -r requirements.txt
-
-COPY vite/package.json .
-RUN flask vite install \
+    && pip install -r requirements.txt \
+    && flask vite install \
     && flask vite start
 
 EXPOSE 5000/tcp
