@@ -54,10 +54,6 @@ RUN chmod +x /usr/local/bin/start-container
 COPY vite/package-lock.json vite/package-lock.json
 COPY requirements.txt requirements.txt
 
-ENV VENV_PATH="/var/www/html/venv"
-RUN python3 -m venv $VENV_PATH
-ENV PATH="$VENV_PATH/bin:$PATH"
-
 RUN pip install --upgrade pip \
     && pip install gunicorn \
     && pip install -r requirements.txt
