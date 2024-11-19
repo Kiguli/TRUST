@@ -10,7 +10,7 @@ def create_app(test_config=None):
         __name__,
         instance_relative_config=True,
         template_folder='vite',
-        static_folder='static',
+        static_folder='vite/dist',
         static_url_path='/'
     )
 

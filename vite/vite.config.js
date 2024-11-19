@@ -49,6 +49,16 @@ export default defineConfig({
         }),
         flask(),
     ],
+    build: {
+        outDir: "./dist",
+        emptyOutDir: true,
+        rollupOptions: {
+            input: {
+                main: resolve("./main.js"),
+                index: resolve("./index.html"),
+            },
+        },
+    },
     resolve: {
         alias: {
             "@": resolve("./js/Components"),
