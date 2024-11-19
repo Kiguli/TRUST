@@ -58,8 +58,8 @@ ENV VENV_PATH="/var/www/html/venv"
 RUN python3 -m venv $VENV_PATH
 ENV PATH="$VENV_PATH/bin:$PATH"
 
-RUN /var/www/html/venv/bin/pip install --upgrade pip \
-    && /var/www/html/venv/bin/pip install gunicorn \
-    && /var/www/html/venv/bin/pip install -r requirements.txt
+RUN /var/www/html/venv/bin/pip install --upgrade pip --no-cache-dir \
+    && /var/www/html/venv/bin/pip install gunicorn --no-cache-dir \
+    && /var/www/html/venv/bin/pip install -r requirements.txt --no-cache-dir
 
 ENTRYPOINT ["start-container"]
