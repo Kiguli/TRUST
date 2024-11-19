@@ -22,7 +22,7 @@ RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
 RUN apt-get update && apt-get upgrade -y \
     && mkdir -p /etc/apt/keyrings \
     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev dnsutils librsvg2-bin fswatch ffmpeg nano \
-       build-essential libssl-dev libffi-dev python3-pip python3-dev python3-setuptools python3-venv libopenblas-dev
+       build-essential libssl-dev libffi-dev python3-pip python3-dev python3-setuptools libopenblas-dev
 
 RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /etc/apt/keyrings/nodesource.gpg >/dev/null \
@@ -44,7 +44,7 @@ ENV FLASK_APP="main.py"
 ENV FLASK_ENV="production"
 ENV FLASK_DEBUG=1
 
-ENV SUPERVISOR_FLASK_COMMAND="/var/www/html/venv/bin/gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
+ENV SUPERVISOR_FLASK_COMMAND="/usr/bin/gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
 ENV SUPERVISOR_FLASK_USER="trustapp"
 
 COPY docker/flask/start-container /usr/local/bin/start-container
@@ -53,5 +53,9 @@ RUN chmod +x /usr/local/bin/start-container
 
 COPY vite/package-lock.json vite/package-lock.json
 COPY requirements.txt requirements.txt
+
+RUN pip install --upgrade pip \
+    && pip install gunicorn \
+    && pip install -r requirements.txt
 
 ENTRYPOINT ["start-container"]
