@@ -62,6 +62,4 @@ RUN . venv/bin/activate \
     && pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt \
 
-EXPOSE 5000/tcp
-
 ENTRYPOINT ["start-container"]
