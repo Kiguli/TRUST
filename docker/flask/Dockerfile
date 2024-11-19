@@ -61,8 +61,6 @@ RUN . venv/bin/activate \
     && python -m ensurepip --default-pip \
     && pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt \
-    && flask vite install \
-    && flask vite start
 
 EXPOSE 5000/tcp
 

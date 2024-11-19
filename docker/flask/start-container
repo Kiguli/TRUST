@@ -16,9 +16,10 @@ if [ ! -f "/var/www/html/.env" ]; then
     cp /var/www/html/.env.example /var/www/html/.env
 fi
 
-# Install npm packages
+# Install and run GUI
 . venv/bin/activate
 flask vite install
+flask vite start
 
 # Start supervisord
 if [ $# -gt 0 ]; then
