@@ -31,12 +31,23 @@ jobs:
             StrictHostKeyChecking no
           EOF
 
-      - name: Build and run Docker container
+      - name: Update codebase
         run: |
           ssh target << 'EOF'
             cd /srv/trust.tgo.dev/current
             docker compose down
             git pull
+          EOF
+
+      - name: Build and run Docker containers
+        run: |
+          ssh target << 'EOF'
+            cd /srv/trust.tgo.dev/current
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install gunicorn
+            pip install -r requirements.txt
             docker compose up -d --build --remove-orphans --force-recreate
           EOF
 

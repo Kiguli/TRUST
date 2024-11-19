@@ -51,15 +51,4 @@ COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN chmod +x /usr/local/bin/start-container
 
-ENV VIRTUAL_ENV=/var/www/html/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-COPY requirements.txt .
-RUN /var/www/html/venv/bin/python3 -m ensurepip --default-pip \
-    && /var/www/html/venv/bin/python3 -m pip install --upgrade pip setuptools wheel gunicorn \
-    && /var/www/html/venv/bin/python3 -m pip install -r requirements.txt
-
-COPY vite/package.json ./vite/package.json
-
 ENTRYPOINT ["start-container"]
