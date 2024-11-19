@@ -23,7 +23,7 @@ def create_app(test_config=None):
     app.root_path = os.path.abspath(os.path.join(app.instance_path, '..'))
 
     app.config['INERTIA_TEMPLATE'] = "index.html"
-    app.config['VITE_AUTO_INSERT'] = True
+    app.config['VITE_AUTO_INSERT'] = False
 
     try:
         os.makedirs(app.instance_path)
