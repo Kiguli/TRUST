@@ -51,7 +51,7 @@ COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN chmod +x /usr/local/bin/start-container
 
-COPY package-lock.json package-lock.json
+COPY vite/package-lock.json vite/package-lock.json
 COPY requirements.txt requirements.txt
 
 ENTRYPOINT ["start-container"]
