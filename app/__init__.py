@@ -35,11 +35,11 @@ def create_app(test_config=None):
     Inertia(app)
     Vite(app)
 
-    @app.before_request
-    def before_request():
-        if not request.is_secure and os.environ.get('APP_ENV') == 'production':
-            url = request.url.replace('http://', 'https://', 1)
-            return redirect(url, code=302)
+    # @app.before_request
+    # def before_request():
+    #     if not request.is_secure and os.environ.get('APP_ENV') == 'production':
+    #         url = request.url.replace('http://', 'https://', 1)
+    #         return redirect(url, code=302)
 
     # --- Controllers ---
     from app.http.controllers import dashboard_controller
