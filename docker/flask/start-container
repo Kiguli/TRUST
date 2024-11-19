@@ -19,6 +19,7 @@ fi
 # Install and run GUI
 . venv/bin/activate
 flask vite install
+flask vite build
 
 # Start supervisord
 if [ $# -gt 0 ]; then

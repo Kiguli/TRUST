@@ -10,7 +10,9 @@ def create_app(test_config=None):
         __name__,
         instance_relative_config=True,
         template_folder='vite',
-        static_folder='vite')
+        static_folder='static',
+        static_url_path='/'
+    )
 
     if test_config is None:
         app.config.from_pyfile('config.py', silent=True)

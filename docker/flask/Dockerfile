@@ -17,7 +17,7 @@ ENV FLASK_APP="main.py"
 ENV FLASK_ENV="development"
 ENV FLASK_DEBUG=1
 
-ENV SUPERVISOR_FLASK_COMMAND="flask run --host=0.0.0.0"
+ENV SUPERVISOR_FLASK_COMMAND="/var/www/html/venv/bin/gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
 ENV SUPERVISOR_FLASK_USER="trustapp"
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -57,11 +57,9 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt .
 RUN /var/www/html/venv/bin/python3 -m ensurepip --default-pip \
-    && /var/www/html/venv/bin/python3 -m pip install --upgrade pip setuptools wheel \
+    && /var/www/html/venv/bin/python3 -m pip install --upgrade pip setuptools wheel gunicorn \
     && /var/www/html/venv/bin/python3 -m pip install -r requirements.txt
 
 COPY vite/package.json ./vite/package.json
-
-EXPOSE 5000/tcp
 
 ENTRYPOINT ["start-container"]
