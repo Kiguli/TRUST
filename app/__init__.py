@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, redirect, request
 from flask_inertia import Inertia
 from flask_vite import Vite
 
+load_dotenv()
 
 def create_app(test_config=None):
     app = Flask(
@@ -24,6 +25,7 @@ def create_app(test_config=None):
 
     app.config['INERTIA_TEMPLATE'] = "index.html"
     app.config['VITE_AUTO_INSERT'] = False
+    app.config['SECRET_KEY'] = os.environ.get('APP_KEY')
 
     try:
         os.makedirs(app.instance_path)
@@ -32,6 +34,12 @@ def create_app(test_config=None):
 
     Inertia(app)
     Vite(app)
+
+    @app.before_request
+    def before_request():
+        if not request.is_secure and os.environ.get('APP_ENV') == 'production':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=302)
 
     # --- Controllers ---
     from app.http.controllers import dashboard_controller
