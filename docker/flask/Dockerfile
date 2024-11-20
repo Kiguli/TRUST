@@ -42,7 +42,7 @@ RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 trustapp
 
 ENV FLASK_APP="main.py"
 ENV FLASK_ENV="production"
-ENV FLASK_DEBUG=1
+ENV FLASK_DEBUG=0
 
 ENV SUPERVISOR_FLASK_COMMAND="gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
 ENV SUPERVISOR_FLASK_USER="trustapp"
