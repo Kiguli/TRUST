@@ -7,8 +7,6 @@
     <script lang="javascript">
         {{ inertia.include_router() }}
     </script>
-
-    {{ vite_tags(static=True) }}
 </head>
 <body class="text-gray-700 bg-white min-h-full dark:text-gray-300 dark:bg-black">
 <div id="app" data-page='{{ page | tojson }}'>
