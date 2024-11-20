@@ -25,9 +25,10 @@ def create_app(test_config=None):
 
     app.config['INERTIA_TEMPLATE'] = "index.html"
     app.config['VITE_AUTO_INSERT'] = True
-    app.config['SECRET_KEY'] = os.environ.get('APP_KEY')
+    app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
+    app.config['FLASK_ENV'] = os.environ.get('FLASK_ENV')
 
-    if os.environ.get('APP_ENV') == 'production':
+    if app.config['FLASK_ENV'] == 'production':
         app.config['PREFERRED_URL_SCHEME'] = 'https'
 
     try:
