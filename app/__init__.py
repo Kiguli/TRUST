@@ -11,6 +11,7 @@ load_dotenv()
 
 
 def create_app(test_config=None):
+    # -- App Config --
     app = Flask(
         __name__,
         instance_relative_config=True,
@@ -56,9 +57,6 @@ def create_app(test_config=None):
         request.scheme = app.config["PREFERRED_URL_SCHEME"]
 
     # --- Routes ---
-    @app.route('/debug-sentry')
-    def trigger_error():
-        division_by_zero = 1 / 0
 
     # --- Controllers ---
     from app.http.controllers import dashboard_controller

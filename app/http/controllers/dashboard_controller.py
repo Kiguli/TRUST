@@ -1,23 +1,22 @@
+import csv
+import os
+import tempfile
 import tracemalloc
 from time import time
-from typing import Union
 
-from flask import Blueprint, Response, jsonify, request
-from flask_inertia import lazy_include, render_inertia
-import sympy as sp
 import numpy as np
+import sympy as sp
+from flask import Blueprint, request
+from flask_inertia import lazy_include, render_inertia
 from picos import SolutionFailure
-import os
-import csv
-import tempfile
-
+from sentry_sdk import capture_exception
 from werkzeug.datastructures.file_storage import FileStorage
 
-import tests
 from app.models.safety_barrier import SafetyBarrier
 from app.models.stability import Stability
 
 bp = Blueprint("dashboard", __name__)
+
 
 def calculate_result() -> dict:
     """
@@ -50,6 +49,7 @@ def calculate_result() -> dict:
             "error": "An unknown error occurred.",
             "description": str(e),
         }
+        capture_exception(e)
 
     time_taken = time() - start_time
 
@@ -138,6 +138,7 @@ def index():
         },
     )
 
+
 def _parse_uploaded_files(data: dict) -> dict:
     """
     Parse the uploaded files and add them to the data dictionary.
@@ -172,6 +173,7 @@ def _parse_uploaded_files(data: dict) -> dict:
             os.remove(f"storage/uploads/{file.filename}")
 
     return data
+
 
 def __load_mosek_license(_file: FileStorage) -> bool:
     """
