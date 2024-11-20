@@ -27,6 +27,8 @@
 [//]: # (If you are a reviewer for the HSCC committee, the instructions for how to install and reproduce the results of our paper can be found [here]&#40;./Artifact_Evaluation_Instructions.pdf&#41;. )
 We recommend running the tool via Docker, instructions in the installation section following.
 
+A hosted version of the tool is available at <https://trust.tgo.dev> for you to explore the tool's capabilities, but note that the capacity of the server is limited and is unlikely to perform as well as a local installation.
+
 # Install Instructions
 
 We have made every effort to ensure the following instructions are comprehensive for the Docker container under consideration.
@@ -63,7 +65,8 @@ cd $HOME\TRUST
 ```
 
 ### Copy the environment file
-The project contains an example environment file containing the relevant environment configuration variables, `.env.example`, which you can copy to a new file called `.env` by running:
+The project contains an example environment file `.env.example`, containing environment configuration variables that you may change, if needed.
+You can copy the example to a new file called `.env` by running:
     
 ```bash
 # On macOS and Linux
@@ -83,7 +86,7 @@ docker compose up --build -d
 ```
 
 ### View the tool
-Finally, you can now access the tool by navigating to `http://127.0.0.1:5000` in your web browser.
+Finally, you can now access the locally installed tool by navigating to `http://127.0.0.1:5000` in your web browser.
 
 # Examples
 
@@ -96,6 +99,8 @@ For each of the safety examples, the following conventions are used.
 - The gamma level set is shown in dashed red lines.
 - The lambda level set is shown in dashed blue lines.
 - Trajectories are shown in black, starting from the initial region and staying within the safe level set.
+
+> Note: These figures were rendered using a MATLAB script that is not included in the repository. Please feel free to reach out if you would like to know more about how these figures were generated.
 
 ### Examples 1 and 2 - Continuous Time Nonlinear Polynomial Systems (Safety)
 <p align="center">
