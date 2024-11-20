@@ -17,6 +17,14 @@ const unsafeStates = defineModel({ default: [[]] });
 const addUnsafeSet = () => {
     unsafeStates.value.push([]);
 };
+
+const removeUnsafeSet = (index) => {
+    if (unsafeStates.value.length === 1) {
+        return;
+    }
+
+    unsafeStates.value.splice(index, 1);
+};
 </script>
 
 <template>
@@ -24,7 +32,8 @@ const addUnsafeSet = () => {
         <H2>{{ title }}</H2>
         <div v-for="(state, i) in unsafeStates" :key="i" class="relative">
             <button
-                @click="unsafeStates.splice(i, 1)"
+                v-if="unsafeStates.length > 1"
+                @click="removeUnsafeSet(i)"
                 class="absolute right-0 top-3.5 text-xs text-gray-400 hover:underline"
                 type="button">
                 Remove
