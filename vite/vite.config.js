@@ -9,7 +9,7 @@ const flask = () => ({
         const envDir = join(process.cwd(), "..");
         const appUrl = fs.readFileSync(join(envDir, ".env"), "utf-8").
             split("\n").
-            find((line) => line.startsWith("APP_URL")).
+            find((line) => line.startsWith("VITE_APP_URL")).
             split("=")[1];
 
         const flaskVersion = () => {
@@ -29,7 +29,7 @@ const flask = () => ({
             server.config.logger.info("");
             server.config.logger.info(
                 `  ${colors.green("➜")}  ${colors.bold(
-                    "APP_URL")}: ${colors.cyan(
+                    "FLASK_URL")}: ${colors.cyan(
                     appUrl.replace(/:(\d+)/,
                         (_, port) => `:${colors.bold(port)}`))}`);
         }, 200);
@@ -69,6 +69,6 @@ export default defineConfig({
         port: 3000,
         strictPort: true,
         host: true,
-        origin: "https://0.0.0.0:3000"
+        origin: "http://0.0.0.0:3000",
     },
 });
