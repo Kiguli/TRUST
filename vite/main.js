@@ -7,7 +7,7 @@ import { resolvePageComponent } from './js/utilities/inertia-helpers.js';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'SinTra BC'
+const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'TRUST'
 
 createInertiaApp({
     title: title => title.trim() === '' ? appName : `${title} - ${appName}`,

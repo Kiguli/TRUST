@@ -69,6 +69,6 @@ export default defineConfig({
         port: 3000,
         strictPort: true,
         host: true,
-        origin: "http://0.0.0.0:3000"
+        origin: "https://0.0.0.0:3000"
     },
 });
