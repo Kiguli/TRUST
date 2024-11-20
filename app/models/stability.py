@@ -55,7 +55,7 @@ class Stability:
         elif self.timing == "Continuous-Time":
             H, Z = self._continuous_constraints()
 
-        P = Matrix(Z).inv() if self.dimensionality > 1 else 1 / Z.value
+        P = Matrix(Z).inv() if self.dimensionality > 1 else Matrix([1 / Z])
 
         lyapunov = Matrix(self.x).T @ P @ Matrix(self.x)
         lyapunov = np.array2string(np.array(lyapunov), separator=", ")
@@ -294,7 +294,11 @@ class Stability:
 
         problem.solve(solver="mosek")
 
-        return Matrix(H), Matrix(Z)
+        Z_val = np.array(Z)
+        if Z_val.shape != ():
+            Z_val = Matrix(Z_val)
+
+        return Matrix(H), Z_val
 
     def _continuous_constraints(self) -> array:
         # eqn = X1 @ H + H.T @ X1.T
