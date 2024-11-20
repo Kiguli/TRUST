@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: docker/flask/Dockerfile
       args:
-        WWWGROUP: '${WWWGROUP}'
+        WWWGROUP: '${WWWGROUP:-1000}'
     image: 'python3.12.3/trustapp'
     extra_hosts:
       - "host.docker.internal:host-gateway"
