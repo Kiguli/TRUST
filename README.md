@@ -18,13 +18,15 @@
 - [Artifact Evaluation](#Artifact-Evaluation)
 - [Installation](#install-instructions)
 - [Examples](#examples)
+- [Error Handling](#error-handling)
 - [Related Paper](#related-paper)
 - [Reporting Bugs](#reporting-bugs)
 - [License](#license)
 
 ## Artifact Evaluation
 
-[//]: # (If you are a reviewer for the HSCC committee, the instructions for how to install and reproduce the results of our paper can be found [here]&#40;./Artifact_Evaluation_Instructions.pdf&#41;. )
+> If you are a reviewer for the HSCC committee, the instructions for how to install and reproduce the results of our paper can be found [here](./TRUST__repeatability_instructions.pdf). 
+
 We recommend running the tool via Docker, instructions in the installation section following.
 
 A hosted version of the tool is available at <https://trust.tgo.dev> for you to explore the tool's capabilities, but note that the capacity of the server is limited and is unlikely to perform as well as a local installation.
@@ -201,6 +203,18 @@ Third figure: 3D dt-LS room tem§perature system
 
 Fourth figure: dt-LS two-tank system
 
+## Error Handling
+
+TRUST is developed as a responsive and reactive Python Flask web application, offering an **intuitive, user-friendly** interface that allows seamless interaction. If a user error occurs, TRUST provides responsive error messages to guide the user in correcting their input. Listed below are some common errors that may be returned to the user:
+
+1. For an invalid "state space", "initial set" or "unsafe set(s)": **"Provided spaces are not valid. Please provide valid lower and upper bounds."**
+2. For an invalid shape of \(\Theta(x)\): **"Theta\_x should be of shape ({N}, {n})".**
+3. If monomials are provided with commas: **"Monomial terms should be split by semicolon"**; if they are not suitable for the set dimensions: **"Monomials must be in terms of x1 (to xn)"**; if some unspecified error has occurred with the monomials: **"Invalid monomial terms."**
+4. If the rank condition is not met for nonlinear polynomial systems: **"The number of samples, T, must be greater than the number of monomial terms, N"**, or **"The N0 data is not full row-rank"** depending on which part of the rank condition failed. Similarly for linear systems: **"The number of samples, T, must be greater than the number of states, n"**, or **"The X0 data is not full row-rank"** again depending on which part of the rank condition failed.
+5. If data files are uploaded with an invalid format: **"Unable to parse uploaded file(s)".**
+6. If the MOSEK solver cannot find a solution for the given values: **"Solution Failure,"** with a dynamic error description provided by the solver. If the MOSEK solver did find a solution but the solution does not contain an SOS decomposition: **"No SOS decomposition found,"** with a dynamic error description. Similarly, if the solution does not contain valid SOS constraints: **"Constraints are not sum-of-squares."**
+7. Any other errors in the tool will be caught with the generic error message: **"An unknown error occurred,"** and a brief description that can be reported.
+
 ## Related Paper
 
 The arXiv version of the paper is located [here]().
@@ -214,12 +228,12 @@ The arXiv version of the paper is located [here]().
 ### Citing TRUST
 
 ```
-@misc{tbc,
+@misc{trust2024,
       title={TRUST: Controller Synthesis for Unknown Models Using a Single Trajectory}, 
       author={Jamie Gardner and Ben Wooding and Amy Nejati and Abolfazl Lavaei},
       year={2024},
       eprint={tbc},
-      archivePrefix={arXiv},
+      journal={tbc},
       primaryClass={eess.SY}
 }
 ```
