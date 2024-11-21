@@ -15,7 +15,7 @@ ENV FLASK_APP="main.py"
 ENV FLASK_ENV="production"
 ENV FLASK_DEBUG=0
 ENV PIP_ROOT_USER_ACTION=ignore
-ENV SUPERVISOR_FLASK_COMMAND="gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
+ENV SUPERVISOR_FLASK_COMMAND="gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000 --timeout 1800 --access-logfile - --error-logfile -"
 ENV SUPERVISOR_FLASK_USER="trustapp"
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
