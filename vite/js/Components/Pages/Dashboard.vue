@@ -122,8 +122,6 @@ watchEffect(() => {
         const filename = form.X0.name;
         const extension = filename.split(".").pop().toLowerCase();
 
-        console.log(extension);
-
         if (extension === "csv") {
             const reader = new FileReader();
             reader.readAsText(form.X0);
