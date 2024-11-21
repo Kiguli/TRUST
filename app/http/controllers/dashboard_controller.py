@@ -19,7 +19,6 @@ from app.models.stability import Stability
 
 bp = Blueprint("dashboard", __name__)
 
-monomial_terms = []
 
 def calculate_result() -> dict:
     """
@@ -47,7 +46,7 @@ def calculate_result() -> dict:
             "description": str(e),
         }
     except Exception as e:
-        raise e
+        # raise e
         results = {
             "error": "An unknown error occurred.",
             "description": str(e),
@@ -88,9 +87,6 @@ def validate_monomials() -> bool | tuple[Any, list[Any]]:
         except sp.SympifyError:
             return False
 
-    global monomial_terms
-    monomial_terms = terms
-
     # Get the x terms, and check if they are in the correct format
     # i.e. x1 to xn, where n is the number of dimensions
     # e.g. x1**2; x2 + 2 is valid if dimensions = 2
@@ -117,12 +113,20 @@ def generate_theta_x():
     Generate the Theta_x matrix for a given list of terms and variables.
     """
 
-    terms = monomial_terms
     monomials = request.get_json()["monomials"]
-
-    if not terms or not monomials:
+    if not monomials["terms"]:
         return False
 
+    # Use sympy to validate the monomials
+    terms = []
+    for monomial in monomials["terms"]:
+        try:
+            terms.append(sp.sympify(monomial))
+        except sp.SympifyError:
+            return False
+
+    if not terms:
+        return False
 
     variables = [sp.Symbol(f"x{i}") for i in range(1, monomials["dimensions"] + 1)]
 
