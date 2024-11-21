@@ -4,11 +4,19 @@ LABEL maintainer="Jamie Gardner"
 
 WORKDIR /var/www/html
 
+ARG WWWGROUP
+ARG NODE_VERSION=20
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
-
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP="main.py"
+ENV FLASK_ENV="production"
+ENV FLASK_DEBUG=0
+ENV PIP_ROOT_USER_ACTION=ignore
+ENV SUPERVISOR_FLASK_COMMAND="gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
+ENV SUPERVISOR_FLASK_USER="trustapp"
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -20,8 +28,6 @@ RUN apt-get update && apt-get upgrade -y \
     && mkdir -p /etc/apt/keyrings \
     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev dnsutils librsvg2-bin fswatch ffmpeg nano \
        build-essential libssl-dev libffi-dev libopenblas-dev
-
-ARG NODE_VERSION=20
 
 RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /etc/apt/keyrings/nodesource.gpg >/dev/null \
@@ -36,17 +42,10 @@ RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ARG WWWGROUP
-
 RUN groupadd --force -g $WWWGROUP trustapp
 RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 trustapp
 
-ENV FLASK_APP="main.py"
-ENV FLASK_ENV="production"
-ENV FLASK_DEBUG=0
-
-ENV SUPERVISOR_FLASK_COMMAND="gunicorn -w 5 'main:create_app()' -b 0.0.0.0:8000"
-ENV SUPERVISOR_FLASK_USER="trustapp"
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/python3.12
 
 COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -54,7 +53,9 @@ RUN chmod +x /usr/local/bin/start-container
 
 COPY . .
 
-ENV PIP_ROOT_USER_ACTION=ignore
+RUN mkdir -p /var/www/html/storage/uploads \
+    && chown -R trustapp:trustapp /var/www/html \
+    && chmod -R 775 /var/www/html/storage
 
 RUN pip install --upgrade pip \
     && pip install gunicorn \
