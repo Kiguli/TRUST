@@ -55,6 +55,8 @@ RUN chmod +x /usr/local/bin/start-container
 COPY vite/package-lock.json vite/package-lock.json
 COPY requirements.txt requirements.txt
 
+ENV PIP_ROOT_USER_ACTION=ignore
+
 RUN pip install --upgrade pip \
     && pip install gunicorn \
     && pip install -r requirements.txt
