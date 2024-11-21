@@ -27,6 +27,7 @@ const props = defineProps({
     timings: Array,
     modes: Array,
     monomials: Array | Boolean,
+    theta_x: Array | Boolean,
     result: null,
 });
 
@@ -160,7 +161,55 @@ watchDebounced(monomials, () => {
 const submitBtn = ref();
 
 const autofill = () => {
-    // TODO: autofill matrix theta(x) based on monomials
+    form.errors.monomials = undefined;
+
+    if (!monomials.value) {
+        return;
+    }
+
+    const monomialTerms = monomials.value.split(";").map((term) => {
+        // error if contains comma
+        if (term.includes(",")) {
+            form.errors.monomials = "Monomial terms should be split by semicolon";
+            return;
+        }
+
+        return term.trim();
+    });
+
+    if (!monomialTerms) {
+        form.errors.monomials = "Invalid monomial terms";
+        return;
+    }
+
+    router.post(
+        route("dashboard.index"),
+        {
+            monomials: {
+                terms: monomialTerms,
+                dimensions: dimension.value,
+            },
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ["monomials", "theta_x"],
+            onSuccess: () => {
+                if (props.monomials) {
+                    form.monomials = props.monomials;
+                } else {
+                    form.errors.monomials = `Monomials must be in terms of x1` +
+                        (dimension.value > 1 ? ` to x${dimension.value}` : "");
+                }
+
+                if (props.theta_x) {
+                    form.theta_x = props.theta_x;
+                } else {
+                    form.errors.theta_x = "Failed to autofill matrix &theta;(x)";
+                }
+            },
+        },
+    );
 };
 
 onMounted(() => {

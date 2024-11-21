@@ -1,8 +1,10 @@
 import csv
+import json
 import os
 import tempfile
 import tracemalloc
 from time import time
+from typing import Any
 
 import numpy as np
 import sympy as sp
@@ -17,6 +19,7 @@ from app.models.stability import Stability
 
 bp = Blueprint("dashboard", __name__)
 
+monomial_terms = []
 
 def calculate_result() -> dict:
     """
@@ -44,7 +47,7 @@ def calculate_result() -> dict:
             "description": str(e),
         }
     except Exception as e:
-        # raise e
+        raise e
         results = {
             "error": "An unknown error occurred.",
             "description": str(e),
@@ -62,7 +65,7 @@ def calculate_result() -> dict:
     return results
 
 
-def validate_monomials() -> bool | list:
+def validate_monomials() -> bool | tuple[Any, list[Any]]:
     """
     Validate the user's input monomials.
     Monomials should be a list of strings separated by a semicolon, e.g. x1; 2 * x2; x3 - x1
@@ -80,11 +83,13 @@ def validate_monomials() -> bool | list:
     # Use sympy to validate the monomials
     terms = []
     for monomial in monomials["terms"]:
-        print(monomial)
         try:
             terms.append(sp.sympify(monomial))
         except sp.SympifyError:
             return False
+
+    global monomial_terms
+    monomial_terms = terms
 
     # Get the x terms, and check if they are in the correct format
     # i.e. x1 to xn, where n is the number of dimensions
@@ -105,6 +110,39 @@ def validate_monomials() -> bool | list:
                 return False
 
     return monomials
+
+
+def generate_theta_x():
+    """
+    Generate the Theta_x matrix for a given list of terms and variables.
+    """
+
+    terms = monomial_terms
+    monomials = request.get_json()["monomials"]
+
+    if not terms or not monomials:
+        return False
+
+
+    variables = [sp.Symbol(f"x{i}") for i in range(1, monomials["dimensions"] + 1)]
+
+    Theta_x = np.zeros((len(terms), len(variables)), dtype=object)
+
+    for row_idx, term in enumerate(terms):
+        term_poly = sp.Poly(term, variables)
+
+        # Check each variable in the term
+        for col_idx, var in enumerate(variables):
+            exponent = term_poly.degree(var)
+
+            if exponent > 0:  # If the variable has a positive exponent in the term
+                # Create a modified term by reducing the exponent of `var` by 1
+                modified_term = term / var
+                # Set this modified term in the corresponding column
+                Theta_x[row_idx, col_idx] = modified_term
+                break  # Stop after setting the term in the correct column
+
+    return np.array2string(Theta_x, separator=", ").replace("[", "").replace("],", "").replace("]", "")
 
 
 @bp.route("/", endpoint="index", methods=["GET", "POST"])
@@ -134,6 +172,7 @@ def index():
             "timings": timings,
             "modes": modes,
             "monomials": lazy_include(validate_monomials),
+            "theta_x": lazy_include(generate_theta_x),
             "result": lazy_include(calculate_result),
         },
     )
