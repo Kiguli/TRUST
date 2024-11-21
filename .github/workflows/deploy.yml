@@ -40,6 +40,7 @@ jobs:
           ssh target << 'EOF'
             cd /srv/trust.tgo.dev/current
             docker compose down
+            git reset --hard HEAD 
             git pull
             docker compose up -d --build --remove-orphans --force-recreate
           EOF
