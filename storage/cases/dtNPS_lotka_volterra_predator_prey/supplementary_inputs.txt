@@ -1,0 +1,40 @@
+-- Stability --
+
+Monomials:
+    x1; x2; x1*x2
+
+Theta(x):
+    1, 0
+    0, 1
+    0, x1
+
+-- Safety --
+
+Monomials:
+    x1; x2; x1*x2
+
+Theta(x):
+    1, 0
+    0, 1
+    x2, 0
+
+State Space:
+    x1: -2, 2
+    x2: -1, 1
+
+Initial State:
+    x1: 0.5, 1
+    x2: 0.2, 0.4
+
+Unsafe State(s):
+    x1: -2, -1.5
+    x2: 0.8, 1
+
+    x1: -2, -1.5
+    x2: -1, -0.8
+
+    x1: 1.6, 2
+    x2: 0.85, 1
+
+    x1: 1.6, 2
+    x2: -1, -0.8

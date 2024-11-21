@@ -1,0 +1,16 @@
+-- Safety --
+
+State Space:
+    x1: -3, 3
+    x2: -3, 3
+
+Initial State:
+    x1: -1, 1
+    x2: -1, 1
+
+Unsafe State(s):
+    x1: 1.5, 3
+    x2: 1.5, 3
+
+    x1: -3, -1.5
+    x2: -3, -1.5
