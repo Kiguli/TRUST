@@ -2,9 +2,6 @@ FROM python:3.12.2-bookworm
 
 LABEL maintainer="Jamie Gardner"
 
-ARG WWWGROUP
-ARG NODE_VERSION=20
-
 WORKDIR /var/www/html
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -24,6 +21,8 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev dnsutils librsvg2-bin fswatch ffmpeg nano \
        build-essential libssl-dev libffi-dev libopenblas-dev
 
+ARG NODE_VERSION=20
+
 RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /etc/apt/keyrings/nodesource.gpg >/dev/null \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION.x jammy main" > /etc/apt/sources.list.d/nodesource.list \
@@ -36,6 +35,8 @@ RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ARG WWWGROUP
 
 RUN groupadd --force -g $WWWGROUP trustapp
 RUN useradd -ms /bin/bash --no-user-group -g $WWWGROUP -u 1337 trustapp
