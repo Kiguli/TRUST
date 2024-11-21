@@ -34,9 +34,6 @@ def create_app(test_config=None):
     app.config["FLASK_ENV"] = os.environ.get("FLASK_ENV")
     app.config["PREFERRED_URL_SCHEME"] = os.environ.get("PREFERRED_URL_SCHEME")
 
-    if app.config["FLASK_ENV"] == "production":
-        app.config["PREFERRED_URL_SCHEME"] = "https"
-
     try:
         os.makedirs(app.instance_path)
     except OSError:
