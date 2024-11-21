@@ -21,13 +21,3 @@ if [ $# -gt 0 ]; then
 else
     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 fi
-
-
-# Copy .env file if it doesn't exist
-if [ ! -f "/var/www/html/.env" ]; then
-    cp /var/www/html/.env.example /var/www/html/.env
-fi
-
-# Install and run GUI
-cd vite && npm ci && cd ..
-flask vite build

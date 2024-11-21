@@ -52,13 +52,18 @@ COPY docker/flask/start-container /usr/local/bin/start-container
 COPY docker/flask/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN chmod +x /usr/local/bin/start-container
 
-COPY vite/package-lock.json vite/package-lock.json
-COPY requirements.txt requirements.txt
+COPY . .
 
 ENV PIP_ROOT_USER_ACTION=ignore
 
 RUN pip install --upgrade pip \
     && pip install gunicorn \
     && pip install -r requirements.txt
+
+RUN test -f .env || cp .env.example .env
+
+RUN cd /var/www/html/vite \
+    && npm ci \
+    && npm run build
 
 ENTRYPOINT ["start-container"]
