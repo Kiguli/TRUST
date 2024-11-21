@@ -18,7 +18,7 @@ import VectorInputSet from "@/Organisms/VectorInputSet.vue";
 import route from "~/utilities/route.js";
 
 import { LinkIcon } from "@heroicons/vue/16/solid/index.js";
-import Acrynom from "@/Atoms/Acrynom.vue";
+import Acronym from "@/Atoms/Acronym.vue";
 import MatrixInput from "@/Organisms/MatrixInput.vue";
 import P from "@/Atoms/P.vue";
 
@@ -50,7 +50,6 @@ const data = {
 
 const form = useForm("TRUST", data);
 
-const samples = ref(0);
 const dimension = ref(1);
 
 const deltaTime = ref(0);
@@ -106,8 +105,59 @@ const calculateTxt = computed(() => {
 const monomials = ref();
 
 watchEffect(() => {
-    dimension.value = Math.max(form.X0?.length ?? 1, 1);
-    samples.value = form.X0?.[0]?.length ?? 0;
+    if (!form.X0) {
+        return;
+    }
+
+    let dims = null;
+
+    // If it's an array, form.X0?.length is the dimension.
+    if (Array.isArray(form.X0)) {
+        dims = form.X0?.length ?? 1;
+
+        dimension.value = Math.max(dims, 1);
+    }
+    else {
+        // User has uploaded a file. Get the File name
+        const filename = form.X0.name;
+        const extension = filename.split(".").pop().toLowerCase();
+
+        console.log(extension);
+
+        if (extension === "csv") {
+            const reader = new FileReader();
+            reader.readAsText(form.X0);
+
+            reader.onload = () => {
+                const data = reader.result;
+                const rows = data.split("\n")
+                    .filter((row) => row.trim().length > 0)
+
+                dimension.value = rows.length;
+            }
+        }
+        else if (extension === "json") {
+            const reader = new FileReader();
+            reader.readAsText(form.X0);
+
+            reader.onload = () => {
+                const data = JSON.parse(reader.result);
+                dimension.value = data.length;
+            }
+        }
+        else if (extension === "txt") {
+            const reader = new FileReader();
+            reader.readAsText(form.X0);
+
+            reader.onload = () => {
+                const data = reader.result;
+                const rows = data.split("\n")
+                    .filter((row) => row.trim().length > 0)
+
+                dimension.value = rows.length;
+            }
+        }
+    }
 
     // TODO: show datasets error when inconsistent shapes
 });
@@ -470,8 +520,8 @@ onMounted(() => {
                     </a>
                 </h3>
                 <span class="line-clamp-2 text-xs text-gray-400">
-                    Stabili<Acrynom>T</Acrynom>y and Safety Cont<Acrynom>R</Acrynom>oller Synthesis for Black-Box
-                    Systems <Acrynom>U</Acrynom>sing a <Acrynom>S</Acrynom>ingle <Acrynom>T</Acrynom>rajectory
+                    Stabili<Acronym>T</Acronym>y and Safety Cont<Acronym>R</Acronym>oller Synthesis for Black-Box
+                    Systems <Acronym>U</Acronym>sing a <Acronym>S</Acronym>ingle <Acronym>T</Acronym>rajectory
                 </span>
             </div>
             <div class="flex items-center gap-x-2">
