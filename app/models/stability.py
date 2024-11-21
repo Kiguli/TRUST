@@ -530,7 +530,8 @@ class Stability:
 
         theta_x = self._get_value('theta_x')
 
-        theta_x = [row.split(", ") for row in theta_x.split("\n")]
+        if isinstance(theta_x, str):
+            theta_x = [row.split(", ") for row in theta_x.split("\n")]
 
         if np.array(theta_x).shape != (self.N, self.dimensionality):
             raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(theta_x).shape}")
