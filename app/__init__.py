@@ -32,6 +32,7 @@ def create_app(test_config=None):
     app.config["VITE_AUTO_INSERT"] = True
     app.config["SECRET_KEY"] = os.environ.get("FLASK_KEY")
     app.config["FLASK_ENV"] = os.environ.get("FLASK_ENV")
+    app.config["PREFERRED_URL_SCHEME"] = os.environ.get("PREFERRED_URL_SCHEME")
 
     if app.config["FLASK_ENV"] == "production":
         app.config["PREFERRED_URL_SCHEME"] = "https"
