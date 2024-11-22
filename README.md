@@ -6,7 +6,7 @@
 <img src="storage/images/TRUST.png" alt="" width="800"/>
 </p>
 
-**TRUST** is an  open-source software tool developed for data-driven controller synthesis of dynamical systems with unknown mathematical models, ensuring either stability or safety properties. By collecting only a single input-state trajectory from the unknown system and satisfying a rank condition that ensures the system is persistently excited according to Willems *et al.*'s fundamental lemma, **TRUST** aims to design either control Lyapunov functions (CLF) or control barrier certificates (CBC), along with their corresponding stability or safety controllers. The tool implements sum-of-squares (SOS) optimization programs solely based on data to enforce stability or safety properties across four system classes:
+**TRUST** is an open-source software tool developed for data-driven controller synthesis of dynamical systems with unknown mathematical models, ensuring either stability or safety properties. By collecting only a single input-state trajectory from the unknown system and satisfying a rank condition that ensures the system is persistently excited according to Willems *et al.*'s fundamental lemma, **TRUST** aims to design either control Lyapunov functions (CLF) or control barrier certificates (CBC), along with their corresponding stability or safety controllers. The tool implements sum-of-squares (SOS) optimization programs solely based on data to enforce stability or safety properties across four system classes:
 - _continuous-time nonlinear polynomial systems_,
 - _continuous-time linear systems_,
 - _discrete-time nonlinear polynomial systems_, and
