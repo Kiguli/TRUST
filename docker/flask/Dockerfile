@@ -29,12 +29,7 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev dnsutils librsvg2-bin fswatch ffmpeg nano \
        build-essential libssl-dev libffi-dev libopenblas-dev
 
-RUN mkdir -m 0755 -p /etc/apt/keyrings/ \
-    && curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /etc/apt/keyrings/nodesource.gpg >/dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
-    && echo "deb [signed-by=/etc/apt/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
-    && chmod a+r /etc/apt/keyrings/nodesource.gpg \
-    && apt-get update \
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g npm \
     && apt-get -y autoremove \
