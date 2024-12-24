@@ -5,7 +5,7 @@ LABEL maintainer="Jamie Gardner"
 WORKDIR /var/www/html
 
 ARG WWWGROUP
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
