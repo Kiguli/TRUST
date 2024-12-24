@@ -238,8 +238,8 @@ The arXiv version of the paper is located [here]().
 }
 ```
 
-## Reporting Bugs
-If you encounter any issues or have feedback, please open an issue in the repository. We appreciate your input and will address it as soon as possible.
+## Contributing
+If you encounter any issues or have feedback, please open an issue in the repository or submit a pull request. We appreciate your input and will address it as soon as possible.
 
 ## License
 This work is licensed under a
