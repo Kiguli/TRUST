@@ -20,7 +20,7 @@
 - [Examples](#examples)
 - [Error Handling](#error-handling)
 - [Related Paper](#related-paper)
-- [Reporting Bugs](#reporting-bugs)
+- [Contributing Guide](#contributing-guide)
 - [License](#license)
 
 ## Artifact Evaluation
@@ -238,7 +238,7 @@ The arXiv version of the paper is located [here]().
 }
 ```
 
-## Contributing
+## Contributing Guide
 If you encounter any issues or have feedback, please open an issue in the repository or submit a pull request. We appreciate your input and will address it as soon as possible.
 
 ## License
