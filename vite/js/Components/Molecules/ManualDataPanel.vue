@@ -59,7 +59,7 @@ watchEffect(() => {
             aria-autocomplete="none"
             autocapitalize="off"
             autocomplete="off"
-            class="whitespace-nowrap overflow-y-scroll block min-h-24 w-full rounded-lg border-0 outline-none px-2 font-mono py-1.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:bg-gray-950"
+            class="text-nowrap overflow-y-scroll block min-h-24 w-full rounded-lg border-0 outline-none px-2 font-mono py-1.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:bg-gray-950"
             name="dataset"
             placeholder="e.g. 1.2, 2.3, 3.4"
             required
