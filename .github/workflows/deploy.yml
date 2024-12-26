@@ -39,10 +39,11 @@ jobs:
         run: |
           ssh target << 'EOF'
             cd /srv/trust.tgo.dev/current
-            docker compose down
-            git reset --hard HEAD 
             git pull
-            docker compose up -d --build --remove-orphans --force-recreate
+            cd ..
+            source venv/bin/activate
+            pip install -r current/requirements.txt
+            deactivate
           EOF
 
       - name: Reload NGINX
