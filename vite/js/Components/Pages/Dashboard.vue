@@ -511,7 +511,7 @@ onMounted(() => {
                     class="mb-0.5 text-base font-medium text-gray-800 dark:text-gray-200">
                     <a
                         class="flex w-min cursor-pointer items-center gap-x-0.5"
-                        href="https://github.com/kiguli/sintrajbc"
+                        href="https://github.com/thatgardnerone/trust"
                         target="_blank">
                         <span class="inline-block flex-none">TRUST</span>
                         <LinkIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" />
