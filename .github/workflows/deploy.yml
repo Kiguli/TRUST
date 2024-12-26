@@ -38,12 +38,17 @@ jobs:
       - name: Update app
         run: |
           ssh target << 'EOF'
+            # Update code
             cd /srv/trust.tgo.dev/current
             git pull
+            # Update dependencies
             cd ..
             source venv/bin/activate
             pip install -r current/requirements.txt
             deactivate
+            # Update frontend
+            cd current
+            flask vite build
           EOF
 
       - name: Reload NGINX
