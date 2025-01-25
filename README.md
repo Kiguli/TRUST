@@ -228,7 +228,7 @@ The arXiv version of the paper is located [here]().
 ### Citing TRUST
 
 ```
-@misc{trust2025,
+@misc{TRUST2025,
       title={TRUST: StabiliTy and Safety ContRoller Synthesis for Unknown Dynamical Models Using a Single Trajectory}, 
       author={Jamie Gardne, Ben Wooding, Amy Nejati, and Abolfazl Lavaei},
       year={2025},
