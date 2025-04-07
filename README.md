@@ -229,12 +229,13 @@ The arXiv version of the paper is located [here]().
 
 ```
 @misc{TRUST2025,
-      title={TRUST: StabiliTy and Safety ContRoller Synthesis for Unknown Dynamical Models Using a Single Trajectory}, 
-      author={Jamie Gardne, Ben Wooding, Amy Nejati, and Abolfazl Lavaei},
+      title={TRUST: Stability and Safety Controller Synthesis for Unknown Dynamical Models Using a Single Trajectory}, 
+      author={Jamie Gardner and Ben Wooding and Amy Nejati and Abolfazl Lavaei},
       year={2025},
-      eprint={tbc},
-      journal={28th ACM International Conference on Hybrid Systems: Computation and Control (HSCC 2025)},
-      primaryClass={eess.SY}
+      eprint={2503.08081},
+      archivePrefix={arXiv},
+      primaryClass={eess.SY},
+      url={https://arxiv.org/abs/2503.08081}, 
 }
 ```
 
