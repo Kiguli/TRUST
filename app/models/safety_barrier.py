@@ -35,8 +35,6 @@ class SafetyBarrier(Barrier):
         self.problem = SOSProblem()
 
     def calculate(self):
-        results = None
-
         if self.timing == "Discrete-Time":
             results = self._discrete_system()
         elif self.timing == "Continuous-Time":

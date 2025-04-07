@@ -40,15 +40,16 @@ jobs:
           ssh target << 'EOF'
             # Update code
             cd /srv/trust.tgo.dev/current
-            git pull
+            git reset --hard HEAD
+            git pull 
             # Update dependencies
             cd ..
             source venv/bin/activate
-            pip install -r current/requirements.txt
-            deactivate
+            pip install --quiet -r current/requirements.txt
             # Update frontend
-            cd current
-            flask vite build
+            cd current/vite
+            nvm use --lts
+            npm build
           EOF
 
       - name: Reload NGINX

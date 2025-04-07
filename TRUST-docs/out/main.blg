@@ -1,0 +1,62 @@
+This is BibTeX, Version 0.99d (TeX Live 2024)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: ieeetran.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Database file #1: biblio.bib
+Warning--entry type for "Yuan_SumOfSquares_py" isn't style-file defined
+--line 451 of file biblio.bib
+Warning--I didn't find a database entry for "krstic1995lean"
+Warning--I didn't find a database entry for "ramos2007mathematical"
+-- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
+-- http://www.michaelshell.org/tex/ieeetran/bibtex/
+-- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
+Warning--empty journal in wang2024convex
+
+Done.
+You've used 18 entries,
+            4087 wiz_defined-function locations,
+            922 strings with 10757 characters,
+and the built_in function-call counts, 13254 in all, are:
+= -- 1062
+> -- 319
+< -- 108
++ -- 172
+- -- 55
+* -- 633
+:= -- 1983
+add.period$ -- 39
+call.type$ -- 18
+change.case$ -- 18
+chr.to.int$ -- 252
+cite$ -- 19
+duplicate$ -- 958
+empty$ -- 1065
+format.name$ -- 70
+if$ -- 3080
+int.to.chr$ -- 0
+int.to.str$ -- 18
+missing$ -- 165
+newline$ -- 81
+num.names$ -- 18
+pop$ -- 401
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 2
+skip$ -- 1016
+stack$ -- 0
+substring$ -- 616
+swap$ -- 762
+text.length$ -- 24
+text.prefix$ -- 0
+top$ -- 5
+type$ -- 18
+warning$ -- 1
+while$ -- 63
+width$ -- 20
+write$ -- 192
+(There were 4 warnings)
