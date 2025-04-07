@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Configure SSH
@@ -26,8 +26,8 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/github
           chmod 600 ~/.ssh/github
           cat >> ~/.ssh/config <<EOF
-          Host target
-            HostName $SSH_HOST
+          Host target 
+            Hostname $SSH_HOST
             User $SSH_USER
             Port 2202
             IdentityFile ~/.ssh/github
@@ -36,20 +36,20 @@ jobs:
           EOF
 
       - name: Update app
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           ssh target << 'EOF'
-            # Update code
             cd /srv/trust.tgo.dev/current
             git reset --hard HEAD
-            git pull 
-            # Update dependencies
+            git pull
             cd ..
             source venv/bin/activate
             pip install --quiet -r current/requirements.txt
-            # Update frontend
+            deactivate
             cd current/vite
-            nvm use --lts
-            npm build
+            source ~/.zshrc
+            npm run build
           EOF
 
       - name: Reload NGINX
