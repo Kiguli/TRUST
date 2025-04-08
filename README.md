@@ -217,7 +217,7 @@ TRUST is developed as a responsive and reactive Python Flask web application, of
 
 ## Related Paper
 
-The arXiv version of the paper is located [here]().
+The arXiv version of the paper is located [here](https://arxiv.org/abs/2503.08081).
 
 ### Authors
 - [Jamie Gardner](https://github.com/thatgardnerone)
