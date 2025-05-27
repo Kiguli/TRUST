@@ -217,7 +217,7 @@ TRUST is developed as a responsive and reactive Python Flask web application, of
 
 ## Related Paper
 
-The arXiv version of the paper is located [here](https://arxiv.org/abs/2503.08081).
+This work was accepted to the Hybrid Systems Computation and Control (HSCC) Conference 2025 and is located [here](https://dl.acm.org/doi/10.1145/3716863.3718036). The arXiv version of the paper is located [here](https://arxiv.org/abs/2503.08081).
 
 ### Authors
 - [Jamie Gardner](https://github.com/thatgardnerone)
@@ -228,14 +228,12 @@ The arXiv version of the paper is located [here](https://arxiv.org/abs/2503.0808
 ### Citing TRUST
 
 ```
-@misc{TRUST2025,
-      title={TRUST: Stability and Safety Controller Synthesis for Unknown Dynamical Models Using a Single Trajectory}, 
-      author={Jamie Gardner and Ben Wooding and Amy Nejati and Abolfazl Lavaei},
-      year={2025},
-      eprint={2503.08081},
-      archivePrefix={arXiv},
-      primaryClass={eess.SY},
-      url={https://arxiv.org/abs/2503.08081}, 
+@inproceedings{TRUST2025,
+  title={TRUST: StabiliTy and Safety ContRoller Synthesis for Unknown Dynamical Models Using a Single Trajectory},
+  author={Gardner, Jamie and Wooding, Ben and Nejati, Amy and Lavaei, Abolfazl},
+  booktitle={Proceedings of the 28th ACM International Conference on Hybrid Systems: Computation and Control},
+  pages={1--16},
+  year={2025}
 }
 ```
 
