@@ -1,6 +1,5 @@
 # TRUST
-
-[//]: # ([![DOI]&#40;https://zenodo.org/badge/788965518.svg&#41;]&#40;https://zenodo.org/doi/10.5281/zenodo.11085376&#41;[![CC BY 4.0][cc-by-shield]][cc-by])
+[![DOI](https://zenodo.org/badge/739478882.svg)](https://zenodo.org/doi/10.5281/zenodo.17062659)[![Deploy flask](https://github.com/Kiguli/TRUST/actions/workflows/deploy.yml/badge.svg)](https://github.com/Kiguli/TRUST/actions/workflows/deploy.yml)[![Create and publish a Docker image](https://github.com/Kiguli/TRUST/actions/workflows/package.yml/badge.svg)](https://github.com/Kiguli/TRUST/actions/workflows/package.yml)[![CC BY 4.0][cc-by-shield]][cc-by]
 
 <p align="center">
 <img src="storage/images/TRUST.png" alt="" width="800"/>
