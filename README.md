@@ -87,7 +87,102 @@ docker compose up --build -d
 ```
 
 ### View the tool
-Finally, you can now access the locally installed tool by navigating to `http://127.0.0.1:5000` in your web browser.
+Finally, you can now access the locally installed tool by navigating to `http://127.0.0.1:8000` in your web browser.
+
+## Local Development (without Docker)
+
+For development or server deployment without Docker, you can set up TRUST using pyenv and Poetry.
+
+### Install pyenv
+
+pyenv allows you to manage multiple Python versions. Install it following the instructions for your OS:
+
+**macOS (using Homebrew):**
+```bash
+brew install pyenv
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Linux:**
+```bash
+curl https://pyenv.run | bash
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Install Python 3.12.10
+
+```bash
+pyenv install 3.12.10
+```
+
+### Install Poetry
+
+```bash
+pip install poetry
+```
+
+### Set up the project
+
+```bash
+cd ~/TRUST
+
+# Use Python 3.12.10 for this project
+pyenv local 3.12.10
+
+# Install dependencies
+poetry install
+
+# Copy environment file
+cp .env.example .env
+```
+
+### Build the frontend
+
+```bash
+cd vite
+npm ci
+npm run build
+cd ..
+```
+
+### Run the application
+
+```bash
+poetry run python main.py
+```
+
+The application will be available at `https://127.0.0.1:5000`.
+
+### Upgrading an existing server
+
+If you have an existing server installation (e.g., using a venv with an older Python version), you can upgrade as follows:
+
+```bash
+# Install Python 3.12.10 via pyenv
+pyenv install 3.12.10
+
+# Navigate to the project directory
+cd /srv/trust.tgo.dev
+
+# Remove old venv and create new one with Python 3.12.10
+rm -rf venv
+~/.pyenv/versions/3.12.10/bin/python -m venv venv
+source venv/bin/activate
+
+# Install Poetry and dependencies
+pip install poetry
+cd current
+poetry install --only main
+
+# Rebuild frontend
+cd vite
+npm ci
+npm run build
+```
 
 # Examples
 
