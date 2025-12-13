@@ -16,6 +16,7 @@
 ## Table of Contents
 - [Artifact Evaluation](#Artifact-Evaluation)
 - [Installation](#install-instructions)
+- [Local Development](#local-development-without-docker)
 - [Examples](#examples)
 - [Error Handling](#error-handling)
 - [Related Paper](#related-paper)
@@ -173,9 +174,12 @@ rm -rf venv
 ~/.pyenv/versions/3.12.10/bin/python -m venv venv
 source venv/bin/activate
 
+# Pull latest changes
+cd current
+git pull
+
 # Install Poetry and dependencies
 pip install poetry
-cd current
 poetry install --only main
 
 # Rebuild frontend
@@ -293,7 +297,7 @@ First figure: dt-LS DC motor system
 
 Second figure: dt-LS room temperature system
 
-Third figure: 3D dt-LS room tem§perature system
+Third figure: 3D dt-LS room temperature system
 
 Fourth figure: dt-LS two-tank system
 
