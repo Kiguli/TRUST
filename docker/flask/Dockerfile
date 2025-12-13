@@ -1,4 +1,4 @@
-FROM python:3.12.2-bookworm
+FROM python:3.12.10-bookworm
 
 LABEL maintainer="Jamie Gardner"
 
@@ -51,9 +51,9 @@ RUN mkdir -p /var/www/html/storage/uploads \
     && chown -R trustapp:trustapp /var/www/html \
     && chmod -R 775 /var/www/html/storage
 
-RUN pip install --upgrade pip \
-    && pip install gunicorn \
-    && pip install -r requirements.txt
+RUN pip install --upgrade pip poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --only main --no-interaction --no-ansi
 
 RUN test -f .env || cp .env.example .env
 

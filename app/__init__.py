@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask_inertia import Inertia
 from flask_vite import Vite
 from sentry_sdk.integrations.flask import FlaskIntegration
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -50,15 +51,14 @@ def create_app(test_config=None):
         environment=app.config["FLASK_ENV"],
     )
 
-    @app.before_request
-    def before_request():
-        request.scheme = app.config["PREFERRED_URL_SCHEME"]
-
     # --- Routes ---
 
     # --- Controllers ---
     from app.http.controllers import dashboard_controller
 
     app.register_blueprint(dashboard_controller.bp)
+
+    # Trust proxy headers (X-Forwarded-Proto, X-Forwarded-Host, etc.)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     return app

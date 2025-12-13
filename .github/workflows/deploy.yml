@@ -45,10 +45,23 @@ jobs:
             git pull
             cd ..
             source venv/bin/activate
-            pip install --quiet -r current/requirements.txt
-            deactivate
-            cd current/vite
+
+            # Verify Python version
+            python_version=$(python -V 2>&1 | cut -d' ' -f2)
+            if [[ ! "$python_version" =~ ^3\.12\.10 ]]; then
+              echo "Warning: Python version is $python_version, expected 3.12.10"
+              echo "Please update Python using pyenv: pyenv install 3.12.10"
+            fi
+
+            # Install dependencies using Poetry
+            pip install --quiet poetry
+            cd current
+            poetry install --only main --no-interaction
+
+            # Build frontend
+            cd vite
             source ~/.zshrc
+            npm ci
             npm run build
           EOF
 
