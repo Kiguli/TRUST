@@ -43,7 +43,7 @@ sentry-sdk = {version = "^2.18.0", extras = ["flask"]}
 
 # Build tools
 setuptools = "^78.1.1"
-wheel = "^0.43.0"
+wheel = "^0.46.2"
 Cython = "^3.0.10"
 
 # Development
