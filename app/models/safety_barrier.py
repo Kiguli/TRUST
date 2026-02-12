@@ -462,7 +462,7 @@ class SafetyBarrier(Barrier):
 
             for i in range(self.N):
                 expr = self.M_x[i]
-                N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}))
+                N0[i, t] = float(expr.subs({k: val for k, val in zip(self.x, x_t)}, simultaneous=True))
 
         # Rank conditions
         assert self.num_samples > self.N, "The number of samples, T, must be greater than the number of monomial terms, N."
@@ -563,8 +563,8 @@ class SafetyBarrier(Barrier):
             elif str(item.name).startswith("Z"):
                 Z_dict[item.name] = item.value
 
-        H_x = H_x.subs({key: value for key, value in H_x_dict.items()})
-        Z = Z.subs({key: value for key, value in Z_dict.items()})
+        H_x = H_x.subs({key: value for key, value in H_x_dict.items()}, simultaneous=True)
+        Z = Z.subs({key: value for key, value in Z_dict.items()}, simultaneous=True)
 
         return H_x, Z
 
