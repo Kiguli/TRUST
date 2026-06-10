@@ -53,7 +53,7 @@ RUN mkdir -p /var/www/html/storage/uploads \
 
 RUN pip install --upgrade pip poetry \
     && poetry config virtualenvs.create false \
-    && poetry lock --no-update --no-interaction --no-ansi \
+    && poetry lock --no-interaction --no-ansi \
     && poetry install --only main --no-interaction --no-ansi
 
 RUN test -f .env || cp .env.example .env
