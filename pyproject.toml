@@ -75,7 +75,7 @@ tomli = "^2.0.1"
 typing_extensions = "^4.12.2"
 tzdata = "^2024.1"
 zipp = "^3.19.2"
-cryptography = "^46.0.3"
+cryptography = "^48.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pip-audit = "^2.7.0"
