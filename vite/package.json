@@ -24,7 +24,7 @@
     "@vueuse/core": "^11.0.3"
   },
   "overrides": {
-    "axios": "^1.16.0",
+    "axios": "^1.18.1",
     "follow-redirects": "^1.16.0",
     "proxy-from-env": "^2.1.0",
     "qs": "^6.15.2"
