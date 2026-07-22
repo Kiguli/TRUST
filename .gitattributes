@@ -1,0 +1,10 @@
+# Files baked into the Linux Docker image must use LF regardless of the
+# checkout platform's core.autocrlf setting. On a Windows checkout with
+# autocrlf=true these were converted to CRLF, so `COPY . .` baked a CRLF
+# shebang into the entrypoint and the container died with
+#   /usr/bin/env: 'bash\r': No such file or directory   (exit 127)
+docker/flask/start-container   text eol=lf
+docker/flask/supervisord.conf  text eol=lf
+docker/flask/Dockerfile        text eol=lf
+docker/flask/*                 text eol=lf
+*.sh                           text eol=lf
