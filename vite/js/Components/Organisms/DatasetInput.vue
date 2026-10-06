@@ -46,10 +46,10 @@ const modes = [{ title: "Manual" }, { title: "Upload" }];
                     <button
                         :class="[
                             selected
-                                ? 'bg-white text-gray-600 shadow dark:bg-violet-900/75 dark:text-white'
-                                : 'text-gray-500 hover:bg-white/[0.20] dark:hover:bg-gray-800',
+                                ? 'bg-white text-gray-600 shadow-sm dark:bg-violet-900/75 dark:text-white'
+                                : 'text-gray-500 hover:bg-white/20 dark:hover:bg-gray-800',
                         ]"
-                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-25">
+                        class="h-10 w-full rounded-lg py-2 text-sm font-medium leading-5 ring-white/60 focus:outline-hidden focus:ring-2 disabled:cursor-not-allowed disabled:opacity-25">
                         {{ mode.title }}
                     </button>
                 </Tab>

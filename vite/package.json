@@ -10,12 +10,11 @@
     "@headlessui/vue": "^1.7.22",
     "@heroicons/vue": "^2.1.5",
     "@inertiajs/vue3": "^1.2.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-vue": "^6.0.3",
-    "autoprefixer": "^10.4.19",
     "picocolors": "^1.0.1",
-    "postcss": "^8.5.25",
-    "prettier": "^3.3.3",
-    "prettier-plugin-tailwindcss": "^0.6.5",
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.1.0",
     "vue": "^3.5.43"
@@ -27,6 +26,6 @@
     "axios": "^1.20.0",
     "follow-redirects": "^1.16.0",
     "proxy-from-env": "^2.1.0",
-    "qs": "^6.15.2"
+    "qs": "^6.16.0"
   }
 }

@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { join, resolve } from "path";
 import vue from "@vitejs/plugin-vue";
+import tailwindcss from "@tailwindcss/vite";
 import colors from "picocolors";
 import fs from "fs";
 
@@ -47,6 +48,7 @@ export default defineConfig({
                 },
             },
         }),
+        tailwindcss(),
         flask(),
     ],
     build: {

@@ -61,7 +61,7 @@ const updateMatrix = (i, event) => {
         <div
             v-for="i in dimensions"
             :key="i"
-            class="mt-2 flex rounded-md shadow-sm">
+            class="mt-2 flex rounded-md shadow-xs">
             <Label :for="`x${i}`">
                 x<sub class="mt-1">{{ i }}</sub>
             </Label>

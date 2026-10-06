@@ -46,7 +46,7 @@ const removeUnsafeSet = (index) => {
         </div>
         <div class="flex">
             <button
-                class="mt-2 flex h-10 items-center rounded-md bg-gray-600/75 px-4 text-base text-gray-50 outline-none hover:bg-blue-700/75 ring-2 ring-inset ring-transparent focus:ring-blue-600 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5"
+                class="mt-2 flex h-10 items-center rounded-md bg-gray-600/75 px-4 text-base text-gray-50 outline-hidden hover:bg-blue-700/75 ring-2 ring-inset ring-transparent focus:ring-blue-600 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5"
                 type="button"
                 @click.prevent="addUnsafeSet">
                 Add unsafe set

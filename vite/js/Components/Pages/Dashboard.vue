@@ -320,7 +320,7 @@ onMounted(() => {
                 <P>
                     The auto-calculated dimensions from your dataset.
                 </P>
-                <div class="mt-2 flex rounded-md shadow-sm">
+                <div class="mt-2 flex rounded-md shadow-xs">
                     <Label class="opacity-30" for="dimensions">
                         Dimensions
                     </Label>
@@ -346,7 +346,7 @@ onMounted(() => {
                         <Pre>x{{ dimension }}</Pre>.
                     </span>
                 </P>
-                <div class="mt-2 flex rounded-md shadow-sm">
+                <div class="mt-2 flex rounded-md shadow-xs">
                     <Label for="monomials">
                         Monomials
                     </Label>
@@ -383,11 +383,11 @@ onMounted(() => {
                         </P>
                         <P class="text-xs text-gray-400 dark:text-gray-500">
                             The matrix should be
-                            <Pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N x n</Pre>
+                            <Pre class="px-1 py-0.5 rounded-sm bg-gray-500/10 inline">N x n</Pre>
                             where
-                            <Pre class="px-1 py-0.5 rounded bg-gray-500/10 inline">N</Pre>
+                            <Pre class="px-1 py-0.5 rounded-sm bg-gray-500/10 inline">N</Pre>
                             is the number of monomial terms and
-                            <Pre class="px-1 py-0.5 rounded dark:bg-gray-500/10 bg-gray-400/10 inline">n</Pre>
+                            <Pre class="px-1 py-0.5 rounded-sm dark:bg-gray-500/10 bg-gray-400/10 inline">n</Pre>
                             is the number of dimensions.
                         </P>
                     </template>
@@ -420,7 +420,7 @@ onMounted(() => {
 
             <div v-if="result && !form.processing">
                 <div
-                    class="bg-gray-700/50 w-full px-2 py-1 font-mono text-sm space-y-1 text-gray-100 dark:text-gray-200 overflow-clip rounded dark:shadow-md dark:shadow-gray-950/20">
+                    class="bg-gray-700/50 w-full px-2 py-1 font-mono text-sm space-y-1 text-gray-100 dark:text-gray-200 overflow-clip rounded-sm dark:shadow-md dark:shadow-gray-950/20">
                     <p class="text-sm">
                         <span class="font-bold">INFO:</span>
                         Calculated in
@@ -434,7 +434,7 @@ onMounted(() => {
                 </div>
 
                 <div v-if="result.error"
-                     class="mt-1.5 w-full font-mono text-sm text-gray-100 dark:text-gray-200 rounded overflow-clip dark:shadow-md dark:shadow-red-950/20">
+                     class="mt-1.5 w-full font-mono text-sm text-gray-100 dark:text-gray-200 rounded-sm overflow-clip dark:shadow-md dark:shadow-red-950/20">
                     <p class="bg-red-800 px-2 py-1">
                         <span class="font-bold">Error:</span>
                         {{ result.error }}
@@ -526,7 +526,7 @@ onMounted(() => {
                 <button
                     ref="submitBtn"
                     :disabled="form.processing"
-                    class="order-1 flex h-min items-baseline gap-x-1 rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-none ring-2 ring-inset ring-transparent hover:bg-blue-700/75 focus:ring-gray-100 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
+                    class="order-1 flex h-min items-baseline gap-x-1 rounded-md bg-blue-600/75 px-4 py-2 text-base text-gray-50 outline-hidden ring-2 ring-inset ring-transparent hover:bg-blue-700/75 focus:ring-gray-100 active:bg-blue-800/75 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600/75 sm:px-5 sm:py-2.5"
                     type="submit"
                     v-html="calculateTxt" />
                 <button

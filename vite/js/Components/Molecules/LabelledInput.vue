@@ -18,7 +18,7 @@ defineProps({
 
 <template>
     <div
-        class="mt-2 flex rounded-md shadow-sm">
+        class="mt-2 flex rounded-md shadow-xs">
         <Label
             :class="[disabled ? 'text-gray-400' : 'text-gray-500 dark:text-gray-200']"
             :for="id">

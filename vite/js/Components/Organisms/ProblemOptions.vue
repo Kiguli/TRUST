@@ -58,7 +58,7 @@ onMounted(() => {
                                 ? 'cursor-not-allowed opacity-30'
                                 : 'cursor-pointer',
                         ]"
-                        class="relative ring-2 ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-none">
+                        class="relative ring-2 ring-transparent flex rounded-lg px-4 py-3 shadow-md focus:outline-hidden">
                         <div class="flex w-full items-center justify-between">
                             <div class="flex items-center">
                                 <div class="text-sm">

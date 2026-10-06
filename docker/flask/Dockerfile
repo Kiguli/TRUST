@@ -5,7 +5,7 @@ LABEL maintainer="Jamie Gardner"
 WORKDIR /var/www/html
 
 ARG WWWGROUP
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev dnsutils librsvg2-bin fswatch ffmpeg nano \
        build-essential libssl-dev libffi-dev libopenblas-dev
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g npm \
     && apt-get -y autoremove \

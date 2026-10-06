@@ -13,8 +13,6 @@ services:
       - '${GUNICORN_PORT:-8000}:8000'
     environment:
       WWW_USER: '${WWW_USER:-www-data}'
-    volumes:
-      - '.:/var/www/html'
     networks:
       - trustapp
 
