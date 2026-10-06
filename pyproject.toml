@@ -14,7 +14,7 @@ python = "~3.12.10"
 Flask = "^3.1.0"
 flask-inertia = "^0.9"
 flask-vite = "^0.5.1"
-Werkzeug = "^3.1.4"
+Werkzeug = "^3.1.9"
 Jinja2 = "^3.1.6"
 gunicorn = "^23.0.0"
 
