@@ -4,14 +4,27 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 concurrency:
-  group: deploy
-  cancel-in-progress: true
+  group: deploy-${{ github.event_name }}-${{ github.event.pull_request.number || 'production' }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deployment
+        run: bash scripts/check-deploy.sh
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
 
     steps:
       - name: Configure SSH
@@ -35,38 +48,15 @@ jobs:
             StrictHostKeyChecking no
           EOF
 
-      - name: Update app
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
+      - name: Deploy isolated release
         run: |
-          ssh target << 'EOF'
+          ssh target bash -se -- "$GITHUB_SHA" << 'EOF'
+            set -euo pipefail
+            expected_sha="$1"
+            [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
             cd /srv/trust.tgo.dev/current
-            git reset --hard HEAD
-            git pull
-            cd ..
-            source venv/bin/activate
-
-            # Verify Python version
-            python_version=$(python -V 2>&1 | cut -d' ' -f2)
-            if [[ ! "$python_version" =~ ^3\.12\.10 ]]; then
-              echo "Warning: Python version is $python_version, expected 3.12.10"
-              echo "Please update Python using pyenv: pyenv install 3.12.10"
-            fi
-
-            # Install dependencies using Poetry
-            pip install --quiet poetry
-            cd current
-            poetry install --only main --no-interaction
-
-            # Build frontend
-            cd vite
-            source ~/.zshrc
-            npm ci
-            npm run build
-          EOF
-
-      - name: Reload NGINX
-        run: |
-          ssh target << 'EOF'
-            sudo nginx -s reload
+            test "$(git remote get-url origin)" = "https://github.com/Kiguli/TRUST.git"
+            git fetch origin main
+            test "$(git rev-parse origin/main)" = "$expected_sha"
+            git show "$expected_sha:scripts/deploy.sh" | bash -se -- "$expected_sha"
           EOF
