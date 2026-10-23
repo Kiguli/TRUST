@@ -42,7 +42,7 @@ watchdog = "^4.0.1"
 sentry-sdk = {version = "^2.18.0", extras = ["flask"]}
 
 # Build tools
-setuptools = "^83.0.0"
+setuptools = "^84.1.0"
 wheel = "^0.46.2"
 Cython = "^3.0.10"
 
