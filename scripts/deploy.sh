@@ -10,6 +10,8 @@ old_runtime=$(readlink -f "$base/venv")
 test -L "$base/current"
 test -L "$base/venv"
 release=$(mktemp -d "$base/releases/${expected_sha:0:12}-XXXXXX")
+# mktemp creates the directory 0700; nginx must traverse it to reach trust.sock.
+chmod 755 "$release"
 activated=false
 stage_pid=''
 stage_socket="$release/stage.sock"
