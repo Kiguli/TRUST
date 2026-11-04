@@ -9,11 +9,13 @@ from contextlib import contextmanager
 from time import time
 from typing import Any, Optional
 
+import mosek
 import numpy as np
 import sympy as sp
 from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
 from picos import SolutionFailure
+from picos.solvers.solver_mosek import MOSEKSolver
 from sentry_sdk import capture_exception
 from werkzeug.datastructures.file_storage import FileStorage
 
@@ -32,9 +34,10 @@ LICENSE_KEY = "mosek_lic"
 MAX_DIMENSIONS = 100
 """Largest state dimension accepted when validating monomials."""
 
-# MOSEK reads its licence location from the process environment and tracemalloc is process-wide,
-# so only one calculation may run at a time in each worker process. This keeps one user's licence
-# from being used for another user's calculation if the server runs threaded workers.
+# Each calculation installs its own MOSEK environment in PICOS, which PICOS shares process-wide, and
+# tracemalloc is process-wide too, so only one calculation may run at a time in each worker process.
+# This keeps one user's licence from being used for another user's calculation if the server runs
+# threaded workers.
 _calculation_lock = threading.Lock()
 
 
@@ -257,34 +260,54 @@ def _parse_uploaded_files(data: dict) -> dict:
 @contextmanager
 def _mosek_license(file: Optional[FileStorage]):
     """
-    Make an uploaded MOSEK licence available to the solver for the current calculation only.
+    Run the calculation with its own MOSEK environment, licensed by the uploaded licence if any.
 
-    MOSEK finds its licence through the MOSEKLM_LICENSE_FILE environment variable. The licence is
-    written to a private temporary file, and afterwards the file is deleted and the variable is
-    restored, so a user's licence is neither left on the server nor reused for other users.
+    The uploaded licence is written to a private temporary file, which is deleted when the
+    calculation ends, so a user's licence is neither left on the server nor used for anyone else.
+    Without an upload, MOSEK searches for a licence as usual (MOSEKLM_LICENSE_FILE, then
+    ~/mosek/mosek.lic), so a licence installed on the server keeps working.
     """
 
-    if file is None or not file.filename:
-        yield
-        return
-
-    previous = os.environ.get("MOSEKLM_LICENSE_FILE")
-    descriptor, path = tempfile.mkstemp(prefix="mosek-", suffix=".lic")
+    path = None
 
     try:
-        with os.fdopen(descriptor, "wb") as license_file:
-            license_file.write(file.stream.read())
+        if file is not None and file.filename:
+            descriptor, path = tempfile.mkstemp(prefix="mosek-", suffix=".lic")
+            with os.fdopen(descriptor, "wb") as license_file:
+                license_file.write(file.stream.read())
 
-        os.environ["MOSEKLM_LICENSE_FILE"] = path
-
-        yield
+        with _mosek_environment(path):
+            yield
     finally:
-        if previous is None:
-            os.environ.pop("MOSEKLM_LICENSE_FILE", None)
-        else:
-            os.environ["MOSEKLM_LICENSE_FILE"] = previous
+        if path is not None:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
+
+
+@contextmanager
+def _mosek_environment(license_path: Optional[str]):
+    """
+    Make PICOS solve with a new MOSEK environment until the block ends.
+
+    PICOS keeps one MOSEK environment for every solve in the process, and MOSEK only reads the
+    licence location when an environment is created. Reusing it would ignore every licence
+    uploaded after a worker's first calculation, and a licence it had checked out would stay
+    available to other users' calculations. Afterwards the environment's licences are checked in
+    and the environment is removed, so the next solve starts from a new one.
+    """
+
+    environment = mosek.Env(licensefile=license_path)
+    MOSEKSolver.mosekEnvironment = environment
+
+    try:
+        yield environment
+    finally:
+        if MOSEKSolver.__dict__.get("mosekEnvironment") is environment:
+            del MOSEKSolver.mosekEnvironment
 
         try:
-            os.remove(path)
-        except FileNotFoundError:
+            environment.checkinall()
+        except mosek.Error:
             pass

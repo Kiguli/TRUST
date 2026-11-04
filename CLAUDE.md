@@ -83,6 +83,7 @@ Key computation flow:
 
 - Never pass user input to `sympy.sympify`, `parse_expr`, `S()` or `eval`: they execute code. Parse monomials and Theta(x) entries with `parse_polynomial` / `parse_monomials` from `app/models/expressions.py`, which only accept polynomials in `x1`…`xn` and bound their size.
 - Never build filesystem paths from client-supplied filenames. Parse uploads in memory; the filename is only used to choose the format.
+- Run every solve for a request inside `_mosek_license` in the dashboard controller. PICOS shares one MOSEK environment per process, and MOSEK fixes an environment's licence when it is created, so each calculation gets a new environment licensed by its own upload (or the server's default licence) and discarded afterwards.
 
 ## Key Dependencies
 

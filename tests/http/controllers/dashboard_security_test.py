@@ -4,12 +4,18 @@ import os
 import stat
 import tempfile
 
+import mosek
 import pytest
+from picos.solvers.solver_mosek import MOSEKSolver
 from werkzeug.datastructures import FileStorage
 
 from app import create_app
 from app.http.controllers import dashboard_controller
-from app.http.controllers.dashboard_controller import UploadError, _mosek_license
+from app.http.controllers.dashboard_controller import (
+    UploadError,
+    _mosek_environment,
+    _mosek_license,
+)
 from tests import app, client
 
 LICENSE_VARIABLE = "MOSEKLM_LICENSE_FILE"
@@ -204,69 +210,139 @@ def test_a_calculation_with_an_unreadable_upload_reports_the_error(client):
 # --- MOSEK licence ---
 
 
+class FakeEnvironment:
+    """Stands in for mosek.Env, recording the licence it was given and whether it was checked in."""
+
+    def __init__(self, licensefile=None):
+        self.licensefile = licensefile
+        self.checked_in = False
+
+    def checkinall(self):
+        self.checked_in = True
+
+
+@pytest.fixture
+def no_picos_environment(monkeypatch):
+    """Start without a MOSEK environment in PICOS, and restore whatever was there afterwards."""
+
+    monkeypatch.delattr(MOSEKSolver, "mosekEnvironment", raising=False)
+
+
+@pytest.fixture
+def fake_environments(monkeypatch, no_picos_environment) -> list:
+    """Replace mosek.Env with FakeEnvironment, and collect every environment created."""
+
+    created = []
+
+    def create(licensefile=None):
+        created.append(FakeEnvironment(licensefile))
+        return created[-1]
+
+    monkeypatch.setattr(dashboard_controller.mosek, "Env", create)
+    return created
+
+
 def licence_file(contents: bytes = b"licence contents") -> FileStorage:
     return FileStorage(stream=io.BytesIO(contents), filename="mosek.lic")
 
 
-def test_the_licence_is_only_available_during_the_calculation(monkeypatch):
+def test_the_uploaded_licence_licenses_a_new_environment(fake_environments, monkeypatch):
     monkeypatch.delenv(LICENSE_VARIABLE, raising=False)
 
     with _mosek_license(licence_file()):
-        path = os.environ[LICENSE_VARIABLE]
+        [environment] = fake_environments
+        path = environment.licensefile
 
+        assert MOSEKSolver._get_environment() is environment
         assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
         with open(path, "rb") as file:
             assert file.read() == b"licence contents"
 
-    assert LICENSE_VARIABLE not in os.environ
+    assert environment.checked_in
+    assert "mosekEnvironment" not in vars(MOSEKSolver)
     assert not os.path.exists(path)
+    assert LICENSE_VARIABLE not in os.environ  # the process environment is left alone
 
 
-def test_a_previous_licence_setting_is_restored(monkeypatch):
+def test_without_a_licence_mosek_searches_as_usual(fake_environments, monkeypatch):
     monkeypatch.setenv(LICENSE_VARIABLE, "/opt/mosek/mosek.lic")
 
-    with _mosek_license(licence_file()):
-        path = os.environ[LICENSE_VARIABLE]
-        assert path != "/opt/mosek/mosek.lic"
+    for file in (None, FileStorage(stream=io.BytesIO(b""), filename="")):
+        with _mosek_license(file):
+            assert MOSEKSolver._get_environment() is fake_environments[-1]
+            assert fake_environments[-1].licensefile is None
 
-    assert os.environ[LICENSE_VARIABLE] == "/opt/mosek/mosek.lic"
-    assert not os.path.exists(path)
+        assert os.environ[LICENSE_VARIABLE] == "/opt/mosek/mosek.lic"
+
+    assert len(fake_environments) == 2
+    assert all(environment.checked_in for environment in fake_environments)
 
 
-@pytest.mark.parametrize("previous", [None, "/opt/mosek/mosek.lic"])
-def test_the_licence_is_removed_even_if_the_calculation_fails(monkeypatch, previous):
-    if previous is None:
-        monkeypatch.delenv(LICENSE_VARIABLE, raising=False)
-    else:
-        monkeypatch.setenv(LICENSE_VARIABLE, previous)
-
+def test_the_licence_is_removed_even_if_the_calculation_fails(fake_environments):
     with pytest.raises(RuntimeError):
         with _mosek_license(licence_file()):
-            path = os.environ[LICENSE_VARIABLE]
             raise RuntimeError("solver failed")
 
-    assert os.environ.get(LICENSE_VARIABLE) == previous
-    assert not os.path.exists(path)
+    [environment] = fake_environments
+    assert environment.checked_in
+    assert "mosekEnvironment" not in vars(MOSEKSolver)
+    assert not os.path.exists(environment.licensefile)
 
 
-def test_nothing_changes_without_a_licence(monkeypatch):
-    monkeypatch.setenv(LICENSE_VARIABLE, "/opt/mosek/mosek.lic")
+def test_picos_solves_with_a_new_mosek_environment_each_time(no_picos_environment):
+    """Uses the real MOSEK and PICOS, so it fails if PICOS stops using the installed environment."""
 
-    with _mosek_license(None):
-        assert os.environ[LICENSE_VARIABLE] == "/opt/mosek/mosek.lic"
+    environments = []
+    for _ in range(2):
+        with _mosek_environment(None) as environment:
+            assert isinstance(environment, mosek.Env)
+            assert MOSEKSolver._get_environment() is environment
+            environments.append(environment)
 
-    with _mosek_license(FileStorage(stream=io.BytesIO(b""), filename="")):
-        assert os.environ[LICENSE_VARIABLE] == "/opt/mosek/mosek.lic"
+        assert "mosekEnvironment" not in vars(MOSEKSolver)
+
+    assert environments[0] is not environments[1]
 
 
-@pytest.mark.parametrize("fails", [False, True])
-def test_a_calculation_leaves_no_licence_behind(client, tmp_path, monkeypatch, fails):
+def test_every_calculation_uses_its_own_licence(client, tmp_path, monkeypatch, no_picos_environment):
     """
-    The model is replaced by a stub, because PICOS shares one MOSEK environment per process and
-    a fake licence would otherwise stay configured for the rest of the test session.
+    Three calculations in one process with the real solver: two with different (invalid) uploaded
+    licences and one without. MOSEK names the licence file it tried in its error message, which
+    shows that a later upload is not ignored and that no licence carries over to the next user.
     """
 
     monkeypatch.delenv(LICENSE_VARIABLE, raising=False)
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    licence_paths = []
+    mkstemp = tempfile.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        descriptor, path = mkstemp(*args, **kwargs)
+        if kwargs.get("prefix") == "mosek-":
+            licence_paths.append(path)
+        return descriptor, path
+
+    monkeypatch.setattr(tempfile, "mkstemp", recording_mkstemp)
+
+    descriptions = []
+    for licence in (b"invalid licence A", b"invalid licence B", None):
+        files = {} if licence is None else {"mosek_lic": (io.BytesIO(licence), "mosek.lic")}
+        response = partial_reload(client, "result", data=calculation_form(**files))
+
+        assert response.status_code == 200
+        descriptions.append(response.json["props"]["result"].get("description", ""))
+
+    first, second = licence_paths
+    assert first in descriptions[0]
+    assert second in descriptions[1] and first not in descriptions[1]
+    assert first not in descriptions[2] and second not in descriptions[2]
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_a_calculation_leaves_no_licence_behind(client, tmp_path, monkeypatch, fake_environments, fails):
+    """The model is replaced by a stub that reads the licence its solver would be given."""
+
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     seen = {}
 
@@ -275,8 +351,8 @@ def test_a_calculation_leaves_no_licence_behind(client, tmp_path, monkeypatch, f
             pass
 
         def calculate(self):
-            seen["path"] = os.environ[LICENSE_VARIABLE]
-            with open(seen["path"], "rb") as file:
+            seen["environment"] = MOSEKSolver._get_environment()
+            with open(seen["environment"].licensefile, "rb") as file:
                 seen["licence"] = file.read()
 
             if fails:
@@ -291,10 +367,12 @@ def test_a_calculation_leaves_no_licence_behind(client, tmp_path, monkeypatch, f
 
     assert response.status_code == 200
     assert seen["licence"] == b"licence contents"
-    assert os.path.dirname(seen["path"]) == str(tmp_path)
+    assert seen["environment"] is fake_environments[0]
+    assert seen["environment"].checked_in
+    assert os.path.dirname(seen["environment"].licensefile) == str(tmp_path)
     assert ("error" in response.json["props"]["result"]) is fails
     assert list(tmp_path.iterdir()) == []
-    assert LICENSE_VARIABLE not in os.environ
+    assert "mosekEnvironment" not in vars(MOSEKSolver)
 
 
 # --- Request size ---
