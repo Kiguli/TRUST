@@ -77,7 +77,12 @@ Key computation flow:
 
 ### Data Storage
 - `storage/cases/` - Example benchmark datasets with CSV files (X0T, X1T, U0T matrices)
-- `storage/uploads/` - Temporary file uploads (auto-cleaned)
+- Uploaded datasets are parsed in memory and never written to disk. An uploaded MOSEK licence only exists in a private temporary file while its own calculation runs, and is deleted afterwards.
+
+## Security Notes
+
+- Never pass user input to `sympy.sympify`, `parse_expr`, `S()` or `eval`: they execute code. Parse monomials and Theta(x) entries with `parse_polynomial` / `parse_monomials` from `app/models/expressions.py`, which only accept polynomials in `x1`…`xn` and bound their size.
+- Never build filesystem paths from client-supplied filenames. Parse uploads in memory; the filename is only used to choose the format.
 
 ## Key Dependencies
 
@@ -94,3 +99,5 @@ Key variables in `.env`:
 - `FLASK_KEY` - Secret key for sessions
 - `SENTRY_DSN` - Error monitoring (optional)
 - `GUNICORN_PORT` - Docker container port (default: 8000)
+- `FLASK_RUN_HOST` - Interface the development server (`main.py`) listens on (default: 127.0.0.1)
+- `MAX_CONTENT_LENGTH` - Largest accepted request body in bytes (default: 16 MiB)

@@ -4,8 +4,9 @@ from typing import Optional, Union
 
 import numpy as np
 import sympy as sp
-from sympy import sympify
 from werkzeug.utils import cached_property
+
+from app.models.expressions import parse_monomials, parse_polynomial
 
 
 class Barrier:
@@ -91,7 +92,7 @@ class Barrier:
         if monomials is None:
             return None
 
-        return [sympify(term) for term in monomials['terms']]
+        return parse_monomials(monomials['terms'])
 
     @cached_property
     def Theta_x(self) -> list:
@@ -107,7 +108,7 @@ class Barrier:
         if np.array(theta_x).shape != (self.N, self.dimensionality):
             raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(theta_x).shape}")
 
-        return [[sympify(term) for term in row] for row in theta_x]
+        return [[parse_polynomial(term) for term in row] for row in theta_x]
 
     @cached_property
     def N(self):

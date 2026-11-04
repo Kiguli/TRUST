@@ -35,6 +35,12 @@ def create_app(test_config=None):
     app.config["FLASK_ENV"] = os.environ.get("FLASK_ENV")
     app.config["PREFERRED_URL_SCHEME"] = os.environ.get("PREFERRED_URL_SCHEME")
 
+    # Reject oversized requests before they are read (the example datasets are a few kB each).
+    if app.config.get("MAX_CONTENT_LENGTH") is None:
+        app.config["MAX_CONTENT_LENGTH"] = int(
+            os.environ.get("MAX_CONTENT_LENGTH", 16 * 1024 * 1024)
+        )
+
     try:
         os.makedirs(app.instance_path)
     except OSError:
