@@ -1,0 +1,16 @@
+# Keep the build context free of VCS metadata (actions/checkout stores a GITHUB_TOKEN in
+# .git/config), local tooling and build output. `.env` is intentionally not excluded: the
+# documented Docker workflow copies .env.example to .env before building.
+.git
+.github
+.idea
+.DS_Store
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+**/node_modules
+vite/dist
+docs/_build
+storage/uploads
