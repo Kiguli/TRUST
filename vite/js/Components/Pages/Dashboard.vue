@@ -451,7 +451,7 @@ onMounted(() => {
                         </H3>
                         <CopyPre
                             :title="(form.mode !== 'Stability' ? 'B(x) = ' : 'V(x) = ') + Object.keys(result.function?.expression)[0]">
-                            <span v-html="Object.values(result.function?.expression)[0]"></span>
+                            {{ Object.values(result.function?.expression)[0] }}
                         </CopyPre>
                         <CopyPre title="P">
 
@@ -462,7 +462,7 @@ onMounted(() => {
                     <div class="my-6">
                         <H3>Controller</H3>
                         <CopyPre :title="'u = ' + Object.keys(result.controller.expression)[0]">
-                            <span v-html="Object.values(result.controller.expression)[0]"></span>
+                            {{ Object.values(result.controller.expression)[0] }}
                         </CopyPre>
                         <CopyPre :title="Object.keys(result.controller.values)[0]">
                             {{ Object.values(result.controller.values)[0] }}

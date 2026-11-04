@@ -12,8 +12,10 @@ from SumOfSquares import (
 )
 from picos import Constant, I, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
-from sympy import Matrix, sympify
+from sympy import Matrix
 from werkzeug.utils import cached_property
+
+from app.models.expressions import parse_monomials, parse_polynomial
 
 
 class Stability:
@@ -511,7 +513,7 @@ class Stability:
 
         return constraints
 
-    @property
+    @cached_property
     def M_x(self) -> Union[list, None]:
         """
         Return the monomial terms.
@@ -520,7 +522,7 @@ class Stability:
         if monomials is None:
             return None
 
-        return [sympify(term) for term in monomials['terms']]
+        return parse_monomials(monomials['terms'])
 
     @property
     def Theta_x(self) -> list:
@@ -536,7 +538,7 @@ class Stability:
         if np.array(theta_x).shape != (self.N, self.dimensionality):
             raise ValueError(f"Theta_x should be of shape ({self.N}, {self.dimensionality}), not {np.array(theta_x).shape}")
 
-        return [[sympify(term) for term in row] for row in theta_x]
+        return [[parse_polynomial(term) for term in row] for row in theta_x]
 
     @staticmethod
     def __substitute_for_values(variables, H_x: Matrix, Z: Matrix) -> tuple:

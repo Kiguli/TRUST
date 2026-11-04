@@ -1,23 +1,48 @@
 import csv
+import io
 import json
 import os
 import tempfile
+import threading
 import tracemalloc
+from contextlib import contextmanager
 from time import time
-from typing import Any
+from typing import Any, Optional
 
+import mosek
 import numpy as np
 import sympy as sp
 from flask import Blueprint, request
 from flask_inertia import lazy_include, render_inertia
 from picos import SolutionFailure
+from picos.solvers.solver_mosek import MOSEKSolver
 from sentry_sdk import capture_exception
 from werkzeug.datastructures.file_storage import FileStorage
 
+from app.models.expressions import ExpressionError, parse_monomials
 from app.models.safety_barrier import SafetyBarrier
 from app.models.stability import Stability
 
 bp = Blueprint("dashboard", __name__)
+
+DATASET_KEYS = ("X0", "U0", "X1")
+"""Form fields that may hold an uploaded dataset file."""
+
+LICENSE_KEY = "mosek_lic"
+"""Form field that holds the uploaded MOSEK licence file."""
+
+MAX_DIMENSIONS = 100
+"""Largest state dimension accepted when validating monomials."""
+
+# Each calculation installs its own MOSEK environment in PICOS, which PICOS shares process-wide, and
+# tracemalloc is process-wide too, so only one calculation may run at a time in each worker process.
+# This keeps one user's licence from being used for another user's calculation if the server runs
+# threaded workers.
+_calculation_lock = threading.Lock()
+
+
+class UploadError(ValueError):
+    """Raised when an uploaded dataset file cannot be read."""
 
 
 def calculate_result() -> dict:
@@ -29,34 +54,46 @@ def calculate_result() -> dict:
 
     data = request.form.to_dict()
 
-    tracemalloc.start()
+    with _calculation_lock:
+        tracemalloc.start()
 
-    start_time = time()
+        start_time = time()
 
-    try:
-        data = _parse_uploaded_files(data)
+        try:
+            data = _parse_uploaded_files(data)
 
-        if data["mode"] == "Stability":
-            results = Stability(data).calculate()
-        else:
-            results = SafetyBarrier(data).calculate()
-    except SolutionFailure as e:
-        results = {
-            "error": "Solution Failure",
-            "description": str(e),
-        }
-    except Exception as e:
-        # raise e
-        results = {
-            "error": "An unknown error occurred.",
-            "description": str(e),
-        }
-        capture_exception(e)
+            with _mosek_license(request.files.get(LICENSE_KEY)):
+                if data["mode"] == "Stability":
+                    results = Stability(data).calculate()
+                else:
+                    results = SafetyBarrier(data).calculate()
+        except UploadError as e:
+            results = {
+                "error": "Unable to parse uploaded file(s).",
+                "description": str(e),
+            }
+        except ExpressionError as e:
+            results = {
+                "error": "Invalid polynomial expression.",
+                "description": str(e),
+            }
+        except SolutionFailure as e:
+            results = {
+                "error": "Solution Failure",
+                "description": str(e),
+            }
+        except Exception as e:
+            # raise e
+            results = {
+                "error": "An unknown error occurred.",
+                "description": str(e),
+            }
+            capture_exception(e)
 
-    time_taken = time() - start_time
+        time_taken = time() - start_time
 
-    current, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
 
     results["time_taken"] = f"{time_taken:.5f}s"
     results["memory_used"] = f"{peak / 10**6:.1f}MB"
@@ -64,46 +101,25 @@ def calculate_result() -> dict:
     return results
 
 
-def validate_monomials() -> bool | tuple[Any, list[Any]]:
+def validate_monomials() -> bool | dict[str, Any]:
     """
     Validate the user's input monomials.
     Monomials should be a list of strings separated by a semicolon, e.g. x1; 2 * x2; x3 - x1
-    Each monomial term should be a valid mathematical expression, e.g. 2 * x2
+    Each monomial term should be a valid polynomial expression, e.g. 2 * x2
     Each term should also only represent a valid dimension, e.g. x1 to xn, where n is the dimension
     of the dataset.
 
-    :return: Whether the monomials are valid
+    :return: The monomials if they are valid, otherwise False
     """
 
-    monomials = request.get_json()["monomials"]
-    if not monomials["terms"]:
+    monomials = _get_monomials_payload()
+    if monomials is None:
         return False
 
-    # Use sympy to validate the monomials
-    terms = []
-    for monomial in monomials["terms"]:
-        try:
-            terms.append(sp.sympify(monomial))
-        except sp.SympifyError:
-            return False
-
-    # Get the x terms, and check if they are in the correct format
-    # i.e. x1 to xn, where n is the number of dimensions
-    # e.g. x1**2; x2 + 2 is valid if dimensions = 2
-    dimensions = monomials["dimensions"]
-    for term in terms:
-        try:
-            atoms = term.atoms(sp.Symbol)
-        except AttributeError:
-            break
-
-        for x in atoms:
-            if (
-                not x.name.startswith("x")
-                or not x.name[1:].isdigit()
-                or int(x.name[1:]) > dimensions
-            ):
-                return False
+    try:
+        parse_monomials(monomials["terms"], max_index=monomials["dimensions"])
+    except ExpressionError:
+        return False
 
     return monomials
 
@@ -113,19 +129,13 @@ def generate_theta_x():
     Generate the Theta_x matrix for a given list of terms and variables.
     """
 
-    monomials = request.get_json()["monomials"]
-    if not monomials["terms"]:
+    monomials = _get_monomials_payload()
+    if monomials is None:
         return False
 
-    # Use sympy to validate the monomials
-    terms = []
-    for monomial in monomials["terms"]:
-        try:
-            terms.append(sp.sympify(monomial))
-        except sp.SympifyError:
-            return False
-
-    if not terms:
+    try:
+        terms = parse_monomials(monomials["terms"], max_index=monomials["dimensions"])
+    except ExpressionError:
         return False
 
     variables = [sp.Symbol(f"x{i}") for i in range(1, monomials["dimensions"] + 1)]
@@ -182,53 +192,122 @@ def index():
     )
 
 
+def _get_monomials_payload() -> Optional[dict]:
+    """
+    Return the ``monomials`` object of a JSON request, if it is well formed.
+
+    It must contain a non-empty list of ``terms`` and the number of ``dimensions``.
+    """
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return None
+
+    monomials = payload.get("monomials")
+    if not isinstance(monomials, dict):
+        return None
+
+    terms = monomials.get("terms")
+    if not isinstance(terms, list) or not terms:
+        return None
+
+    dimensions = monomials.get("dimensions")
+    if (
+        isinstance(dimensions, bool)
+        or not isinstance(dimensions, int)
+        or not 1 <= dimensions <= MAX_DIMENSIONS
+    ):
+        return None
+
+    return monomials
+
+
 def _parse_uploaded_files(data: dict) -> dict:
     """
-    Parse the uploaded files and add them to the data dictionary.
+    Parse the uploaded dataset files and add them to the data dictionary.
+
+    Files are parsed in memory. The client-supplied filename is only used to choose the format,
+    and is never used as a path on disk.
 
     :param data: The data dictionary
     """
 
-    for key, file in request.files.items():
+    for key in DATASET_KEYS:
+        file = request.files.get(key)
         if not file or not file.filename:
             continue
 
-        # Create the `storage/uploads` subfolder if it doesn't exist:
-        if not os.path.exists("storage/uploads"):
-            os.makedirs("storage/uploads")
+        extension = os.path.splitext(file.filename)[1].lower()
+        if extension not in (".csv", ".json", ".txt"):
+            raise UploadError(f"{key}: unsupported file type. Please upload a .csv, .json or .txt file.")
 
-        # If file is MOSEK.lic, save it to a subfolder in uploads that we can then add to the env path.
-        if key == "mosek_lic":
-            __load_mosek_license(file)
-        else:
-            file.save(f"storage/uploads/{file.filename}")
+        try:
+            contents = file.stream.read().decode("utf-8-sig")
 
-            with open(f"storage/uploads/{file.filename}", "r") as f:
-                # Parse CSV, JSON or txt files
-                if file.filename.endswith(".csv"):
-                    data[key] = np.array(list(csv.reader(f)))
-                elif file.filename.endswith(".json"):
-                    data[key] = json.load(f)
-                elif file.filename.endswith(".txt"):
-                    data[key] = f.read().splitlines()
-
-            # Remove the file from disk
-            os.remove(f"storage/uploads/{file.filename}")
+            # Parse CSV, JSON or txt files
+            if extension == ".csv":
+                data[key] = np.array(list(csv.reader(io.StringIO(contents, newline=""))))
+            elif extension == ".json":
+                data[key] = json.loads(contents)
+            else:
+                data[key] = contents.splitlines()
+        except (UnicodeDecodeError, ValueError, csv.Error) as e:
+            raise UploadError(f"{key}: {e}") from None
 
     return data
 
 
-def __load_mosek_license(_file: FileStorage) -> bool:
+@contextmanager
+def _mosek_license(file: Optional[FileStorage]):
     """
-    Read the MOSEK licence file into this request.
+    Run the calculation with its own MOSEK environment, licensed by the uploaded licence if any.
+
+    The uploaded licence is written to a private temporary file, which is deleted when the
+    calculation ends, so a user's licence is neither left on the server nor used for anyone else.
+    Without an upload, MOSEK searches for a licence as usual (MOSEKLM_LICENSE_FILE, then
+    ~/mosek/mosek.lic), so a licence installed on the server keeps working.
     """
 
-    with tempfile.NamedTemporaryFile(delete=False) as temp:
-        license_contents = _file.stream.read()
-        temp.write(license_contents)
+    path = None
 
-        os.environ["MOSEKLM_LICENSE_FILE"] = temp.name
+    try:
+        if file is not None and file.filename:
+            descriptor, path = tempfile.mkstemp(prefix="mosek-", suffix=".lic")
+            with os.fdopen(descriptor, "wb") as license_file:
+                license_file.write(file.stream.read())
 
-        temp.close()
+        with _mosek_environment(path):
+            yield
+    finally:
+        if path is not None:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
 
-    return True
+
+@contextmanager
+def _mosek_environment(license_path: Optional[str]):
+    """
+    Make PICOS solve with a new MOSEK environment until the block ends.
+
+    PICOS keeps one MOSEK environment for every solve in the process, and MOSEK only reads the
+    licence location when an environment is created. Reusing it would ignore every licence
+    uploaded after a worker's first calculation, and a licence it had checked out would stay
+    available to other users' calculations. Afterwards the environment's licences are checked in
+    and the environment is removed, so the next solve starts from a new one.
+    """
+
+    environment = mosek.Env(licensefile=license_path)
+    MOSEKSolver.mosekEnvironment = environment
+
+    try:
+        yield environment
+    finally:
+        if MOSEKSolver.__dict__.get("mosekEnvironment") is environment:
+            del MOSEKSolver.mosekEnvironment
+
+        try:
+            environment.checkinall()
+        except mosek.Error:
+            pass

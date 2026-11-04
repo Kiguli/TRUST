@@ -12,11 +12,16 @@ concurrency:
   group: deploy-${{ github.event_name }}-${{ github.event.pull_request.number || 'production' }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Check deployment
         run: bash scripts/check-deploy.sh
 
@@ -33,19 +38,30 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          # Output of `ssh-keyscan -p 2202 <host>`, verified out of band.
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
 
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/github
           chmod 600 ~/.ssh/github
+          if [[ -n "$SSH_KNOWN_HOSTS" ]]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/deploy_known_hosts
+            host_key_checking=yes
+          else
+            echo "::warning title=SSH host key not pinned::Add the output of 'ssh-keyscan -p 2202 <host>' as the SSH_KNOWN_HOSTS repository secret so deployments verify the server's identity."
+            host_key_checking=accept-new
+          fi
           cat >> ~/.ssh/config <<EOF
-          Host target 
+          Host target
             Hostname $SSH_HOST
             User $SSH_USER
             Port 2202
             IdentityFile ~/.ssh/github
             LogLevel ERROR
-            StrictHostKeyChecking no
+            StrictHostKeyChecking $host_key_checking
+            UserKnownHostsFile ~/.ssh/deploy_known_hosts
           EOF
 
       - name: Deploy isolated release

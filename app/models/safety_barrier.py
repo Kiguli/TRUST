@@ -15,7 +15,7 @@ from SumOfSquares import (
 from picos import Constant, I, Problem, RealVariable, SolutionFailure, SymmetricVariable
 from picos.constraints import Constraint
 from soupsieve.util import deprecated
-from sympy import Matrix, simplify, sympify
+from sympy import Matrix, simplify
 
 from app.models.barrier import Barrier
 
